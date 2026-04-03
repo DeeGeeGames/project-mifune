@@ -11,11 +11,13 @@ export type Turret = {
 	readonly range: number;
 	readonly fireRate: number;
 	readonly lastFiredAt: number;
+	readonly aimAngle: number;
 };
 
 export type Enemy = {
 	readonly id: EntityId;
 	readonly position: Vec2;
+	readonly velocity: Vec2;
 	readonly speed: number;
 	readonly hp: number;
 };

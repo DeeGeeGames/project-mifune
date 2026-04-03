@@ -33,9 +33,8 @@ export function leadTarget(
 	enemy: Enemy,
 	bulletSpeed: number,
 ): Vec2 {
-	// Enemy velocity is purely leftward
-	const ex = -enemy.speed;
-	const ey = 0;
+	const ex = enemy.velocity.x;
+	const ey = enemy.velocity.y;
 	const dx = enemy.position.x - from.x;
 	const dy = enemy.position.y - from.y;
 

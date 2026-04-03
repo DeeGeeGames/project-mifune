@@ -2,12 +2,33 @@ import type { Enemy, GameState } from "../types.ts";
 import {
 	ENEMY_HP,
 	ENEMY_SPEED,
-	SPAWN_X,
-	SPAWN_Y_MIN,
-	SPAWN_Y_MAX,
+	CANVAS_WIDTH,
+	GROUND_Y,
+	TARGET_X,
+	TARGET_Y,
 	WAVE_INTERMISSION,
 } from "../config.ts";
 import { makeId, createNextWave } from "../state.ts";
+
+const SPAWN_MARGIN = 40;
+
+function randomPerimeterPoint(): { x: number; y: number } {
+	// Spawn from top edge, or left/right sides above the ground
+	const edge = Math.floor(Math.random() * 3); // 0=top, 1=right, 2=left
+	const along = Math.random();
+	return [
+		{ x: SPAWN_MARGIN + along * (CANVAS_WIDTH - SPAWN_MARGIN * 2), y: -SPAWN_MARGIN },
+		{ x: CANVAS_WIDTH + SPAWN_MARGIN, y: SPAWN_MARGIN + along * (GROUND_Y - SPAWN_MARGIN * 2) },
+		{ x: -SPAWN_MARGIN, y: SPAWN_MARGIN + along * (GROUND_Y - SPAWN_MARGIN * 2) },
+	][edge] ?? { x: CANVAS_WIDTH + SPAWN_MARGIN, y: GROUND_Y / 2 };
+}
+
+function velocityToward(from: { x: number; y: number }, speed: number): { x: number; y: number } {
+	const dx = TARGET_X - from.x;
+	const dy = TARGET_Y - from.y;
+	const mag = Math.sqrt(dx * dx + dy * dy);
+	return { x: (dx / mag) * speed, y: (dy / mag) * speed };
+}
 
 export function tickWaves(
 	state: GameState,
@@ -22,10 +43,7 @@ export function tickWaves(
 			return { state: { ...state, wave: nextWave }, spawned: [] };
 		}
 		return {
-			state: {
-				...state,
-				wave: { ...wave, intermissionTimer: remaining },
-			},
+			state: { ...state, wave: { ...wave, intermissionTimer: remaining } },
 			spawned: [],
 		};
 	}
@@ -55,10 +73,12 @@ export function tickWaves(
 		};
 	}
 
-	const y = SPAWN_Y_MIN + Math.random() * (SPAWN_Y_MAX - SPAWN_Y_MIN);
+	const position = randomPerimeterPoint();
+	const velocity = velocityToward(position, ENEMY_SPEED);
 	const enemy: Enemy = {
 		id: makeId(),
-		position: { x: SPAWN_X, y },
+		position,
+		velocity,
 		speed: ENEMY_SPEED,
 		hp: ENEMY_HP,
 	};

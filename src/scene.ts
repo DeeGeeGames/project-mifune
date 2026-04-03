@@ -95,6 +95,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		pointerPosition,
 		pointer.isDown && !rightClicked,
 		time,
+		delta,
 	);
 	state = {
 		...turretResult.state,

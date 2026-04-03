@@ -6,13 +6,14 @@ import {
 	TURRET_RANGE,
 	ENEMY_RADIUS,
 	BULLET_RADIUS,
-	DEFENSE_X,
-	DEFENSE_HEIGHT,
-	DEFENSE_Y,
+	TARGET_X,
+	TARGET_Y,
+	TARGET_RADIUS,
 	DEFENSE_HP,
+	GROUND_Y,
+	CANVAS_WIDTH,
+	BULLET_SPEED,
 } from "./config.ts";
-import { aimAngle, findNearestEnemy, leadTarget } from "./systems/targeting.ts";
-import { BULLET_SPEED } from "./config.ts";
 
 type SpriteRegistry = {
 	readonly turretBodies: Map<EntityId, Phaser.GameObjects.Arc>;
@@ -20,6 +21,8 @@ type SpriteRegistry = {
 	readonly turretRangeRings: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly enemies: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly bullets: Map<EntityId, Phaser.GameObjects.Arc>;
+	readonly ground: Phaser.GameObjects.Rectangle;
+	readonly targetSprite: Phaser.GameObjects.Arc;
 	readonly defenseBar: Phaser.GameObjects.Rectangle;
 	readonly defenseText: Phaser.GameObjects.Text;
 	readonly waveText: Phaser.GameObjects.Text;
@@ -30,14 +33,21 @@ type SpriteRegistry = {
 };
 
 export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
-	const defenseBar = scene.add.rectangle(
-		DEFENSE_X,
-		DEFENSE_Y,
+	const ground = scene.add.rectangle(
+		CANVAS_WIDTH / 2,
+		GROUND_Y + 6,
+		CANVAS_WIDTH,
 		12,
-		DEFENSE_HEIGHT,
-		0xff4444,
+		0x445544,
 	);
-	defenseBar.setDepth(1);
+	ground.setDepth(2);
+
+	const targetSprite = scene.add.circle(TARGET_X, TARGET_Y, TARGET_RADIUS, 0xffaa00);
+	targetSprite.setStrokeStyle(3, 0xffffff);
+	targetSprite.setDepth(5);
+
+	const defenseBar = scene.add.rectangle(TARGET_X, TARGET_Y - TARGET_RADIUS - 14, 40, 6, 0x44ff44);
+	defenseBar.setDepth(6);
 
 	const defenseText = scene.add.text(10, 10, "", {
 		fontSize: "18px",
@@ -96,6 +106,8 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		turretRangeRings: new Map(),
 		enemies: new Map(),
 		bullets: new Map(),
+		ground,
+		targetSprite,
 		defenseBar,
 		defenseText,
 		waveText,
@@ -158,13 +170,7 @@ export function syncSprites(
 		}
 
 		// Barrel
-		const nearestEnemy = findNearestEnemy(turret, state.enemies);
-		const autoAimTarget = nearestEnemy
-			? leadTarget(turret.position, nearestEnemy, BULLET_SPEED)
-			: { x: turret.position.x + 100, y: turret.position.y };
-		const aimTarget = isControlled ? pointerPosition : autoAimTarget;
-		const angle = aimAngle(turret.position, aimTarget);
-		const barrelEnd = getBarrelEnd(turret.position, angle);
+		const barrelEnd = getBarrelEnd(turret.position, turret.aimAngle);
 
 		const existingBarrel = registry.turretBarrels.get(turret.id);
 		if (existingBarrel) {
@@ -267,10 +273,14 @@ export function syncSprites(
 
 	// --- HUD ---
 	registry.defenseText.setText(`Defense: ${state.defenseHp}/${DEFENSE_HP}`);
-	registry.defenseBar.setFillStyle(
-		state.defenseHp > 3 ? 0xff4444 : 0xff0000,
-	);
-	registry.defenseBar.setScale(1, state.defenseHp / DEFENSE_HP);
+
+	const hpFraction = state.defenseHp / DEFENSE_HP;
+	const hpColor = hpFraction > 0.5 ? 0x44ff44 : hpFraction > 0.25 ? 0xffaa00 : 0xff2222;
+	registry.defenseBar.setFillStyle(hpColor);
+	registry.defenseBar.setScale(hpFraction, 1);
+
+	const targetColor = hpFraction > 0.5 ? 0xffaa00 : hpFraction > 0.25 ? 0xff6600 : 0xff2222;
+	registry.targetSprite.setFillStyle(targetColor);
 
 	const waveLabel = state.wave.betweenWaves
 		? `Wave ${state.wave.waveNumber} complete — next wave incoming`

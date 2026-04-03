@@ -1,7 +1,10 @@
 import type { GameState, DestroyedEntities } from "../types.ts";
 import {
 	BULLET_HIT_RADIUS,
-	DEFENSE_X,
+	TARGET_X,
+	TARGET_Y,
+	TARGET_RADIUS,
+	ENEMY_RADIUS,
 	CANVAS_WIDTH,
 	CANVAS_HEIGHT,
 } from "../config.ts";
@@ -12,7 +15,7 @@ export function tickMovement(state: GameState, delta: number): GameState {
 
 	const enemies = state.enemies.map((e) => ({
 		...e,
-		position: { x: e.position.x - e.speed * dt, y: e.position.y },
+		position: { x: e.position.x + e.velocity.x * dt, y: e.position.y + e.velocity.y * dt },
 	}));
 
 	const bullets = state.bullets
@@ -81,10 +84,14 @@ export function tickCombat(
 	};
 }
 
+const TARGET_POS = { x: TARGET_X, y: TARGET_Y };
+
 export function tickDefense(
 	state: GameState,
 ): { state: GameState; breachedIds: ReadonlyArray<string> } {
-	const breached = state.enemies.filter((e) => e.position.x <= DEFENSE_X);
+	const breached = state.enemies.filter(
+		(e) => distance(e.position, TARGET_POS) <= TARGET_RADIUS + ENEMY_RADIUS,
+	);
 	if (breached.length === 0) return { state, breachedIds: [] };
 
 	const breachedIds = new Set(breached.map((e) => e.id));
