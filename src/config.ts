@@ -12,7 +12,7 @@ export const TARGET_RADIUS = 20;
 export const DEFENSE_HP = 10;
 
 export const TURRET_RANGE = 300;
-export const TURRET_FIRE_RATE = 6;
+export const TURRET_FIRE_RATE = 12;
 export const TURRET_RADIUS = 18;
 export const TURRET_BARREL_LENGTH = 28;
 export const TURRET_TURN_SPEED = Math.PI / 2; // radians per second
