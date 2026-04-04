@@ -1,22 +1,50 @@
 import type { GameState, DestroyedEntities } from "../types.ts";
+import type { Runner, Vec2 } from "../types.ts";
 import {
 	BULLET_HIT_RADIUS,
 	TARGET_X,
 	TARGET_Y,
 	TARGET_RADIUS,
 	ENEMY_RADIUS,
+	ENEMY_RUNNER_AGGRO_RANGE,
 	CANVAS_WIDTH,
 	CANVAS_HEIGHT,
 } from "../config.ts";
 import { distance } from "./targeting.ts";
 
+function findNearestRunner(
+	pos: Vec2,
+	runners: ReadonlyArray<Runner>,
+): Runner | null {
+	const inRange = runners.filter((r) => distance(pos, r.position) <= ENEMY_RUNNER_AGGRO_RANGE);
+	if (inRange.length === 0) return null;
+	return inRange.reduce((closest, r) =>
+		distance(pos, r.position) < distance(pos, closest.position) ? r : closest,
+	);
+}
+
+function velocityToward(from: Vec2, to: Vec2, speed: number): Vec2 {
+	const dx = to.x - from.x;
+	const dy = to.y - from.y;
+	const mag = Math.sqrt(dx * dx + dy * dy);
+	if (mag < 1) return { x: 0, y: 0 };
+	return { x: (dx / mag) * speed, y: (dy / mag) * speed };
+}
+
 export function tickMovement(state: GameState, delta: number): GameState {
 	const dt = delta / 1000;
 
-	const enemies = state.enemies.map((e) => ({
-		...e,
-		position: { x: e.position.x + e.velocity.x * dt, y: e.position.y + e.velocity.y * dt },
-	}));
+	const enemies = state.enemies.map((e) => {
+		const nearRunner = findNearestRunner(e.position, state.runners);
+		const vel = nearRunner
+			? velocityToward(e.position, nearRunner.position, e.speed)
+			: e.velocity;
+		return {
+			...e,
+			velocity: vel,
+			position: { x: e.position.x + vel.x * dt, y: e.position.y + vel.y * dt },
+		};
+	});
 
 	const bullets = state.bullets
 		.map((b) => ({

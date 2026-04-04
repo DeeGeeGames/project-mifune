@@ -60,5 +60,7 @@ export const RUNNER_RADIUS = 10;
 export const RUNNER_COST = 30;
 export const STARTING_RUNNERS = 2;
 export const MAX_RUNNERS = 8;
+export const ENEMY_RUNNER_AGGRO_RANGE = 120;
+
 export const RUNNER_PICKUP_DISTANCE = 15;
 export const RUNNER_BASE_ARRIVE_DISTANCE = 25;
