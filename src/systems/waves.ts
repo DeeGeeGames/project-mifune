@@ -1,8 +1,10 @@
 import type { SpawnRegion, GameState } from "../types.ts";
 import {
 	WORLD_WIDTH,
-	WORLD_HEIGHT,
 	GROUND_Y,
+	TARGET_X,
+	TARGET_Y,
+	REGION_SAFE_RADIUS,
 	REGION_BASE_LIFETIME,
 	REGION_LIFETIME_SCALING,
 	REGION_MAX_LIFETIME,
@@ -20,16 +22,21 @@ import {
 } from "../config.ts";
 import { makeId, createNextWave } from "../state.ts";
 
-const SPAWN_MARGIN = 40;
+const MARGIN = 60;
+const MAX_PLACEMENT_ATTEMPTS = 20;
 
-function randomPerimeterPoint(): { x: number; y: number } {
-	const edge = Math.floor(Math.random() * 3); // top, right, left — all above ground
-	const along = Math.random();
-	return [
-		{ x: SPAWN_MARGIN + along * (WORLD_WIDTH - SPAWN_MARGIN * 2), y: -SPAWN_MARGIN },
-		{ x: WORLD_WIDTH + SPAWN_MARGIN, y: SPAWN_MARGIN + along * (GROUND_Y - SPAWN_MARGIN * 2) },
-		{ x: -SPAWN_MARGIN, y: SPAWN_MARGIN + along * (GROUND_Y - SPAWN_MARGIN * 2) },
-	][edge] ?? { x: WORLD_WIDTH + SPAWN_MARGIN, y: GROUND_Y / 2 };
+function randomRegionPosition(): { x: number; y: number } {
+	for (let i = 0; i < MAX_PLACEMENT_ATTEMPTS; i++) {
+		const x = MARGIN + Math.random() * (WORLD_WIDTH - MARGIN * 2);
+		const y = MARGIN + Math.random() * (GROUND_Y - MARGIN * 2);
+		const dx = x - TARGET_X;
+		const dy = y - TARGET_Y;
+		if (dx * dx + dy * dy > REGION_SAFE_RADIUS * REGION_SAFE_RADIUS) {
+			return { x, y };
+		}
+	}
+	// Fallback: place at a corner
+	return { x: MARGIN, y: MARGIN };
 }
 
 function regionParamsForWave(waveNumber: number) {
@@ -45,7 +52,7 @@ function regionParamsForWave(waveNumber: number) {
 }
 
 function createRegion(waveNumber: number): SpawnRegion {
-	const position = randomPerimeterPoint();
+	const position = randomRegionPosition();
 	const params = regionParamsForWave(waveNumber);
 	return {
 		id: makeId(),

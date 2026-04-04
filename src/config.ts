@@ -46,6 +46,8 @@ export const WAVE_REGION_SPAWN_INTERVAL = 2500;   // ms between region spawns wi
 export const WAVE_MAX_CONCURRENT_REGIONS = 4;
 export const WAVE_INTERMISSION = 4000;
 
+export const REGION_SAFE_RADIUS = 400;
+
 export const PLACEMENT_MIN_X = 80;
 export const PLACEMENT_MAX_X = WORLD_WIDTH - 80;
 

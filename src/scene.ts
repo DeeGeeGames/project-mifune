@@ -39,7 +39,6 @@ function create(this: Phaser.Scene): void {
 	if (!keyboard) throw new Error("Keyboard input not available");
 
 	const cam = this.cameras.main;
-	cam.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 	cam.centerOn(TARGET_X, TARGET_Y);
 
 	sceneState = {
@@ -63,15 +62,19 @@ function create(this: Phaser.Scene): void {
 
 	// Zoom centered on mouse
 	this.input.on("wheel", (_pointer: Phaser.Input.Pointer, _gameObjects: unknown[], _dx: number, dy: number) => {
-		const worldBefore = { x: _pointer.worldX, y: _pointer.worldY };
+		const oldZoom = cam.zoom;
 		const direction = dy < 0 ? 1 : -1;
-		const newZoom = Phaser.Math.Clamp(cam.zoom + direction * ZOOM_STEP * cam.zoom, ZOOM_MIN, ZOOM_MAX);
+		const newZoom = Phaser.Math.Clamp(oldZoom + direction * ZOOM_STEP * oldZoom, ZOOM_MIN, ZOOM_MAX);
+
+		// scrollX/scrollY is the camera center in world space.
+		// Keep the world point under the mouse fixed:
+		// worldX = scrollX + (screenX - viewportW/2) / zoom
+		// Setting equal before/after: scrollX_new = scrollX_old + (sx - w/2) * (1/oldZoom - 1/newZoom)
+		const sx = _pointer.x - VIEWPORT_WIDTH / 2;
+		const sy = _pointer.y - VIEWPORT_HEIGHT / 2;
+		cam.scrollX += sx * (1 / oldZoom - 1 / newZoom);
+		cam.scrollY += sy * (1 / oldZoom - 1 / newZoom);
 		cam.setZoom(newZoom);
-		// After zoom, recalculate where the mouse now points in world space
-		// and shift the camera so the world point under the mouse stays fixed
-		const worldAfter = cam.getWorldPoint(_pointer.x, _pointer.y);
-		cam.scrollX += worldBefore.x - worldAfter.x;
-		cam.scrollY += worldBefore.y - worldAfter.y;
 	});
 }
 
