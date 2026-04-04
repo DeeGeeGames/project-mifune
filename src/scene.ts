@@ -14,6 +14,7 @@ import { createSpriteRegistry, syncSprites } from "./render.ts";
 const ZOOM_MIN = Math.max(VIEWPORT_WIDTH / WORLD_WIDTH, VIEWPORT_HEIGHT / WORLD_HEIGHT);
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
+const PAN_SPEED = 500;
 
 type SceneState = {
 	gameState: GameState;
@@ -22,6 +23,10 @@ type SceneState = {
 		toggle: Phaser.Input.Keyboard.Key;
 		escape: Phaser.Input.Keyboard.Key;
 		buyRunner: Phaser.Input.Keyboard.Key;
+		panLeft: readonly Phaser.Input.Keyboard.Key[];
+		panRight: readonly Phaser.Input.Keyboard.Key[];
+		panUp: readonly Phaser.Input.Keyboard.Key[];
+		panDown: readonly Phaser.Input.Keyboard.Key[];
 	};
 	prevPointerDown: boolean;
 	prevToggle: boolean;
@@ -49,6 +54,10 @@ function create(this: Phaser.Scene): void {
 			toggle: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T),
 			escape: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
 			buyRunner: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
+			panLeft: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT)] as const,
+			panRight: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)] as const,
+			panUp: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP)] as const,
+			panDown: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN)] as const,
 		},
 		prevPointerDown: false,
 		prevToggle: false,
@@ -106,6 +115,12 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	} else if (!rightDown && sceneState.isPanning) {
 		sceneState = { ...sceneState, isPanning: false };
 	}
+
+	const panPx = (PAN_SPEED * delta) / (1000 * cam.zoom);
+	if (keys.panLeft.some(k => k.isDown)) cam.scrollX -= panPx;
+	if (keys.panRight.some(k => k.isDown)) cam.scrollX += panPx;
+	if (keys.panUp.some(k => k.isDown)) cam.scrollY -= panPx;
+	if (keys.panDown.some(k => k.isDown)) cam.scrollY += panPx;
 
 	const pointerJustDown = pointer.isDown && !sceneState.prevPointerDown && !rightDown;
 
