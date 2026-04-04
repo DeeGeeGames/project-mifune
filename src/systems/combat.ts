@@ -42,19 +42,28 @@ export function tickCombat(
 ): { state: GameState; destroyed: DestroyedEntities } {
 	const destroyedBulletIds = new Set<string>();
 	const enemyDamage = new Map<string, number>();
+	const regionDamage = new Map<string, number>();
 
 	state.bullets.forEach((bullet) => {
 		if (destroyedBulletIds.has(bullet.id)) return;
 
+		// Check enemies first
 		state.enemies.forEach((enemy) => {
 			if (destroyedBulletIds.has(bullet.id)) return;
-
 			if (distance(bullet.position, enemy.position) < BULLET_HIT_RADIUS) {
 				destroyedBulletIds.add(bullet.id);
-				enemyDamage.set(
-					enemy.id,
-					(enemyDamage.get(enemy.id) ?? 0) + bullet.damage,
-				);
+				enemyDamage.set(enemy.id, (enemyDamage.get(enemy.id) ?? 0) + bullet.damage);
+			}
+		});
+
+		if (destroyedBulletIds.has(bullet.id)) return;
+
+		// Then check regions
+		state.regions.forEach((region) => {
+			if (destroyedBulletIds.has(bullet.id)) return;
+			if (distance(bullet.position, region.position) < region.radius) {
+				destroyedBulletIds.add(bullet.id);
+				regionDamage.set(region.id, (regionDamage.get(region.id) ?? 0) + bullet.damage);
 			}
 		});
 	});
@@ -73,13 +82,33 @@ export function tickCombat(
 		})
 		.filter((e): e is NonNullable<typeof e> => e !== null);
 
+	const destroyedRegionIds = new Set<string>();
+	const regions = state.regions
+		.map((r) => {
+			const dmg = regionDamage.get(r.id) ?? 0;
+			if (dmg <= 0) return r;
+			const newHp = r.hp - dmg;
+			if (newHp <= 0) {
+				destroyedRegionIds.add(r.id);
+				return null;
+			}
+			return { ...r, hp: newHp };
+		})
+		.filter((r): r is NonNullable<typeof r> => r !== null);
+
 	const bullets = state.bullets.filter((b) => !destroyedBulletIds.has(b.id));
 
+	const destroyedEnemyPositions = state.enemies
+		.filter((e) => destroyedEnemyIds.has(e.id))
+		.map((e) => e.position);
+
 	return {
-		state: { ...state, enemies, bullets },
+		state: { ...state, enemies, regions, bullets },
 		destroyed: {
 			bulletIds: [...destroyedBulletIds],
 			enemyIds: [...destroyedEnemyIds],
+			regionIds: [...destroyedRegionIds],
+			destroyedEnemyPositions,
 		},
 	};
 }

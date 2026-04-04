@@ -1,9 +1,13 @@
 import Phaser from "phaser";
-import type { GameState, ControlMode } from "./types.ts";
-import { createInitialState } from "./state.ts";
+import type { GameState } from "./types.ts";
+import { TURRET_COST, RUNNER_COST, MAX_RUNNERS } from "./config.ts";
+import { createInitialState, createRunner } from "./state.ts";
 import { tickWaves } from "./systems/waves.ts";
+import { tickRegions } from "./systems/regions.ts";
 import { tickTurrets, isValidPlacement, createTurret } from "./systems/turrets.ts";
 import { tickMovement, tickCombat, tickDefense } from "./systems/combat.ts";
+import { tickResourceDrops } from "./systems/resources.ts";
+import { tickRunners, tickRunnerDeath } from "./systems/runners.ts";
 import { findClickedTurret, resolveControlMode } from "./systems/input.ts";
 import { createSpriteRegistry, syncSprites } from "./render.ts";
 
@@ -13,10 +17,12 @@ type SceneState = {
 	keys: {
 		toggle: Phaser.Input.Keyboard.Key;
 		escape: Phaser.Input.Keyboard.Key;
+		buyRunner: Phaser.Input.Keyboard.Key;
 	};
 	prevPointerDown: boolean;
 	prevToggle: boolean;
 	prevEscape: boolean;
+	prevBuyRunner: boolean;
 };
 
 let sceneState: SceneState | null = null;
@@ -31,10 +37,12 @@ function create(this: Phaser.Scene): void {
 		keys: {
 			toggle: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T),
 			escape: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
+			buyRunner: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
 		},
 		prevPointerDown: false,
 		prevToggle: false,
 		prevEscape: false,
+		prevBuyRunner: false,
 	};
 
 	this.input.mouse?.disableContextMenu();
@@ -46,7 +54,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	let state = sceneState.gameState;
 
 	if (state.gameOver) {
-		syncSprites(this, sceneState.registry, state, { x: 0, y: 0 });
+		syncSprites(this, sceneState.registry, state, { x: 0, y: 0 }, time);
 		return;
 	}
 
@@ -56,6 +64,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	const rightClicked = pointer.rightButtonDown();
 	const toggleJustPressed = keys.toggle.isDown && !sceneState.prevToggle;
 	const escapeJustPressed = keys.escape.isDown && !sceneState.prevEscape;
+	const buyRunnerJustPressed = keys.buyRunner.isDown && !sceneState.prevBuyRunner;
 
 	// Resolve control mode
 	const clickedTurret =
@@ -73,21 +82,43 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	);
 	state = { ...state, controlMode: newControlMode };
 
-	// Handle turret placement
+	// Handle turret placement (costs currency)
 	if (
 		pointerJustDown &&
 		!rightClicked &&
 		newControlMode.tag === "none" &&
 		!clickedTurret &&
+		state.currency >= TURRET_COST &&
 		isValidPlacement(pointerPosition, state.turrets)
 	) {
 		const turret = createTurret(pointerPosition);
-		state = { ...state, turrets: [...state.turrets, turret] };
+		state = {
+			...state,
+			turrets: [...state.turrets, turret],
+			currency: state.currency - TURRET_COST,
+		};
 	}
 
-	// Tick waves (spawn enemies)
+	// Handle runner purchase
+	if (
+		buyRunnerJustPressed &&
+		state.currency >= RUNNER_COST &&
+		state.runners.length < MAX_RUNNERS
+	) {
+		state = {
+			...state,
+			runners: [...state.runners, createRunner()],
+			currency: state.currency - RUNNER_COST,
+		};
+	}
+
+	// Tick waves (spawn regions)
 	const waveResult = tickWaves(state, delta);
 	state = waveResult.state;
+
+	// Tick regions (age, spawn enemies)
+	const regionResult = tickRegions(state, delta);
+	state = regionResult.state;
 
 	// Tick turrets (fire bullets)
 	const turretResult = tickTurrets(
@@ -105,24 +136,34 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	// Tick movement
 	state = tickMovement(state, delta);
 
-	// Tick combat
+	// Tick combat (bullets vs enemies and regions)
 	const combatResult = tickCombat(state);
 	state = combatResult.state;
+
+	// Drop resources from dead enemies
+	state = tickResourceDrops(state, combatResult.destroyed.destroyedEnemyPositions);
+
+	// Tick runners (collect resources, return to base)
+	state = tickRunners(state, delta);
+
+	// Kill runners touched by enemies
+	const runnerDeathResult = tickRunnerDeath(state);
+	state = runnerDeathResult.state;
 
 	// Tick defense breach
 	const defenseResult = tickDefense(state);
 	state = defenseResult.state;
 
 	// Sync to Phaser
-	syncSprites(this, sceneState.registry, state, pointerPosition);
+	syncSprites(this, sceneState.registry, state, pointerPosition, time);
 
-	// Store state for next frame
 	sceneState = {
 		...sceneState,
 		gameState: state,
 		prevPointerDown: pointer.isDown,
 		prevToggle: keys.toggle.isDown,
 		prevEscape: keys.escape.isDown,
+		prevBuyRunner: keys.buyRunner.isDown,
 	};
 }
 

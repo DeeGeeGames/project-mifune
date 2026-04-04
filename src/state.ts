@@ -1,11 +1,13 @@
-import type { EntityId, GameState, WaveState } from "./types.ts";
+import type { EntityId, GameState, Runner, WaveState } from "./types.ts";
 import {
 	DEFENSE_HP,
-	BASE_ENEMIES_PER_WAVE,
-	ENEMIES_PER_WAVE_SCALING,
-	BASE_SPAWN_INTERVAL,
-	SPAWN_INTERVAL_DECAY,
-	MIN_SPAWN_INTERVAL,
+	STARTING_CURRENCY,
+	STARTING_RUNNERS,
+	RUNNER_SPEED,
+	RUNNER_HP,
+	TARGET_X,
+	TARGET_Y,
+	WAVE_REGIONS_BASE,
 } from "./config.ts";
 
 let nextId = 0;
@@ -15,23 +17,15 @@ export function makeId(): EntityId {
 	return `e${nextId}`;
 }
 
-function computeWaveEnemies(waveNumber: number): number {
-	return BASE_ENEMIES_PER_WAVE + waveNumber * ENEMIES_PER_WAVE_SCALING;
-}
-
-function computeSpawnInterval(waveNumber: number): number {
-	return Math.max(
-		MIN_SPAWN_INTERVAL,
-		BASE_SPAWN_INTERVAL * Math.pow(SPAWN_INTERVAL_DECAY, waveNumber),
-	);
+function regionsForWave(waveNumber: number): number {
+	return WAVE_REGIONS_BASE + waveNumber;
 }
 
 export function createInitialWave(): WaveState {
 	return {
 		waveNumber: 1,
-		enemiesRemaining: computeWaveEnemies(1),
-		spawnTimer: 0,
-		spawnInterval: computeSpawnInterval(1),
+		regionsToSpawn: regionsForWave(1),
+		regionSpawnTimer: 0,
 		betweenWaves: false,
 		intermissionTimer: 0,
 	};
@@ -41,12 +35,25 @@ export function createNextWave(current: WaveState): WaveState {
 	const next = current.waveNumber + 1;
 	return {
 		waveNumber: next,
-		enemiesRemaining: computeWaveEnemies(next),
-		spawnTimer: 0,
-		spawnInterval: computeSpawnInterval(next),
+		regionsToSpawn: regionsForWave(next),
+		regionSpawnTimer: 0,
 		betweenWaves: false,
 		intermissionTimer: 0,
 	};
+}
+
+export function createRunner(): Runner {
+	return {
+		id: makeId(),
+		position: { x: TARGET_X, y: TARGET_Y },
+		speed: RUNNER_SPEED,
+		hp: RUNNER_HP,
+		state: { tag: "idle" },
+	};
+}
+
+function createInitialRunners(): ReadonlyArray<Runner> {
+	return Array.from({ length: STARTING_RUNNERS }, () => createRunner());
 }
 
 export function createInitialState(): GameState {
@@ -54,9 +61,13 @@ export function createInitialState(): GameState {
 		turrets: [],
 		enemies: [],
 		bullets: [],
+		regions: [],
+		resources: [],
+		runners: createInitialRunners(),
 		controlMode: { tag: "none" },
 		wave: createInitialWave(),
 		defenseHp: DEFENSE_HP,
+		currency: STARTING_CURRENCY,
 		gameOver: false,
 	};
 }

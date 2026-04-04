@@ -22,6 +22,37 @@ export type Enemy = {
 	readonly hp: number;
 };
 
+export type SpawnRegion = {
+	readonly id: EntityId;
+	readonly position: Vec2;
+	readonly radius: number;
+	readonly hp: number;
+	readonly maxHp: number;
+	readonly spawnInterval: number;
+	readonly spawnTimer: number;
+	readonly lifetime: number;
+	readonly age: number;
+};
+
+export type Resource = {
+	readonly id: EntityId;
+	readonly position: Vec2;
+	readonly value: number;
+};
+
+export type RunnerState =
+	| { readonly tag: "idle" }
+	| { readonly tag: "collecting"; readonly targetId: EntityId }
+	| { readonly tag: "returning"; readonly carrying: number };
+
+export type Runner = {
+	readonly id: EntityId;
+	readonly position: Vec2;
+	readonly speed: number;
+	readonly hp: number;
+	readonly state: RunnerState;
+};
+
 export type Bullet = {
 	readonly id: EntityId;
 	readonly position: Vec2;
@@ -36,9 +67,8 @@ export type ControlMode =
 
 export type WaveState = {
 	readonly waveNumber: number;
-	readonly enemiesRemaining: number;
-	readonly spawnTimer: number;
-	readonly spawnInterval: number;
+	readonly regionsToSpawn: number;
+	readonly regionSpawnTimer: number;
 	readonly betweenWaves: boolean;
 	readonly intermissionTimer: number;
 };
@@ -47,25 +77,19 @@ export type GameState = {
 	readonly turrets: ReadonlyArray<Turret>;
 	readonly enemies: ReadonlyArray<Enemy>;
 	readonly bullets: ReadonlyArray<Bullet>;
+	readonly regions: ReadonlyArray<SpawnRegion>;
+	readonly resources: ReadonlyArray<Resource>;
+	readonly runners: ReadonlyArray<Runner>;
 	readonly controlMode: ControlMode;
 	readonly wave: WaveState;
 	readonly defenseHp: number;
+	readonly currency: number;
 	readonly gameOver: boolean;
-};
-
-export type InputIntent = {
-	readonly pointerPosition: Vec2;
-	readonly pointerDown: boolean;
-	readonly controlMode: ControlMode;
-	readonly placementRequested: Vec2 | null;
-};
-
-export type SpawnRequest = {
-	readonly enemies: ReadonlyArray<Enemy>;
-	readonly bullets: ReadonlyArray<Bullet>;
 };
 
 export type DestroyedEntities = {
 	readonly bulletIds: ReadonlyArray<EntityId>;
 	readonly enemyIds: ReadonlyArray<EntityId>;
+	readonly regionIds: ReadonlyArray<EntityId>;
+	readonly destroyedEnemyPositions: ReadonlyArray<Vec2>;
 };
