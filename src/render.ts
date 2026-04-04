@@ -4,6 +4,7 @@ import {
 	TURRET_RADIUS,
 	TURRET_BARREL_LENGTH,
 	TURRET_RANGE,
+	TURRET_MAX_AMMO,
 	ENEMY_RADIUS,
 	BULLET_RADIUS,
 	TARGET_X,
@@ -26,11 +27,17 @@ type RegionSprites = {
 	readonly hpBar: Phaser.GameObjects.Rectangle;
 };
 
+type TurretAmmoBar = {
+	readonly bg: Phaser.GameObjects.Rectangle;
+	readonly fill: Phaser.GameObjects.Rectangle;
+};
+
 type SpriteRegistry = {
 	readonly hudCamera: Phaser.Cameras.Scene2D.Camera;
 	readonly turretBodies: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly turretBarrels: Map<EntityId, Phaser.GameObjects.Line>;
 	readonly turretRangeRings: Map<EntityId, Phaser.GameObjects.Arc>;
+	readonly turretAmmoBars: Map<EntityId, TurretAmmoBar>;
 	readonly enemies: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly bullets: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly resources: Map<EntityId, Phaser.GameObjects.Arc>;
@@ -45,6 +52,7 @@ type SpriteRegistry = {
 	readonly controlModeText: Phaser.GameObjects.Text;
 	readonly currencyText: Phaser.GameObjects.Text;
 	readonly runnerCountText: Phaser.GameObjects.Text;
+	readonly priorityText: Phaser.GameObjects.Text;
 	readonly gameOverText: Phaser.GameObjects.Text;
 	readonly instructionText: Phaser.GameObjects.Text;
 };
@@ -138,6 +146,14 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 	runnerCountText.setDepth(10);
 	addHud(scene, mainCam, runnerCountText);
 
+	const priorityText = scene.add.text(10, 166, "", {
+		fontSize: "16px",
+		color: "#ffaa44",
+		fontFamily: "monospace",
+	});
+	priorityText.setDepth(10);
+	addHud(scene, mainCam, priorityText);
+
 	const gameOverText = scene.add.text(VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2, "GAME OVER", {
 		fontSize: "64px",
 		color: "#ff0000",
@@ -152,7 +168,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 	const instructionText = scene.add.text(
 		VIEWPORT_WIDTH / 2,
 		VIEWPORT_HEIGHT - 20,
-		"Click = place turret  |  T = control all  |  Click turret = control one  |  R = buy runner  |  ESC = release",
+		"Click = place turret  |  T = control all  |  Click turret = control one  |  R = buy runner  |  P = priority  |  ESC = release",
 		{
 			fontSize: "14px",
 			color: "#666666",
@@ -168,6 +184,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		turretBodies: new Map(),
 		turretBarrels: new Map(),
 		turretRangeRings: new Map(),
+		turretAmmoBars: new Map(),
 		enemies: new Map(),
 		bullets: new Map(),
 		resources: new Map(),
@@ -182,6 +199,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		controlModeText,
 		currencyText,
 		runnerCountText,
+		priorityText,
 		gameOverText,
 		instructionText,
 	};
@@ -269,6 +287,12 @@ export function syncSprites(
 			registry.turretBarrels.delete(id);
 			registry.turretRangeRings.get(id)?.destroy();
 			registry.turretRangeRings.delete(id);
+			const ammoBar = registry.turretAmmoBars.get(id);
+			if (ammoBar) {
+				ammoBar.bg.destroy();
+				ammoBar.fill.destroy();
+				registry.turretAmmoBars.delete(id);
+			}
 		}
 	});
 
@@ -343,6 +367,33 @@ export function syncSprites(
 			}
 		} else if (existingRange) {
 			existingRange.setVisible(false);
+		}
+
+		// Ammo bar
+		const ammoFraction = turret.ammo / TURRET_MAX_AMMO;
+		const ammoBarWidth = 30;
+		const ammoBarY = turret.position.y + TURRET_RADIUS + 8;
+		const ammoColor = ammoFraction > 0.5 ? 0x44ff44 : ammoFraction > 0.25 ? 0xffaa00 : 0xff4444;
+
+		const existingAmmoBar = registry.turretAmmoBars.get(turret.id);
+		if (existingAmmoBar) {
+			existingAmmoBar.bg.setPosition(turret.position.x, ammoBarY);
+			existingAmmoBar.fill.setPosition(
+				turret.position.x - ammoBarWidth / 2 + (ammoBarWidth * ammoFraction) / 2,
+				ammoBarY,
+			);
+			existingAmmoBar.fill.setScale(ammoFraction, 1);
+			existingAmmoBar.fill.setFillStyle(ammoColor);
+		} else {
+			const bg = scene.add.rectangle(turret.position.x, ammoBarY, ammoBarWidth, 4, 0x333333);
+			bg.setDepth(8);
+			addWorld(hudCamera, bg);
+
+			const fill = scene.add.rectangle(turret.position.x, ammoBarY, ammoBarWidth, 4, ammoColor);
+			fill.setDepth(9);
+			addWorld(hudCamera, fill);
+
+			registry.turretAmmoBars.set(turret.id, { bg, fill });
 		}
 	});
 
@@ -439,7 +490,9 @@ export function syncSprites(
 	});
 
 	state.runners.forEach((runner) => {
-		const color = runner.state.tag === "returning" ? 0x44ffaa : 0x4488ff;
+		const color = runner.state.tag === "returning" ? 0x44ffaa
+			: runner.state.tag === "resupplying" ? 0xffaa44
+			: 0x4488ff;
 		const existing = registry.runners.get(runner.id);
 		if (existing) {
 			existing.setPosition(runner.position.x, runner.position.y);
@@ -486,6 +539,7 @@ export function syncSprites(
 
 	registry.currencyText.setText(`Currency: ${state.currency}`);
 	registry.runnerCountText.setText(`Runners: ${state.runners.length}/${MAX_RUNNERS}  (R to buy: ${RUNNER_COST})`);
+	registry.priorityText.setText(`Priority: ${state.runnerPriority === "ammo" ? "AMMO" : "Resources"}  (P)`);
 
 	if (state.gameOver) {
 		registry.gameOverText.setVisible(true);

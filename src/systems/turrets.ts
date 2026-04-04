@@ -5,6 +5,7 @@ import {
 	TURRET_FIRE_RATE,
 	TURRET_SPREAD,
 	TURRET_TURN_SPEED,
+	TURRET_MAX_AMMO,
 	PLACEMENT_MAX_X,
 	PLACEMENT_MIN_X,
 	TURRET_RADIUS,
@@ -43,6 +44,7 @@ function tryFire(
 	turret: Turret,
 	time: number,
 ): { turret: Turret; bullet: Bullet } | null {
+	if (turret.ammo <= 0) return null;
 	const cooldown = 1000 / TURRET_FIRE_RATE;
 	if (time - turret.lastFiredAt < cooldown) return null;
 
@@ -54,7 +56,7 @@ function tryFire(
 	);
 
 	return {
-		turret: { ...turret, lastFiredAt: time },
+		turret: { ...turret, lastFiredAt: time, ammo: turret.ammo - 1 },
 		bullet: {
 			id: makeId(),
 			position: { ...turret.position },
@@ -135,5 +137,6 @@ export function createTurret(position: Vec2): Turret {
 		position: { x: position.x, y: GROUND_Y },
 		lastFiredAt: 0,
 		aimAngle: -Math.PI / 2,
+		ammo: TURRET_MAX_AMMO,
 	};
 }

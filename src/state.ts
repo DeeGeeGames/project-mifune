@@ -69,6 +69,7 @@ export function createInitialState(): GameState {
 		wave: createInitialWave(),
 		defenseHp: DEFENSE_HP,
 		currency: STARTING_CURRENCY,
+		runnerPriority: "resources",
 		gameOver: false,
 	};
 }

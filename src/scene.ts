@@ -23,6 +23,7 @@ type SceneState = {
 		toggle: Phaser.Input.Keyboard.Key;
 		escape: Phaser.Input.Keyboard.Key;
 		buyRunner: Phaser.Input.Keyboard.Key;
+		togglePriority: Phaser.Input.Keyboard.Key;
 		panLeft: readonly Phaser.Input.Keyboard.Key[];
 		panRight: readonly Phaser.Input.Keyboard.Key[];
 		panUp: readonly Phaser.Input.Keyboard.Key[];
@@ -32,6 +33,7 @@ type SceneState = {
 	prevToggle: boolean;
 	prevEscape: boolean;
 	prevBuyRunner: boolean;
+	prevTogglePriority: boolean;
 	isPanning: boolean;
 	panStart: { x: number; y: number };
 	cameraStart: { x: number; y: number };
@@ -54,6 +56,7 @@ function create(this: Phaser.Scene): void {
 			toggle: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T),
 			escape: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
 			buyRunner: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
+			togglePriority: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P),
 			panLeft: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT)] as const,
 			panRight: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)] as const,
 			panUp: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP)] as const,
@@ -63,6 +66,7 @@ function create(this: Phaser.Scene): void {
 		prevToggle: false,
 		prevEscape: false,
 		prevBuyRunner: false,
+		prevTogglePriority: false,
 		isPanning: false,
 		panStart: { x: 0, y: 0 },
 		cameraStart: { x: 0, y: 0 },
@@ -100,6 +104,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	const toggleJustPressed = keys.toggle.isDown && !sceneState.prevToggle;
 	const escapeJustPressed = keys.escape.isDown && !sceneState.prevEscape;
 	const buyRunnerJustPressed = keys.buyRunner.isDown && !sceneState.prevBuyRunner;
+	const priorityJustPressed = keys.togglePriority.isDown && !sceneState.prevTogglePriority;
 
 	const cam = this.cameras.main;
 	if (rightDown && !sceneState.isPanning) {
@@ -156,6 +161,13 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		};
 	}
 
+	if (priorityJustPressed) {
+		state = {
+			...state,
+			runnerPriority: state.runnerPriority === "resources" ? "ammo" : "resources",
+		};
+	}
+
 	if (
 		buyRunnerJustPressed &&
 		state.currency >= RUNNER_COST &&
@@ -189,6 +201,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		prevToggle: keys.toggle.isDown,
 		prevEscape: keys.escape.isDown,
 		prevBuyRunner: keys.buyRunner.isDown,
+		prevTogglePriority: keys.togglePriority.isDown,
 	};
 }
 

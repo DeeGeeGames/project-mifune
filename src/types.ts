@@ -10,6 +10,7 @@ export type Turret = {
 	readonly position: Vec2;
 	readonly lastFiredAt: number;
 	readonly aimAngle: number;
+	readonly ammo: number;
 };
 
 export type Enemy = {
@@ -43,7 +44,10 @@ export type Resource = {
 export type RunnerState =
 	| { readonly tag: "idle" }
 	| { readonly tag: "collecting"; readonly targetId: EntityId }
-	| { readonly tag: "returning"; readonly carrying: number };
+	| { readonly tag: "returning"; readonly carrying: number }
+	| { readonly tag: "resupplying"; readonly targetId: EntityId };
+
+export type RunnerPriority = "resources" | "ammo";
 
 export type Runner = {
 	readonly id: EntityId;
@@ -84,5 +88,6 @@ export type GameState = {
 	readonly wave: WaveState;
 	readonly defenseHp: number;
 	readonly currency: number;
+	readonly runnerPriority: RunnerPriority;
 	readonly gameOver: boolean;
 };

@@ -70,3 +70,8 @@ export const ENEMY_RUNNER_AGGRO_RANGE = 120;
 
 export const RUNNER_PICKUP_DISTANCE = 15;
 export const RUNNER_BASE_ARRIVE_DISTANCE = 25;
+
+// Ammo
+export const TURRET_MAX_AMMO = 1000;
+export const TURRET_RELOAD_THRESHOLD = 500;
+export const RUNNER_RELOAD_AMOUNT = 500;
