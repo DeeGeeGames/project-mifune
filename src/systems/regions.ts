@@ -2,7 +2,6 @@ import type { Enemy, GameState } from "../types.ts";
 import {
 	ENEMY_HP,
 	ENEMY_SPEED,
-	REGION_SPAWN_SPREAD,
 	TARGET_X,
 	TARGET_Y,
 } from "../config.ts";
@@ -36,9 +35,9 @@ export function tickRegions(
 				return { ...region, age, spawnTimer };
 			}
 
-			// Spawn an enemy with a small random offset from region center
+			// Spawn an enemy anywhere within the region's radius
 			const offsetAngle = Math.random() * Math.PI * 2;
-			const offsetDist = Math.random() * REGION_SPAWN_SPREAD;
+			const offsetDist = Math.random() * region.radius;
 			const spawnPos = {
 				x: region.position.x + Math.cos(offsetAngle) * offsetDist,
 				y: region.position.y + Math.sin(offsetAngle) * offsetDist,
