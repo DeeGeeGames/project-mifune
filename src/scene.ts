@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { GameState } from "./types.ts";
-import { TURRET_COST, RUNNER_COST, MAX_RUNNERS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TARGET_X, TARGET_Y } from "./config.ts";
+import { TURRET_COST, RUNNER_COST, MAX_RUNNERS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, TARGET_X, TARGET_Y } from "./config.ts";
 import { createInitialState, createRunner } from "./state.ts";
 import { tickWaves } from "./systems/waves.ts";
 import { tickRegions } from "./systems/regions.ts";
@@ -11,7 +11,7 @@ import { tickRunners, tickRunnerDeath } from "./systems/runners.ts";
 import { findClickedTurret, resolveControlMode } from "./systems/input.ts";
 import { createSpriteRegistry, syncSprites } from "./render.ts";
 
-const ZOOM_MIN = 0.3;
+const ZOOM_MIN = Math.max(VIEWPORT_WIDTH / WORLD_WIDTH, VIEWPORT_HEIGHT / WORLD_HEIGHT);
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.1;
 
@@ -39,6 +39,7 @@ function create(this: Phaser.Scene): void {
 	if (!keyboard) throw new Error("Keyboard input not available");
 
 	const cam = this.cameras.main;
+	cam.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 	cam.centerOn(TARGET_X, TARGET_Y);
 
 	sceneState = {

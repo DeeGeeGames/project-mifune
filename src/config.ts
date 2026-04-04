@@ -11,7 +11,7 @@ export const TARGET_Y = GROUND_Y;
 export const TARGET_RADIUS = 20;
 export const DEFENSE_HP = 10;
 
-export const TURRET_RANGE = 300;
+export const TURRET_RANGE = 600;
 export const TURRET_FIRE_RATE = 12;
 export const TURRET_RADIUS = 18;
 export const TURRET_BARREL_LENGTH = 28;
@@ -56,7 +56,7 @@ export const TURRET_SPREAD = 0.08;
 // Economy
 export const TURRET_COST = 50;
 export const STARTING_CURRENCY = 100;
-export const RESOURCE_DROP_VALUE = 15;
+export const RESOURCE_DROP_VALUE = 5;
 
 // Runners
 export const RUNNER_SPEED = 120;
