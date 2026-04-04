@@ -7,6 +7,7 @@ import {
 	TARGET_RADIUS,
 	ENEMY_RADIUS,
 	ENEMY_RUNNER_AGGRO_RANGE,
+	ENEMY_MOMENTUM_DECAY,
 	WORLD_WIDTH,
 	WORLD_HEIGHT,
 } from "../config.ts";
@@ -36,13 +37,21 @@ export function tickMovement(state: GameState, delta: number): GameState {
 
 	const enemies = state.enemies.map((e) => {
 		const nearRunner = findNearestRunner(e.position, state.runners);
-		const vel = nearRunner
+		const baseVel = nearRunner
 			? velocityToward(e.position, nearRunner.position, e.speed)
 			: e.velocity;
+
+		// Blend spawn momentum into movement
+		const mf = e.momentumFactor;
+		const moveX = baseVel.x * (1 - mf) + e.spawnMomentum.x * mf;
+		const moveY = baseVel.y * (1 - mf) + e.spawnMomentum.y * mf;
+		const newMf = Math.max(0, mf - ENEMY_MOMENTUM_DECAY * dt);
+
 		return {
 			...e,
-			velocity: vel,
-			position: { x: e.position.x + vel.x * dt, y: e.position.y + vel.y * dt },
+			velocity: baseVel,
+			momentumFactor: newMf,
+			position: { x: e.position.x + moveX * dt, y: e.position.y + moveY * dt },
 		};
 	});
 
@@ -153,7 +162,8 @@ export function tickDefense(
 
 	const breachedIds = new Set(breached.map((e) => e.id));
 	const enemies = state.enemies.filter((e) => !breachedIds.has(e.id));
-	const newHp = Math.max(0, state.defenseHp - breached.length);
+	const totalDamage = breached.reduce((sum, e) => sum + e.hp, 0);
+	const newHp = Math.max(0, state.defenseHp - totalDamage);
 
 	return {
 		state: {

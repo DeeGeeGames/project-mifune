@@ -2,6 +2,7 @@ import type { Enemy, GameState } from "../types.ts";
 import {
 	ENEMY_HP,
 	ENEMY_SPEED,
+	ENEMY_SPAWN_BURST_SPEED,
 	TARGET_X,
 	TARGET_Y,
 } from "../config.ts";
@@ -44,12 +45,21 @@ export function tickRegions(
 			};
 			const velocity = velocityToward(spawnPos, ENEMY_SPEED);
 
+			const burstAngle = Math.random() * Math.PI * 2;
+			const burstSpeed = ENEMY_SPAWN_BURST_SPEED * (0.5 + Math.random() * 0.5);
+			const spawnMomentum = {
+				x: Math.cos(burstAngle) * burstSpeed,
+				y: Math.sin(burstAngle) * burstSpeed,
+			};
+
 			spawnedEnemies.push({
 				id: makeId(),
 				position: spawnPos,
 				velocity,
 				speed: ENEMY_SPEED,
 				hp: ENEMY_HP,
+				spawnMomentum,
+				momentumFactor: 1,
 			});
 
 			return { ...region, age, spawnTimer: region.spawnInterval };

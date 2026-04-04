@@ -22,9 +22,11 @@ export const BULLET_DAMAGE = 1;
 export const BULLET_RADIUS = 4;
 export const BULLET_HIT_RADIUS = 16;
 
-export const ENEMY_SPEED = 80;
+export const ENEMY_SPEED = 100;
 export const ENEMY_HP = 4;
 export const ENEMY_RADIUS = 12;
+export const ENEMY_SPAWN_BURST_SPEED = 500;
+export const ENEMY_MOMENTUM_DECAY = 2.5; // per second — reaches ~0 in ~1s
 
 // Spawn regions
 export const REGION_BASE_LIFETIME = 6000;         // ms, wave 1
@@ -38,10 +40,10 @@ export const REGION_MAX_RADIUS = 150;
 export const REGION_BASE_SPAWN_INTERVAL = 900;    // ms between enemy spawns
 export const REGION_SPAWN_INTERVAL_SCALING = 60;  // ms reduction per wave
 export const REGION_MIN_SPAWN_INTERVAL = 180;
-export const REGION_SPAWN_SPREAD = 20;            // px enemy offset from region center
+export const REGION_SPAWN_SPREAD = 40;            // px enemy offset from region center
 
 // Waves
-export const WAVE_REGIONS_BASE = 2;               // regions per wave (+ waveNumber)
+export const WAVE_REGIONS_BASE = 1;               // regions per wave (+ waveNumber)
 export const WAVE_REGION_SPAWN_INTERVAL = 2500;   // ms between region spawns within a wave
 export const WAVE_MAX_CONCURRENT_REGIONS = 4;
 export const WAVE_INTERMISSION = 4000;

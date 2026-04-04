@@ -20,6 +20,8 @@ export type Enemy = {
 	readonly velocity: Vec2;
 	readonly speed: number;
 	readonly hp: number;
+	readonly spawnMomentum: Vec2;
+	readonly momentumFactor: number; // 1.0 = full momentum, decays to 0
 };
 
 export type SpawnRegion = {
