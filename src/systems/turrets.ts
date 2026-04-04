@@ -19,6 +19,7 @@ import {
 	computeBulletVelocity,
 	distance,
 	normalizeAngleDiff,
+	isAngleInArc,
 } from "./targeting.ts";
 
 function rotateToward(current: number, target: number, maxDelta: number): number {
@@ -110,9 +111,10 @@ export function tickTurrets(
 	const maxRotation = TURRET_TURN_SPEED * (delta / 1000);
 
 	const results = state.turrets.map((turret) => {
-		const isControlled =
+		const wantsControl =
 			control.tag === "all" ||
 			(control.tag === "single" && control.turretId === turret.id);
+		const isControlled = wantsControl && isAngleInArc(aimAngle(turret.position, pointerPosition), turret.arcRange.center, turret.arcRange.width);
 
 		const nearestEnemy = isControlled ? null : findNearestEnemyInArc(turret.position, state.enemies, turret.arcCenter, turret.arcWidth);
 
