@@ -41,7 +41,7 @@ type SpriteRegistry = {
 	readonly enemies: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly bullets: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly resources: Map<EntityId, Phaser.GameObjects.Arc>;
-	readonly runners: Map<EntityId, Phaser.GameObjects.Arc>;
+	readonly runners: Map<EntityId, Phaser.GameObjects.Rectangle>;
 	readonly regions: Map<EntityId, RegionSprites>;
 	readonly ground: Phaser.GameObjects.Rectangle;
 	readonly targetSprite: Phaser.GameObjects.Arc;
@@ -498,10 +498,11 @@ export function syncSprites(
 			existing.setPosition(runner.position.x, runner.position.y);
 			existing.setFillStyle(color);
 		} else {
-			const sprite = scene.add.circle(
+			const sprite = scene.add.rectangle(
 				runner.position.x,
 				runner.position.y,
-				RUNNER_RADIUS,
+				RUNNER_RADIUS * 2,
+				RUNNER_RADIUS * 2,
 				color,
 			);
 			sprite.setStrokeStyle(1, 0xffffff);
