@@ -32,6 +32,8 @@ function velocityToward(from: Vec2, to: Vec2, speed: number): Vec2 {
 	return { x: (dx / mag) * speed, y: (dy / mag) * speed };
 }
 
+const TARGET_POS = { x: TARGET_X, y: TARGET_Y };
+
 export function tickMovement(state: GameState, delta: number): GameState {
 	const dt = delta / 1000;
 
@@ -39,7 +41,7 @@ export function tickMovement(state: GameState, delta: number): GameState {
 		const nearRunner = findNearestRunner(e.position, state.runners);
 		const baseVel = nearRunner
 			? velocityToward(e.position, nearRunner.position, e.speed)
-			: e.velocity;
+			: velocityToward(e.position, TARGET_POS, e.speed);
 
 		// Blend spawn momentum into movement
 		const mf = e.momentumFactor;
@@ -149,8 +151,6 @@ export function tickCombat(
 		},
 	};
 }
-
-const TARGET_POS = { x: TARGET_X, y: TARGET_Y };
 
 export function tickDefense(
 	state: GameState,
