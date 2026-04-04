@@ -17,7 +17,7 @@ export const TURRET_RADIUS = 18;
 export const TURRET_BARREL_LENGTH = 28;
 export const TURRET_TURN_SPEED = Math.PI / 2; // radians per second
 
-export const BULLET_SPEED = 1200;
+export const BULLET_SPEED = 2400;
 export const BULLET_DAMAGE = 1;
 export const BULLET_RADIUS = 4;
 export const BULLET_HIT_RADIUS = 16;
