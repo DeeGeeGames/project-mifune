@@ -1,8 +1,8 @@
 export const VIEWPORT_WIDTH = 1280;
 export const VIEWPORT_HEIGHT = 720;
 
-export const WORLD_WIDTH = VIEWPORT_WIDTH * 3;
-export const WORLD_HEIGHT = VIEWPORT_HEIGHT * 3;
+export const WORLD_WIDTH = VIEWPORT_WIDTH * 6;
+export const WORLD_HEIGHT = VIEWPORT_HEIGHT * 6;
 
 export const GROUND_Y = WORLD_HEIGHT - 140;
 
@@ -76,7 +76,7 @@ export const RESOURCE_DROP_VALUE = 10;
 // Runners
 export const RUNNER_SPEED = 120;
 export const RUNNER_HP = 1;
-export const RUNNER_RADIUS = 10;
+export const RUNNER_SIZE = 10;
 export const RUNNER_COST = 30;
 export const STARTING_RUNNERS = 2;
 export const MAX_RUNNERS = 20;

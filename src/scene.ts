@@ -49,6 +49,7 @@ function create(this: Phaser.Scene): void {
 
 	const cam = this.cameras.main;
 	cam.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+	cam.setZoom(ZOOM_MAX * 0.15);
 	cam.centerOn(TARGET_X, TARGET_Y);
 
 	sceneState = {

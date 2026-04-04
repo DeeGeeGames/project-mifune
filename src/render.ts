@@ -15,7 +15,7 @@ import {
 	WORLD_WIDTH,
 	VIEWPORT_WIDTH,
 	VIEWPORT_HEIGHT,
-	RUNNER_RADIUS,
+	RUNNER_SIZE,
 	TURRET_COST,
 	RUNNER_COST,
 	MAX_RUNNERS,
@@ -532,8 +532,8 @@ export function syncSprites(
 			const sprite = scene.add.rectangle(
 				runner.position.x,
 				runner.position.y,
-				RUNNER_RADIUS * 2,
-				RUNNER_RADIUS * 2,
+				RUNNER_SIZE,
+				RUNNER_SIZE * 2,
 				color,
 			);
 			sprite.setStrokeStyle(1, 0xffffff);

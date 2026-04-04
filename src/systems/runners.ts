@@ -4,7 +4,7 @@ import {
 	TARGET_Y,
 	RUNNER_PICKUP_DISTANCE,
 	RUNNER_BASE_ARRIVE_DISTANCE,
-	RUNNER_RADIUS,
+	RUNNER_SIZE,
 	ENEMY_RADIUS,
 	TURRET_RELOAD_THRESHOLD,
 	TURRET_MAX_AMMO,
@@ -149,7 +149,7 @@ export function tickRunners(state: GameState, delta: number): GameState {
 }
 
 export function tickRunnerDeath(state: GameState): GameState {
-	const contactDistance = RUNNER_RADIUS + ENEMY_RADIUS;
+	const contactDistance = RUNNER_SIZE + ENEMY_RADIUS;
 	const alive = state.runners.filter((runner) =>
 		!state.enemies.some((enemy) => distance(runner.position, enemy.position) < contactDistance),
 	);
