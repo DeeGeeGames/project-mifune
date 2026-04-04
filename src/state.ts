@@ -8,6 +8,7 @@ import {
 	TARGET_X,
 	TARGET_Y,
 	WAVE_REGIONS_BASE,
+	STARTING_WAVE,
 } from "./config.ts";
 
 let nextId = 0;
@@ -23,8 +24,8 @@ function regionsForWave(waveNumber: number): number {
 
 export function createInitialWave(): WaveState {
 	return {
-		waveNumber: 1,
-		regionsToSpawn: regionsForWave(1),
+		waveNumber: STARTING_WAVE,
+		regionsToSpawn: regionsForWave(STARTING_WAVE),
 		regionSpawnTimer: 0,
 		betweenWaves: false,
 		intermissionTimer: 0,

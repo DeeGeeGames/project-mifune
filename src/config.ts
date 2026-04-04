@@ -22,7 +22,7 @@ export const BULLET_DAMAGE = 1;
 export const BULLET_RADIUS = 4;
 export const BULLET_HIT_RADIUS = 16;
 
-export const ENEMY_SPEED = 100;
+export const ENEMY_SPEED = 200;
 export const ENEMY_HP = 4;
 export const ENEMY_RADIUS = 12;
 export const ENEMY_SPAWN_BURST_SPEED = 500;
@@ -45,6 +45,7 @@ export const WAVE_REGIONS_BASE = 1;               // regions per wave (+ waveNum
 export const WAVE_REGION_SPAWN_INTERVAL = 2500;   // ms between region spawns within a wave
 export const WAVE_MAX_CONCURRENT_REGIONS = 4;
 export const WAVE_INTERMISSION = 4000;
+export const STARTING_WAVE = 1;
 
 export const REGION_SAFE_RADIUS = 400;
 
@@ -56,7 +57,7 @@ export const TURRET_SPREAD = 0.08;
 // Economy
 export const TURRET_COST = 50;
 export const STARTING_CURRENCY = 100;
-export const RESOURCE_DROP_VALUE = 5;
+export const RESOURCE_DROP_VALUE = 10;
 
 // Runners
 export const RUNNER_SPEED = 120;
