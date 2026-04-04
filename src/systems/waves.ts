@@ -1,4 +1,4 @@
-import type { SpawnRegion, GameState } from "../types.ts";
+import type { SpawnRegion, GameState, ArcRange } from "../types.ts";
 import {
 	WORLD_WIDTH,
 	GROUND_Y,
@@ -16,6 +16,8 @@ import {
 	REGION_BASE_SPAWN_INTERVAL,
 	REGION_SPAWN_INTERVAL_SCALING,
 	REGION_MIN_SPAWN_INTERVAL,
+	REGION_BURST_ARC_WIDTH,
+	REGION_BURST_VALID_RANGE,
 	WAVE_REGION_SPAWN_INTERVAL,
 	WAVE_MAX_CONCURRENT_REGIONS,
 	WAVE_INTERMISSION,
@@ -24,6 +26,13 @@ import { makeId, createNextWave } from "../state.ts";
 
 const MARGIN = 60;
 const MAX_PLACEMENT_ATTEMPTS = 20;
+
+function randomArcCenter(arcWidth: number, validRange: ArcRange): number {
+	const slack = validRange.width / 2 - arcWidth / 2;
+	if (slack <= 0) return validRange.center;
+	const offset = (Math.random() * 2 - 1) * slack;
+	return validRange.center + offset;
+}
 
 function randomRegionPosition(): { x: number; y: number } {
 	for (let i = 0; i < MAX_PLACEMENT_ATTEMPTS; i++) {
@@ -63,6 +72,8 @@ function createRegion(waveNumber: number): SpawnRegion {
 		spawnTimer: params.spawnInterval * 0.5,
 		lifetime: params.lifetime,
 		age: 0,
+		burstArcCenter: randomArcCenter(REGION_BURST_ARC_WIDTH, REGION_BURST_VALID_RANGE),
+		burstArcWidth: REGION_BURST_ARC_WIDTH,
 	};
 }
 

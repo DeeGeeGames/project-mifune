@@ -11,7 +11,7 @@ export const TARGET_Y = GROUND_Y;
 export const TARGET_RADIUS = 20;
 export const DEFENSE_HP = 10;
 
-export const TURRET_RANGE = 600;
+export const TURRET_RANGE = 1200;
 export const TURRET_FIRE_RATE = 12;
 export const TURRET_RADIUS = 18;
 export const TURRET_BARREL_LENGTH = 28;
@@ -29,17 +29,17 @@ export const ENEMY_SPAWN_BURST_SPEED = 1000;
 export const ENEMY_MOMENTUM_DECAY = 1;
 
 // Spawn regions
-export const REGION_BASE_LIFETIME = 6000;         // ms, wave 1
-export const REGION_LIFETIME_SCALING = 1500;      // ms added per wave
+export const REGION_BASE_LIFETIME = 2000;         // ms, wave 1
+export const REGION_LIFETIME_SCALING = 1000;      // ms added per wave
 export const REGION_MAX_LIFETIME = 24000;         // ms cap
-export const REGION_BASE_HP = 8;
-export const REGION_HP_SCALING = 4;               // hp added per wave
+export const REGION_BASE_HP = 32;
+export const REGION_HP_SCALING = 8;               // hp added per wave
 export const REGION_BASE_RADIUS = 80;
 export const REGION_RADIUS_SCALING = 4;
 export const REGION_MAX_RADIUS = 150;
-export const REGION_BASE_SPAWN_INTERVAL = 900;    // ms between enemy spawns
+export const REGION_BASE_SPAWN_INTERVAL = 200;    // ms between enemy spawns
 export const REGION_SPAWN_INTERVAL_SCALING = 60;  // ms reduction per wave
-export const REGION_MIN_SPAWN_INTERVAL = 180;
+export const REGION_MIN_SPAWN_INTERVAL = 80;
 // Waves
 export const WAVE_REGIONS_BASE = 1;               // regions per wave (+ waveNumber)
 export const WAVE_REGION_SPAWN_INTERVAL = 2500;   // ms between region spawns within a wave
@@ -65,9 +65,12 @@ export const ARC_RANGE_CENTER = -Math.PI / 2;       // up
 export const ARC_RANGE_WIDTH = Math.PI;              // 180 degrees total valid zone
 export const GROUND_ARC_RANGE = { center: ARC_RANGE_CENTER, width: ARC_RANGE_WIDTH } as const;
 
+export const REGION_BURST_ARC_WIDTH = Math.PI / 4;          // 45° momentum cone per region
+export const REGION_BURST_VALID_RANGE = { center: ARC_RANGE_CENTER, width: ARC_RANGE_WIDTH } as const;
+
 // Economy
 export const TURRET_COST = 50;
-export const STARTING_CURRENCY = 100;
+export const STARTING_CURRENCY = 200;
 export const RESOURCE_DROP_VALUE = 10;
 
 // Runners
@@ -76,7 +79,7 @@ export const RUNNER_HP = 1;
 export const RUNNER_RADIUS = 10;
 export const RUNNER_COST = 30;
 export const STARTING_RUNNERS = 2;
-export const MAX_RUNNERS = 8;
+export const MAX_RUNNERS = 20;
 export const ENEMY_RUNNER_AGGRO_RANGE = 120;
 
 export const RUNNER_PICKUP_DISTANCE = 15;

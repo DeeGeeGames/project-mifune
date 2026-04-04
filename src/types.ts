@@ -50,6 +50,8 @@ export type SpawnRegion = {
 	readonly spawnTimer: number;
 	readonly lifetime: number;
 	readonly age: number;
+	readonly burstArcCenter: number;
+	readonly burstArcWidth: number;
 };
 
 export type Resource = {

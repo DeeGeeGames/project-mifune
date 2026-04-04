@@ -1,4 +1,4 @@
-import type { Enemy, GameState } from "../types.ts";
+import type { Enemy, GameState, SpawnRegion } from "../types.ts";
 import {
 	ENEMY_HP,
 	ENEMY_SPEED,
@@ -11,15 +11,15 @@ import { velocityToward } from "./targeting.ts";
 
 const TARGET_POS = { x: TARGET_X, y: TARGET_Y };
 
-function spawnEnemy(regionX: number, regionY: number, regionRadius: number): Enemy {
+function spawnEnemy(region: SpawnRegion): Enemy {
 	const offsetAngle = Math.random() * Math.PI * 2;
-	const offsetDist = Math.random() * regionRadius;
+	const offsetDist = Math.random() * region.radius;
 	const position = {
-		x: regionX + Math.cos(offsetAngle) * offsetDist,
-		y: regionY + Math.sin(offsetAngle) * offsetDist,
+		x: region.position.x + Math.cos(offsetAngle) * offsetDist,
+		y: region.position.y + Math.sin(offsetAngle) * offsetDist,
 	};
 
-	const burstAngle = Math.random() * Math.PI * 2;
+	const burstAngle = region.burstArcCenter + (Math.random() * 2 - 1) * (region.burstArcWidth / 2);
 	const burstSpeed = ENEMY_SPAWN_BURST_SPEED * (0.5 + Math.random() * 0.5);
 
 	return {
@@ -47,7 +47,7 @@ export function tickRegions(state: GameState, delta: number): GameState {
 			const spawnTimer = region.spawnTimer - delta;
 			if (spawnTimer > 0) return { ...region, age, spawnTimer };
 
-			newEnemies.push(spawnEnemy(region.position.x, region.position.y, region.radius));
+			newEnemies.push(spawnEnemy(region));
 			return { ...region, age, spawnTimer: region.spawnInterval };
 		})
 		.filter((r): r is NonNullable<typeof r> => r !== null);
