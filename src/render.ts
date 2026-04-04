@@ -1,5 +1,5 @@
 import type Phaser from "phaser";
-import type { EntityId, GameState, Vec2 } from "./types.ts";
+import type { EntityId, GameState, PlacementState, Vec2 } from "./types.ts";
 import {
 	TURRET_RADIUS,
 	TURRET_BARREL_LENGTH,
@@ -19,7 +19,9 @@ import {
 	TURRET_COST,
 	RUNNER_COST,
 	MAX_RUNNERS,
+	TURRET_HOVER_RADIUS,
 } from "./config.ts";
+import { aimAngle, clampArcCenterToRange, distance as vecDistance } from "./systems/targeting.ts";
 
 type RegionSprites = {
 	readonly body: Phaser.GameObjects.Arc;
@@ -43,6 +45,7 @@ type SpriteRegistry = {
 	readonly resources: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly runners: Map<EntityId, Phaser.GameObjects.Rectangle>;
 	readonly regions: Map<EntityId, RegionSprites>;
+	readonly arcGraphics: Phaser.GameObjects.Graphics;
 	readonly ground: Phaser.GameObjects.Rectangle;
 	readonly targetSprite: Phaser.GameObjects.Arc;
 	readonly defenseBar: Phaser.GameObjects.Rectangle;
@@ -78,6 +81,10 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 	hudCamera.setScroll(0, 0);
 
 	// --- World objects ---
+	const arcGraphics = scene.add.graphics();
+	arcGraphics.setDepth(1);
+	addWorld(hudCamera, arcGraphics);
+
 	const ground = scene.add.rectangle(
 		WORLD_WIDTH / 2,
 		GROUND_Y + 6,
@@ -181,6 +188,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 
 	return {
 		hudCamera,
+		arcGraphics,
 		turretBodies: new Map(),
 		turretBarrels: new Map(),
 		turretRangeRings: new Map(),
@@ -212,12 +220,35 @@ function getBarrelEnd(position: Vec2, angle: number): Vec2 {
 	};
 }
 
+function drawArcWedge(
+	graphics: Phaser.GameObjects.Graphics,
+	x: number,
+	y: number,
+	radius: number,
+	arcCenter: number,
+	arcWidth: number,
+	fillColor: number,
+	fillAlpha: number,
+	strokeColor: number,
+	strokeAlpha: number,
+): void {
+	graphics.fillStyle(fillColor, fillAlpha);
+	graphics.lineStyle(1, strokeColor, strokeAlpha);
+	graphics.beginPath();
+	graphics.moveTo(x, y);
+	graphics.arc(x, y, radius, arcCenter - arcWidth / 2, arcCenter + arcWidth / 2, false);
+	graphics.closePath();
+	graphics.fillPath();
+	graphics.strokePath();
+}
+
 export function syncSprites(
 	scene: Phaser.Scene,
 	registry: SpriteRegistry,
 	state: GameState,
 	pointerPosition: Vec2,
 	time: number,
+	placement: PlacementState,
 ): void {
 	const { hudCamera } = registry;
 
@@ -512,6 +543,59 @@ export function syncSprites(
 		}
 	});
 
+	// --- Coverage arcs ---
+	registry.arcGraphics.clear();
+
+	state.turrets.forEach((turret) => {
+		const dist = vecDistance(pointerPosition, turret.position);
+		if (dist <= TURRET_HOVER_RADIUS) {
+			drawArcWedge(
+				registry.arcGraphics,
+				turret.position.x, turret.position.y,
+				TURRET_RANGE,
+				turret.arcCenter, turret.arcWidth,
+				0x44ff44, 0.08,
+				0x44ff44, 0.25,
+			);
+		}
+	});
+
+	if (placement.tag === "aiming") {
+		const rawCenter = aimAngle(placement.position, pointerPosition);
+		const { arcRange } = placement;
+		const previewCenter = clampArcCenterToRange(
+			rawCenter,
+			placement.arcWidth,
+			arcRange.center,
+			arcRange.width,
+		);
+
+		drawArcWedge(
+			registry.arcGraphics,
+			placement.position.x, placement.position.y,
+			TURRET_RANGE,
+			arcRange.center, arcRange.width,
+			0x444444, 0.04,
+			0x666666, 0.15,
+		);
+
+		// Selected arc
+		drawArcWedge(
+			registry.arcGraphics,
+			placement.position.x, placement.position.y,
+			TURRET_RANGE,
+			previewCenter, placement.arcWidth,
+			0x00ffff, 0.12,
+			0x00ffff, 0.35,
+		);
+
+		// Ghost turret body
+		registry.arcGraphics.fillStyle(0x004444, 0.5);
+		registry.arcGraphics.lineStyle(2, 0x00ffff, 0.6);
+		registry.arcGraphics.fillCircle(placement.position.x, placement.position.y, TURRET_RADIUS);
+		registry.arcGraphics.strokeCircle(placement.position.x, placement.position.y, TURRET_RADIUS);
+	}
+
 	// --- HUD ---
 	registry.defenseText.setText(`Defense: ${state.defenseHp}/${DEFENSE_HP}`);
 
@@ -541,6 +625,12 @@ export function syncSprites(
 	registry.currencyText.setText(`Currency: ${state.currency}`);
 	registry.runnerCountText.setText(`Runners: ${state.runners.length}/${MAX_RUNNERS}  (R to buy: ${RUNNER_COST})`);
 	registry.priorityText.setText(`Priority: ${state.runnerPriority === "ammo" ? "AMMO" : "Resources"}  (P)`);
+
+	registry.instructionText.setText(
+		placement.tag === "aiming"
+			? "Aim arc direction  |  Scroll = adjust width  |  Click = confirm  |  ESC = cancel"
+			: "Click = place turret  |  T = control all  |  Click turret = control one  |  R = buy runner  |  P = priority  |  ESC = release",
+	);
 
 	if (state.gameOver) {
 		registry.gameOverText.setVisible(true);

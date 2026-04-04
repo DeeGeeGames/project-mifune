@@ -1,4 +1,4 @@
-import type { Bullet, GameState, Turret, Vec2 } from "../types.ts";
+import type { ArcRange, Bullet, GameState, Turret, Vec2 } from "../types.ts";
 import {
 	BULLET_DAMAGE,
 	BULLET_SPEED,
@@ -13,17 +13,13 @@ import {
 } from "../config.ts";
 import { makeId } from "../state.ts";
 import {
-	findNearestEnemy,
+	findNearestEnemyInArc,
 	leadTarget,
 	aimAngle,
 	computeBulletVelocity,
 	distance,
+	normalizeAngleDiff,
 } from "./targeting.ts";
-
-function normalizeAngleDiff(target: number, current: number): number {
-	const raw = (target - current + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
-	return raw;
-}
 
 function rotateToward(current: number, target: number, maxDelta: number): number {
 	const diff = normalizeAngleDiff(target, current);
@@ -38,6 +34,13 @@ function addSpread(velocity: Vec2): Vec2 {
 		x: Math.cos(newAngle) * speed,
 		y: Math.sin(newAngle) * speed,
 	};
+}
+
+function clampAngleToArc(angle: number, arcCenter: number, arcWidth: number): number {
+	const diff = normalizeAngleDiff(angle, arcCenter);
+	const halfArc = arcWidth / 2;
+	if (Math.abs(diff) <= halfArc) return angle;
+	return arcCenter + (diff > 0 ? halfArc : -halfArc);
 }
 
 function tryFire(
@@ -71,15 +74,19 @@ function tickSingleTurret(
 	isControlled: boolean,
 	pointerPosition: Vec2,
 	pointerDown: boolean,
-	nearestEnemy: ReturnType<typeof findNearestEnemy>,
+	nearestEnemy: ReturnType<typeof findNearestEnemyInArc>,
 	time: number,
 	maxRotation: number,
 ): { turret: Turret; bullet: Bullet | null } {
 	const targetAngle = isControlled
 		? aimAngle(turret.position, pointerPosition)
 		: nearestEnemy
-			? aimAngle(turret.position, leadTarget(turret.position, nearestEnemy, BULLET_SPEED))
-			: turret.aimAngle;
+			? clampAngleToArc(
+				aimAngle(turret.position, leadTarget(turret.position, nearestEnemy, BULLET_SPEED)),
+				turret.arcCenter,
+				turret.arcWidth,
+			)
+			: turret.arcCenter;
 
 	const rotated = { ...turret, aimAngle: rotateToward(turret.aimAngle, targetAngle, maxRotation) };
 
@@ -107,7 +114,7 @@ export function tickTurrets(
 			control.tag === "all" ||
 			(control.tag === "single" && control.turretId === turret.id);
 
-		const nearestEnemy = isControlled ? null : findNearestEnemy(turret.position, state.enemies);
+		const nearestEnemy = isControlled ? null : findNearestEnemyInArc(turret.position, state.enemies, turret.arcCenter, turret.arcWidth);
 
 		return tickSingleTurret(turret, isControlled, pointerPosition, pointerDown, nearestEnemy, time, maxRotation);
 	});
@@ -131,12 +138,20 @@ export function isValidPlacement(position: Vec2, turrets: ReadonlyArray<Turret>)
 	);
 }
 
-export function createTurret(position: Vec2): Turret {
+export function createTurret(
+	position: Vec2,
+	arcCenter: number,
+	arcWidth: number,
+	arcRange: ArcRange,
+): Turret {
 	return {
 		id: makeId(),
 		position: { x: position.x, y: GROUND_Y },
 		lastFiredAt: 0,
-		aimAngle: -Math.PI / 2,
+		aimAngle: arcCenter,
 		ammo: TURRET_MAX_AMMO,
+		arcCenter,
+		arcWidth,
+		arcRange,
 	};
 }

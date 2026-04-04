@@ -22,11 +22,11 @@ export const BULLET_DAMAGE = 1;
 export const BULLET_RADIUS = 4;
 export const BULLET_HIT_RADIUS = 16;
 
-export const ENEMY_SPEED = 200;
+export const ENEMY_SPEED = 150;
 export const ENEMY_HP = 4;
 export const ENEMY_RADIUS = 12;
-export const ENEMY_SPAWN_BURST_SPEED = 500;
-export const ENEMY_MOMENTUM_DECAY = 2.5; // per second — reaches ~0 in ~1s
+export const ENEMY_SPAWN_BURST_SPEED = 1000;
+export const ENEMY_MOMENTUM_DECAY = 1;
 
 // Spawn regions
 export const REGION_BASE_LIFETIME = 6000;         // ms, wave 1
@@ -53,6 +53,17 @@ export const PLACEMENT_MIN_X = 80;
 export const PLACEMENT_MAX_X = WORLD_WIDTH - 80;
 
 export const TURRET_SPREAD = 0.08;
+
+// Coverage arc
+export const ARC_WIDTH_DEFAULT = Math.PI;           // 180 degrees
+export const ARC_WIDTH_MIN = Math.PI / 6;           // 30 degrees
+export const ARC_SCROLL_STEP = Math.PI / 18;        // 10 degrees per scroll tick
+export const TURRET_HOVER_RADIUS = TURRET_RADIUS * 3;
+
+// Per-turret valid arc range (ground turrets = upper semicircle)
+export const ARC_RANGE_CENTER = -Math.PI / 2;       // up
+export const ARC_RANGE_WIDTH = Math.PI;              // 180 degrees total valid zone
+export const GROUND_ARC_RANGE = { center: ARC_RANGE_CENTER, width: ARC_RANGE_WIDTH } as const;
 
 // Economy
 export const TURRET_COST = 50;

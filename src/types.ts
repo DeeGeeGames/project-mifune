@@ -5,13 +5,30 @@ export type Vec2 = {
 	readonly y: number;
 };
 
+export type ArcRange = {
+	readonly center: number;
+	readonly width: number;
+};
+
 export type Turret = {
 	readonly id: EntityId;
 	readonly position: Vec2;
 	readonly lastFiredAt: number;
 	readonly aimAngle: number;
 	readonly ammo: number;
+	readonly arcCenter: number;
+	readonly arcWidth: number;
+	readonly arcRange: ArcRange;
 };
+
+export type PlacementState =
+	| { readonly tag: "idle" }
+	| {
+		readonly tag: "aiming";
+		readonly position: Vec2;
+		readonly arcWidth: number;
+		readonly arcRange: ArcRange;
+	};
 
 export type Enemy = {
 	readonly id: EntityId;

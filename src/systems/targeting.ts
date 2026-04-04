@@ -27,18 +27,47 @@ export function findNearest<T>(
 
 	if (candidates.length === 0) return null;
 
-	return candidates.reduce((best, item) => {
-		const bestDist = distance(from, getPos(best));
-		const itemDist = distance(from, getPos(item));
-		return itemDist < bestDist ? item : best;
-	});
+	return candidates.reduce<{ item: T; dist: number }>(
+		(best, candidate) => {
+			const d = distance(from, getPos(candidate));
+			return d < best.dist ? { item: candidate, dist: d } : best;
+		},
+		{ item: candidates[0], dist: distance(from, getPos(candidates[0])) },
+	).item;
 }
 
-export function findNearestEnemy(
+export function normalizeAngleDiff(target: number, current: number): number {
+	return (target - current + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+}
+
+export function isAngleInArc(angle: number, arcCenter: number, arcWidth: number): boolean {
+	return Math.abs(normalizeAngleDiff(angle, arcCenter)) <= arcWidth / 2;
+}
+
+export function clampArcCenterToRange(
+	desiredCenter: number,
+	arcWidth: number,
+	rangeCenter: number,
+	rangeWidth: number,
+): number {
+	const clampedWidth = Math.min(arcWidth, rangeWidth);
+	const halfRange = rangeWidth / 2;
+	const halfArc = clampedWidth / 2;
+	const diff = normalizeAngleDiff(desiredCenter, rangeCenter);
+	const clampedDiff = Math.max(-halfRange + halfArc, Math.min(halfRange - halfArc, diff));
+	return rangeCenter + clampedDiff;
+}
+
+export function findNearestEnemyInArc(
 	from: Vec2,
 	enemies: ReadonlyArray<Enemy>,
+	arcCenter: number,
+	arcWidth: number,
 ): Enemy | null {
-	return findNearest(from, enemies, (e) => e.position, TURRET_RANGE);
+	const inArc = enemies.filter((e) =>
+		isAngleInArc(aimAngle(from, e.position), arcCenter, arcWidth),
+	);
+	return findNearest(from, inArc, (e) => e.position, TURRET_RANGE);
 }
 
 export function aimAngle(from: Vec2, to: Vec2): number {
