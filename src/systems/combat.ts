@@ -7,8 +7,8 @@ import {
 	TARGET_RADIUS,
 	ENEMY_RADIUS,
 	ENEMY_RUNNER_AGGRO_RANGE,
-	CANVAS_WIDTH,
-	CANVAS_HEIGHT,
+	WORLD_WIDTH,
+	WORLD_HEIGHT,
 } from "../config.ts";
 import { distance } from "./targeting.ts";
 
@@ -57,9 +57,9 @@ export function tickMovement(state: GameState, delta: number): GameState {
 		.filter(
 			(b) =>
 				b.position.x > -50 &&
-				b.position.x < CANVAS_WIDTH + 50 &&
+				b.position.x < WORLD_WIDTH + 50 &&
 				b.position.y > -50 &&
-				b.position.y < CANVAS_HEIGHT + 50,
+				b.position.y < WORLD_HEIGHT + 50,
 		);
 
 	return { ...state, enemies, bullets };

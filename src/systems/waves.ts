@@ -1,7 +1,7 @@
 import type { SpawnRegion, GameState } from "../types.ts";
 import {
-	CANVAS_WIDTH,
-	CANVAS_HEIGHT,
+	WORLD_WIDTH,
+	WORLD_HEIGHT,
 	GROUND_Y,
 	REGION_BASE_LIFETIME,
 	REGION_LIFETIME_SCALING,
@@ -26,10 +26,10 @@ function randomPerimeterPoint(): { x: number; y: number } {
 	const edge = Math.floor(Math.random() * 3); // top, right, left — all above ground
 	const along = Math.random();
 	return [
-		{ x: SPAWN_MARGIN + along * (CANVAS_WIDTH - SPAWN_MARGIN * 2), y: -SPAWN_MARGIN },
-		{ x: CANVAS_WIDTH + SPAWN_MARGIN, y: SPAWN_MARGIN + along * (GROUND_Y - SPAWN_MARGIN * 2) },
+		{ x: SPAWN_MARGIN + along * (WORLD_WIDTH - SPAWN_MARGIN * 2), y: -SPAWN_MARGIN },
+		{ x: WORLD_WIDTH + SPAWN_MARGIN, y: SPAWN_MARGIN + along * (GROUND_Y - SPAWN_MARGIN * 2) },
 		{ x: -SPAWN_MARGIN, y: SPAWN_MARGIN + along * (GROUND_Y - SPAWN_MARGIN * 2) },
-	][edge] ?? { x: CANVAS_WIDTH + SPAWN_MARGIN, y: GROUND_Y / 2 };
+	][edge] ?? { x: WORLD_WIDTH + SPAWN_MARGIN, y: GROUND_Y / 2 };
 }
 
 function regionParamsForWave(waveNumber: number) {

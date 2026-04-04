@@ -11,7 +11,9 @@ import {
 	TARGET_RADIUS,
 	DEFENSE_HP,
 	GROUND_Y,
-	CANVAS_WIDTH,
+	WORLD_WIDTH,
+	VIEWPORT_WIDTH,
+	VIEWPORT_HEIGHT,
 	RUNNER_RADIUS,
 	TURRET_COST,
 	RUNNER_COST,
@@ -25,6 +27,7 @@ type RegionSprites = {
 };
 
 type SpriteRegistry = {
+	readonly hudCamera: Phaser.Cameras.Scene2D.Camera;
 	readonly turretBodies: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly turretBarrels: Map<EntityId, Phaser.GameObjects.Line>;
 	readonly turretRangeRings: Map<EntityId, Phaser.GameObjects.Arc>;
@@ -46,29 +49,54 @@ type SpriteRegistry = {
 	readonly instructionText: Phaser.GameObjects.Text;
 };
 
+function addHud(
+	scene: Phaser.Scene,
+	mainCam: Phaser.Cameras.Scene2D.Camera,
+	obj: Phaser.GameObjects.GameObject,
+): void {
+	mainCam.ignore(obj);
+}
+
+function addWorld(
+	hudCam: Phaser.Cameras.Scene2D.Camera,
+	obj: Phaser.GameObjects.GameObject,
+): void {
+	hudCam.ignore(obj);
+}
+
 export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
+	const mainCam = scene.cameras.main;
+	const hudCamera = scene.cameras.add(0, 0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+	hudCamera.setScroll(0, 0);
+
+	// --- World objects ---
 	const ground = scene.add.rectangle(
-		CANVAS_WIDTH / 2,
+		WORLD_WIDTH / 2,
 		GROUND_Y + 6,
-		CANVAS_WIDTH,
+		WORLD_WIDTH,
 		12,
 		0x445544,
 	);
 	ground.setDepth(2);
+	addWorld(hudCamera, ground);
 
 	const targetSprite = scene.add.circle(TARGET_X, TARGET_Y, TARGET_RADIUS, 0xffaa00);
 	targetSprite.setStrokeStyle(3, 0xffffff);
 	targetSprite.setDepth(5);
+	addWorld(hudCamera, targetSprite);
 
 	const defenseBar = scene.add.rectangle(TARGET_X, TARGET_Y - TARGET_RADIUS - 14, 40, 6, 0x44ff44);
 	defenseBar.setDepth(6);
+	addWorld(hudCamera, defenseBar);
 
+	// --- HUD objects ---
 	const defenseText = scene.add.text(10, 10, "", {
 		fontSize: "18px",
 		color: "#ff6666",
 		fontFamily: "monospace",
 	});
 	defenseText.setDepth(10);
+	addHud(scene, mainCam, defenseText);
 
 	const waveText = scene.add.text(10, 36, "", {
 		fontSize: "18px",
@@ -76,6 +104,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		fontFamily: "monospace",
 	});
 	waveText.setDepth(10);
+	addHud(scene, mainCam, waveText);
 
 	const turretCountText = scene.add.text(10, 62, "", {
 		fontSize: "18px",
@@ -83,6 +112,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		fontFamily: "monospace",
 	});
 	turretCountText.setDepth(10);
+	addHud(scene, mainCam, turretCountText);
 
 	const controlModeText = scene.add.text(10, 88, "", {
 		fontSize: "16px",
@@ -90,6 +120,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		fontFamily: "monospace",
 	});
 	controlModeText.setDepth(10);
+	addHud(scene, mainCam, controlModeText);
 
 	const currencyText = scene.add.text(10, 114, "", {
 		fontSize: "18px",
@@ -97,6 +128,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		fontFamily: "monospace",
 	});
 	currencyText.setDepth(10);
+	addHud(scene, mainCam, currencyText);
 
 	const runnerCountText = scene.add.text(10, 140, "", {
 		fontSize: "16px",
@@ -104,8 +136,9 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		fontFamily: "monospace",
 	});
 	runnerCountText.setDepth(10);
+	addHud(scene, mainCam, runnerCountText);
 
-	const gameOverText = scene.add.text(640, 360, "GAME OVER", {
+	const gameOverText = scene.add.text(VIEWPORT_WIDTH / 2, VIEWPORT_HEIGHT / 2, "GAME OVER", {
 		fontSize: "64px",
 		color: "#ff0000",
 		fontFamily: "monospace",
@@ -114,10 +147,11 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 	gameOverText.setOrigin(0.5);
 	gameOverText.setDepth(20);
 	gameOverText.setVisible(false);
+	addHud(scene, mainCam, gameOverText);
 
 	const instructionText = scene.add.text(
-		640,
-		700,
+		VIEWPORT_WIDTH / 2,
+		VIEWPORT_HEIGHT - 20,
 		"Click = place turret  |  T = control all  |  Click turret = control one  |  R = buy runner  |  ESC = release",
 		{
 			fontSize: "14px",
@@ -127,8 +161,10 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 	);
 	instructionText.setOrigin(0.5);
 	instructionText.setDepth(10);
+	addHud(scene, mainCam, instructionText);
 
 	return {
+		hudCamera,
 		turretBodies: new Map(),
 		turretBarrels: new Map(),
 		turretRangeRings: new Map(),
@@ -165,6 +201,8 @@ export function syncSprites(
 	pointerPosition: Vec2,
 	time: number,
 ): void {
+	const { hudCamera } = registry;
+
 	// --- Regions ---
 	const activeRegionIds = new Set(state.regions.map((r) => r.id));
 
@@ -206,12 +244,15 @@ export function syncSprites(
 			const body = scene.add.circle(region.position.x, region.position.y, region.radius, regionColor, 0.3);
 			body.setStrokeStyle(2, regionColor);
 			body.setDepth(1);
+			addWorld(hudCamera, body);
 
 			const hpBarBg = scene.add.rectangle(region.position.x, barY, barWidth, 5, 0x333333);
 			hpBarBg.setDepth(8);
+			addWorld(hudCamera, hpBarBg);
 
 			const hpBar = scene.add.rectangle(region.position.x, barY, barWidth, 5, 0xff6600);
 			hpBar.setDepth(9);
+			addWorld(hudCamera, hpBar);
 
 			registry.regions.set(region.id, { body, hpBarBg, hpBar });
 		}
@@ -251,6 +292,7 @@ export function syncSprites(
 			);
 			body.setStrokeStyle(2, isControlled ? 0x00ffff : 0x44ff44);
 			body.setDepth(5);
+			addWorld(hudCamera, body);
 			registry.turretBodies.set(turret.id, body);
 		}
 
@@ -278,6 +320,7 @@ export function syncSprites(
 			barrel.setLineWidth(3);
 			barrel.setOrigin(0, 0);
 			barrel.setDepth(6);
+			addWorld(hudCamera, barrel);
 			registry.turretBarrels.set(turret.id, barrel);
 		}
 
@@ -295,6 +338,7 @@ export function syncSprites(
 				ring.setStrokeStyle(1, 0x00ffff, 0.2);
 				ring.setFillStyle(0x000000, 0);
 				ring.setDepth(1);
+				addWorld(hudCamera, ring);
 				registry.turretRangeRings.set(turret.id, ring);
 			}
 		} else if (existingRange) {
@@ -324,6 +368,7 @@ export function syncSprites(
 				0xff4422,
 			);
 			sprite.setDepth(4);
+			addWorld(hudCamera, sprite);
 			registry.enemies.set(enemy.id, sprite);
 		}
 	});
@@ -350,6 +395,7 @@ export function syncSprites(
 				0xffff44,
 			);
 			sprite.setDepth(3);
+			addWorld(hudCamera, sprite);
 			registry.bullets.set(bullet.id, sprite);
 		}
 	});
@@ -377,6 +423,7 @@ export function syncSprites(
 			);
 			sprite.setStrokeStyle(1, 0x88ff88);
 			sprite.setDepth(3);
+			addWorld(hudCamera, sprite);
 			registry.resources.set(resource.id, sprite);
 		}
 	});
@@ -406,6 +453,7 @@ export function syncSprites(
 			);
 			sprite.setStrokeStyle(1, 0xffffff);
 			sprite.setDepth(5);
+			addWorld(hudCamera, sprite);
 			registry.runners.set(runner.id, sprite);
 		}
 	});

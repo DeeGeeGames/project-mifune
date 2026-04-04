@@ -1,9 +1,12 @@
-export const CANVAS_WIDTH = 1280;
-export const CANVAS_HEIGHT = 720;
+export const VIEWPORT_WIDTH = 1280;
+export const VIEWPORT_HEIGHT = 720;
 
-export const GROUND_Y = 580;
+export const WORLD_WIDTH = VIEWPORT_WIDTH * 3;
+export const WORLD_HEIGHT = VIEWPORT_HEIGHT * 3;
 
-export const TARGET_X = CANVAS_WIDTH / 2;
+export const GROUND_Y = WORLD_HEIGHT - 140;
+
+export const TARGET_X = WORLD_WIDTH / 2;
 export const TARGET_Y = GROUND_Y;
 export const TARGET_RADIUS = 20;
 export const DEFENSE_HP = 10;
@@ -44,7 +47,7 @@ export const WAVE_MAX_CONCURRENT_REGIONS = 4;
 export const WAVE_INTERMISSION = 4000;
 
 export const PLACEMENT_MIN_X = 80;
-export const PLACEMENT_MAX_X = CANVAS_WIDTH - 80;
+export const PLACEMENT_MAX_X = WORLD_WIDTH - 80;
 
 export const TURRET_SPREAD = 0.08;
 

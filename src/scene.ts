@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { GameState } from "./types.ts";
-import { TURRET_COST, RUNNER_COST, MAX_RUNNERS } from "./config.ts";
+import { TURRET_COST, RUNNER_COST, MAX_RUNNERS, WORLD_WIDTH, WORLD_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TARGET_X, TARGET_Y } from "./config.ts";
 import { createInitialState, createRunner } from "./state.ts";
 import { tickWaves } from "./systems/waves.ts";
 import { tickRegions } from "./systems/regions.ts";
@@ -10,6 +10,10 @@ import { tickResourceDrops } from "./systems/resources.ts";
 import { tickRunners, tickRunnerDeath } from "./systems/runners.ts";
 import { findClickedTurret, resolveControlMode } from "./systems/input.ts";
 import { createSpriteRegistry, syncSprites } from "./render.ts";
+
+const ZOOM_MIN = 0.3;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 0.1;
 
 type SceneState = {
 	gameState: GameState;
@@ -23,6 +27,9 @@ type SceneState = {
 	prevToggle: boolean;
 	prevEscape: boolean;
 	prevBuyRunner: boolean;
+	isPanning: boolean;
+	panStart: { x: number; y: number };
+	cameraStart: { x: number; y: number };
 };
 
 let sceneState: SceneState | null = null;
@@ -30,6 +37,10 @@ let sceneState: SceneState | null = null;
 function create(this: Phaser.Scene): void {
 	const keyboard = this.input.keyboard;
 	if (!keyboard) throw new Error("Keyboard input not available");
+
+	const cam = this.cameras.main;
+	cam.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+	cam.centerOn(TARGET_X, TARGET_Y);
 
 	sceneState = {
 		gameState: createInitialState(),
@@ -43,9 +54,25 @@ function create(this: Phaser.Scene): void {
 		prevToggle: false,
 		prevEscape: false,
 		prevBuyRunner: false,
+		isPanning: false,
+		panStart: { x: 0, y: 0 },
+		cameraStart: { x: 0, y: 0 },
 	};
 
 	this.input.mouse?.disableContextMenu();
+
+	// Zoom centered on mouse
+	this.input.on("wheel", (_pointer: Phaser.Input.Pointer, _gameObjects: unknown[], _dx: number, dy: number) => {
+		const worldBefore = { x: _pointer.worldX, y: _pointer.worldY };
+		const direction = dy < 0 ? 1 : -1;
+		const newZoom = Phaser.Math.Clamp(cam.zoom + direction * ZOOM_STEP * cam.zoom, ZOOM_MIN, ZOOM_MAX);
+		cam.setZoom(newZoom);
+		// After zoom, recalculate where the mouse now points in world space
+		// and shift the camera so the world point under the mouse stays fixed
+		const worldAfter = cam.getWorldPoint(_pointer.x, _pointer.y);
+		cam.scrollX += worldBefore.x - worldAfter.x;
+		cam.scrollY += worldBefore.y - worldAfter.y;
+	});
 }
 
 function update(this: Phaser.Scene, time: number, delta: number): void {
@@ -60,15 +87,32 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 
 	const pointer = this.input.activePointer;
 	const pointerPosition = { x: pointer.worldX, y: pointer.worldY };
-	const pointerJustDown = pointer.isDown && !sceneState.prevPointerDown;
-	const rightClicked = pointer.rightButtonDown();
+	const rightDown = pointer.rightButtonDown();
 	const toggleJustPressed = keys.toggle.isDown && !sceneState.prevToggle;
 	const escapeJustPressed = keys.escape.isDown && !sceneState.prevEscape;
 	const buyRunnerJustPressed = keys.buyRunner.isDown && !sceneState.prevBuyRunner;
 
+	// Right-click pan
+	const cam = this.cameras.main;
+	if (rightDown && !sceneState.isPanning) {
+		sceneState = {
+			...sceneState,
+			isPanning: true,
+			panStart: { x: pointer.x, y: pointer.y },
+			cameraStart: { x: cam.scrollX, y: cam.scrollY },
+		};
+	} else if (rightDown && sceneState.isPanning) {
+		cam.scrollX = sceneState.cameraStart.x + (sceneState.panStart.x - pointer.x) / cam.zoom;
+		cam.scrollY = sceneState.cameraStart.y + (sceneState.panStart.y - pointer.y) / cam.zoom;
+	} else if (!rightDown && sceneState.isPanning) {
+		sceneState = { ...sceneState, isPanning: false };
+	}
+
+	const pointerJustDown = pointer.isDown && !sceneState.prevPointerDown && !rightDown;
+
 	// Resolve control mode
 	const clickedTurret =
-		pointerJustDown && !rightClicked
+		pointerJustDown && !rightDown
 			? findClickedTurret(pointerPosition, state.turrets)
 			: null;
 
@@ -76,7 +120,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		state.controlMode,
 		toggleJustPressed,
 		escapeJustPressed,
-		rightClicked,
+		false,
 		clickedTurret,
 		pointerJustDown,
 	);
@@ -85,7 +129,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	// Handle turret placement (costs currency)
 	if (
 		pointerJustDown &&
-		!rightClicked &&
+		!rightDown &&
 		newControlMode.tag === "none" &&
 		!clickedTurret &&
 		state.currency >= TURRET_COST &&
@@ -124,7 +168,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	const turretResult = tickTurrets(
 		state,
 		pointerPosition,
-		pointer.isDown && !rightClicked,
+		pointer.isDown && !rightDown,
 		time,
 		delta,
 	);
