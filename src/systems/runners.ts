@@ -7,7 +7,7 @@ import {
 	RUNNER_RADIUS,
 	ENEMY_RADIUS,
 } from "../config.ts";
-import { distance } from "./targeting.ts";
+import { distance, findNearest } from "./targeting.ts";
 
 const BASE_POS = { x: TARGET_X, y: TARGET_Y };
 
@@ -28,28 +28,9 @@ function moveToward(
 	};
 }
 
-function findNearestUnclaimed(
-	runner: Runner,
-	resources: ReadonlyArray<Resource>,
-	claimedIds: ReadonlySet<string>,
-): Resource | null {
-	const available = resources.filter((r) => !claimedIds.has(r.id));
-	if (available.length === 0) return null;
-
-	return available.reduce((nearest, r) =>
-		distance(runner.position, r.position) < distance(runner.position, nearest.position)
-			? r
-			: nearest,
-	);
-}
-
-export function tickRunners(
-	state: GameState,
-	delta: number,
-): GameState {
+export function tickRunners(state: GameState, delta: number): GameState {
 	const dt = delta / 1000;
 
-	// Build set of already-claimed resource IDs (from runners already targeting them)
 	const claimedIds = new Set(
 		state.runners
 			.filter((r): r is Runner & { state: { tag: "collecting" } } => r.state.tag === "collecting")
@@ -63,7 +44,8 @@ export function tickRunners(
 		const runnerState = runner.state;
 
 		if (runnerState.tag === "idle") {
-			const target = findNearestUnclaimed(runner, state.resources, claimedIds);
+			const unclaimed = state.resources.filter((r) => !claimedIds.has(r.id));
+			const target = findNearest(runner.position, unclaimed, (r) => r.position);
 			if (!target) return runner;
 			claimedIds.add(target.id);
 			return { ...runner, state: { tag: "collecting" as const, targetId: target.id } };
@@ -100,36 +82,19 @@ export function tickRunners(
 		return { ...runner, position: newPos };
 	});
 
-	const resources = state.resources.filter((r) => !pickedUpResourceIds.has(r.id));
-
 	return {
 		...state,
 		runners: updatedRunners,
-		resources,
+		resources: state.resources.filter((r) => !pickedUpResourceIds.has(r.id)),
 		currency: state.currency + currencyGained,
 	};
 }
 
-export function tickRunnerDeath(
-	state: GameState,
-): { state: GameState; deadRunnerIds: ReadonlyArray<string> } {
+export function tickRunnerDeath(state: GameState): GameState {
 	const contactDistance = RUNNER_RADIUS + ENEMY_RADIUS;
-	const deadIds = new Set<string>();
-
-	state.runners.forEach((runner) => {
-		const hit = state.enemies.some(
-			(enemy) => distance(runner.position, enemy.position) < contactDistance,
-		);
-		if (hit) deadIds.add(runner.id);
-	});
-
-	if (deadIds.size === 0) return { state, deadRunnerIds: [] };
-
-	return {
-		state: {
-			...state,
-			runners: state.runners.filter((r) => !deadIds.has(r.id)),
-		},
-		deadRunnerIds: [...deadIds],
-	};
+	const alive = state.runners.filter((runner) =>
+		!state.enemies.some((enemy) => distance(runner.position, enemy.position) < contactDistance),
+	);
+	if (alive.length === state.runners.length) return state;
+	return { ...state, runners: alive };
 }

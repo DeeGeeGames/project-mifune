@@ -35,7 +35,6 @@ function randomRegionPosition(): { x: number; y: number } {
 			return { x, y };
 		}
 	}
-	// Fallback: place at a corner
 	return { x: MARGIN, y: MARGIN };
 }
 
@@ -61,68 +60,42 @@ function createRegion(waveNumber: number): SpawnRegion {
 		hp: params.hp,
 		maxHp: params.hp,
 		spawnInterval: params.spawnInterval,
-		spawnTimer: params.spawnInterval * 0.5, // slight delay before first spawn
+		spawnTimer: params.spawnInterval * 0.5,
 		lifetime: params.lifetime,
 		age: 0,
 	};
 }
 
-export function tickWaves(
-	state: GameState,
-	delta: number,
-): { state: GameState; spawnedRegions: ReadonlyArray<SpawnRegion> } {
+export function tickWaves(state: GameState, delta: number): GameState {
 	const wave = state.wave;
 
 	if (wave.betweenWaves) {
 		const remaining = wave.intermissionTimer - delta;
-		if (remaining <= 0) {
-			return { state: { ...state, wave: createNextWave(wave) }, spawnedRegions: [] };
-		}
-		return {
-			state: { ...state, wave: { ...wave, intermissionTimer: remaining } },
-			spawnedRegions: [],
-		};
+		if (remaining <= 0) return { ...state, wave: createNextWave(wave) };
+		return { ...state, wave: { ...wave, intermissionTimer: remaining } };
 	}
 
-	// Wave complete when all regions spawned, all regions gone, all enemies gone
 	if (wave.regionsToSpawn <= 0 && state.regions.length === 0 && state.enemies.length === 0) {
 		return {
-			state: {
-				...state,
-				wave: { ...wave, betweenWaves: true, intermissionTimer: WAVE_INTERMISSION },
-			},
-			spawnedRegions: [],
+			...state,
+			wave: { ...wave, betweenWaves: true, intermissionTimer: WAVE_INTERMISSION },
 		};
 	}
 
-	if (wave.regionsToSpawn <= 0) {
-		return { state, spawnedRegions: [] };
-	}
-
-	// Respect max concurrent regions
-	if (state.regions.length >= WAVE_MAX_CONCURRENT_REGIONS) {
-		return { state, spawnedRegions: [] };
-	}
+	if (wave.regionsToSpawn <= 0) return state;
+	if (state.regions.length >= WAVE_MAX_CONCURRENT_REGIONS) return state;
 
 	const timer = wave.regionSpawnTimer - delta;
-	if (timer > 0) {
-		return {
-			state: { ...state, wave: { ...wave, regionSpawnTimer: timer } },
-			spawnedRegions: [],
-		};
-	}
+	if (timer > 0) return { ...state, wave: { ...wave, regionSpawnTimer: timer } };
 
 	const region = createRegion(wave.waveNumber);
 	return {
-		state: {
-			...state,
-			wave: {
-				...wave,
-				regionsToSpawn: wave.regionsToSpawn - 1,
-				regionSpawnTimer: WAVE_REGION_SPAWN_INTERVAL,
-			},
-			regions: [...state.regions, region],
+		...state,
+		wave: {
+			...wave,
+			regionsToSpawn: wave.regionsToSpawn - 1,
+			regionSpawnTimer: WAVE_REGION_SPAWN_INTERVAL,
 		},
-		spawnedRegions: [region],
+		regions: [...state.regions, region],
 	};
 }

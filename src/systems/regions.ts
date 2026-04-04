@@ -7,72 +7,54 @@ import {
 	TARGET_Y,
 } from "../config.ts";
 import { makeId } from "../state.ts";
+import { velocityToward } from "./targeting.ts";
 
-function velocityToward(from: { x: number; y: number }, speed: number): { x: number; y: number } {
-	const dx = TARGET_X - from.x;
-	const dy = TARGET_Y - from.y;
-	const mag = Math.sqrt(dx * dx + dy * dy);
-	return { x: (dx / mag) * speed, y: (dy / mag) * speed };
+const TARGET_POS = { x: TARGET_X, y: TARGET_Y };
+
+function spawnEnemy(regionX: number, regionY: number, regionRadius: number): Enemy {
+	const offsetAngle = Math.random() * Math.PI * 2;
+	const offsetDist = Math.random() * regionRadius;
+	const position = {
+		x: regionX + Math.cos(offsetAngle) * offsetDist,
+		y: regionY + Math.sin(offsetAngle) * offsetDist,
+	};
+
+	const burstAngle = Math.random() * Math.PI * 2;
+	const burstSpeed = ENEMY_SPAWN_BURST_SPEED * (0.5 + Math.random() * 0.5);
+
+	return {
+		id: makeId(),
+		position,
+		velocity: velocityToward(position, TARGET_POS, ENEMY_SPEED),
+		speed: ENEMY_SPEED,
+		hp: ENEMY_HP,
+		spawnMomentum: {
+			x: Math.cos(burstAngle) * burstSpeed,
+			y: Math.sin(burstAngle) * burstSpeed,
+		},
+		momentumFactor: 1,
+	};
 }
 
-export function tickRegions(
-	state: GameState,
-	delta: number,
-): { state: GameState; spawnedEnemies: ReadonlyArray<Enemy>; expiredIds: ReadonlyArray<string> } {
-	const spawnedEnemies: Enemy[] = [];
-	const expiredIds: string[] = [];
+export function tickRegions(state: GameState, delta: number): GameState {
+	const newEnemies: Enemy[] = [];
 
-	const updatedRegions = state.regions
+	const regions = state.regions
 		.map((region) => {
 			const age = region.age + delta;
-
-			if (age >= region.lifetime) {
-				expiredIds.push(region.id);
-				return null;
-			}
+			if (age >= region.lifetime) return null;
 
 			const spawnTimer = region.spawnTimer - delta;
-			if (spawnTimer > 0) {
-				return { ...region, age, spawnTimer };
-			}
+			if (spawnTimer > 0) return { ...region, age, spawnTimer };
 
-			// Spawn an enemy anywhere within the region's radius
-			const offsetAngle = Math.random() * Math.PI * 2;
-			const offsetDist = Math.random() * region.radius;
-			const spawnPos = {
-				x: region.position.x + Math.cos(offsetAngle) * offsetDist,
-				y: region.position.y + Math.sin(offsetAngle) * offsetDist,
-			};
-			const velocity = velocityToward(spawnPos, ENEMY_SPEED);
-
-			const burstAngle = Math.random() * Math.PI * 2;
-			const burstSpeed = ENEMY_SPAWN_BURST_SPEED * (0.5 + Math.random() * 0.5);
-			const spawnMomentum = {
-				x: Math.cos(burstAngle) * burstSpeed,
-				y: Math.sin(burstAngle) * burstSpeed,
-			};
-
-			spawnedEnemies.push({
-				id: makeId(),
-				position: spawnPos,
-				velocity,
-				speed: ENEMY_SPEED,
-				hp: ENEMY_HP,
-				spawnMomentum,
-				momentumFactor: 1,
-			});
-
+			newEnemies.push(spawnEnemy(region.position.x, region.position.y, region.radius));
 			return { ...region, age, spawnTimer: region.spawnInterval };
 		})
 		.filter((r): r is NonNullable<typeof r> => r !== null);
 
 	return {
-		state: {
-			...state,
-			regions: updatedRegions,
-			enemies: [...state.enemies, ...spawnedEnemies],
-		},
-		spawnedEnemies,
-		expiredIds,
+		...state,
+		regions,
+		enemies: [...state.enemies, ...newEnemies],
 	};
 }

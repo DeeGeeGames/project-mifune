@@ -8,8 +8,6 @@ export type Vec2 = {
 export type Turret = {
 	readonly id: EntityId;
 	readonly position: Vec2;
-	readonly range: number;
-	readonly fireRate: number;
 	readonly lastFiredAt: number;
 	readonly aimAngle: number;
 };
@@ -87,11 +85,4 @@ export type GameState = {
 	readonly defenseHp: number;
 	readonly currency: number;
 	readonly gameOver: boolean;
-};
-
-export type DestroyedEntities = {
-	readonly bulletIds: ReadonlyArray<EntityId>;
-	readonly enemyIds: ReadonlyArray<EntityId>;
-	readonly regionIds: ReadonlyArray<EntityId>;
-	readonly destroyedEnemyPositions: ReadonlyArray<Vec2>;
 };

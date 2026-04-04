@@ -1,4 +1,5 @@
-import type { Vec2, Enemy, Turret } from "../types.ts";
+import type { Vec2, Enemy } from "../types.ts";
+import { TURRET_RANGE } from "../config.ts";
 
 export function distance(a: Vec2, b: Vec2): number {
 	const dx = a.x - b.x;
@@ -6,22 +7,38 @@ export function distance(a: Vec2, b: Vec2): number {
 	return Math.sqrt(dx * dx + dy * dy);
 }
 
+export function velocityToward(from: Vec2, to: Vec2, speed: number): Vec2 {
+	const dx = to.x - from.x;
+	const dy = to.y - from.y;
+	const mag = Math.sqrt(dx * dx + dy * dy);
+	if (mag < 1) return { x: 0, y: 0 };
+	return { x: (dx / mag) * speed, y: (dy / mag) * speed };
+}
+
+export function findNearest<T>(
+	from: Vec2,
+	items: ReadonlyArray<T>,
+	getPos: (item: T) => Vec2,
+	maxRange?: number,
+): T | null {
+	const candidates = maxRange !== undefined
+		? items.filter((item) => distance(from, getPos(item)) <= maxRange)
+		: items;
+
+	if (candidates.length === 0) return null;
+
+	return candidates.reduce((best, item) => {
+		const bestDist = distance(from, getPos(best));
+		const itemDist = distance(from, getPos(item));
+		return itemDist < bestDist ? item : best;
+	});
+}
+
 export function findNearestEnemy(
-	turret: Turret,
+	from: Vec2,
 	enemies: ReadonlyArray<Enemy>,
 ): Enemy | null {
-	const inRange = enemies.filter(
-		(e) => distance(turret.position, e.position) <= turret.range,
-	);
-
-	if (inRange.length === 0) return null;
-
-	return inRange.reduce((closest, enemy) =>
-		distance(turret.position, enemy.position) <
-		distance(turret.position, closest.position)
-			? enemy
-			: closest,
-	);
+	return findNearest(from, enemies, (e) => e.position, TURRET_RANGE);
 }
 
 export function aimAngle(from: Vec2, to: Vec2): number {
@@ -38,8 +55,6 @@ export function leadTarget(
 	const dx = enemy.position.x - from.x;
 	const dy = enemy.position.y - from.y;
 
-	// Solve quadratic for time-to-intercept:
-	// |enemyPos + enemyVel*t - from|² = (bulletSpeed*t)²
 	const a = ex * ex + ey * ey - bulletSpeed * bulletSpeed;
 	const b = 2 * (dx * ex + dy * ey);
 	const c = dx * dx + dy * dy;

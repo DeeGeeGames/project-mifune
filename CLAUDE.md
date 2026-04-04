@@ -21,7 +21,7 @@ Functional core, Phaser shell. All game logic is pure functions on readonly data
 - `regions.ts` — Region aging, enemy spawning from regions (with burst momentum)
 - `combat.ts` — Movement (enemy homing + momentum blend), bullet/enemy/region hit detection, defense breach
 - `turrets.ts` — Fire rate, turn rate, autonomous lead-targeting, placement validation
-- `targeting.ts` — Distance, aim angle, lead-target intercept math
+- `targeting.ts` — Shared utilities: distance, velocityToward, findNearest (generic), aim angle, lead-target intercept
 - `runners.ts` — Runner AI state machine (idle/collecting/returning), resource pickup, runner death by enemy contact
 - `resources.ts` — Resource drop on enemy death
 - `input.ts` — Click-on-turret detection, control mode resolution

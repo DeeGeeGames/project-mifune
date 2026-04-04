@@ -1,5 +1,4 @@
-import type { GameState, DestroyedEntities } from "../types.ts";
-import type { Runner, Vec2 } from "../types.ts";
+import type { GameState, Vec2 } from "../types.ts";
 import {
 	BULLET_HIT_RADIUS,
 	TARGET_X,
@@ -11,26 +10,7 @@ import {
 	WORLD_WIDTH,
 	WORLD_HEIGHT,
 } from "../config.ts";
-import { distance } from "./targeting.ts";
-
-function findNearestRunner(
-	pos: Vec2,
-	runners: ReadonlyArray<Runner>,
-): Runner | null {
-	const inRange = runners.filter((r) => distance(pos, r.position) <= ENEMY_RUNNER_AGGRO_RANGE);
-	if (inRange.length === 0) return null;
-	return inRange.reduce((closest, r) =>
-		distance(pos, r.position) < distance(pos, closest.position) ? r : closest,
-	);
-}
-
-function velocityToward(from: Vec2, to: Vec2, speed: number): Vec2 {
-	const dx = to.x - from.x;
-	const dy = to.y - from.y;
-	const mag = Math.sqrt(dx * dx + dy * dy);
-	if (mag < 1) return { x: 0, y: 0 };
-	return { x: (dx / mag) * speed, y: (dy / mag) * speed };
-}
+import { distance, findNearest, velocityToward } from "./targeting.ts";
 
 const TARGET_POS = { x: TARGET_X, y: TARGET_Y };
 
@@ -38,21 +18,21 @@ export function tickMovement(state: GameState, delta: number): GameState {
 	const dt = delta / 1000;
 
 	const enemies = state.enemies.map((e) => {
-		const nearRunner = findNearestRunner(e.position, state.runners);
-		const baseVel = nearRunner
-			? velocityToward(e.position, nearRunner.position, e.speed)
-			: velocityToward(e.position, TARGET_POS, e.speed);
+		const nearRunner = findNearest(e.position, state.runners, (r) => r.position, ENEMY_RUNNER_AGGRO_RANGE);
+		const baseVel = velocityToward(
+			e.position,
+			nearRunner ? nearRunner.position : TARGET_POS,
+			e.speed,
+		);
 
-		// Blend spawn momentum into movement
 		const mf = e.momentumFactor;
 		const moveX = baseVel.x * (1 - mf) + e.spawnMomentum.x * mf;
 		const moveY = baseVel.y * (1 - mf) + e.spawnMomentum.y * mf;
-		const newMf = Math.max(0, mf - ENEMY_MOMENTUM_DECAY * dt);
 
 		return {
 			...e,
 			velocity: baseVel,
-			momentumFactor: newMf,
+			momentumFactor: Math.max(0, mf - ENEMY_MOMENTUM_DECAY * dt),
 			position: { x: e.position.x + moveX * dt, y: e.position.y + moveY * dt },
 		};
 	});
@@ -78,7 +58,7 @@ export function tickMovement(state: GameState, delta: number): GameState {
 
 export function tickCombat(
 	state: GameState,
-): { state: GameState; destroyed: DestroyedEntities } {
+): { state: GameState; destroyedEnemyPositions: ReadonlyArray<Vec2> } {
 	const destroyedBulletIds = new Set<string>();
 	const enemyDamage = new Map<string, number>();
 	const regionDamage = new Map<string, number>();
@@ -86,7 +66,6 @@ export function tickCombat(
 	state.bullets.forEach((bullet) => {
 		if (destroyedBulletIds.has(bullet.id)) return;
 
-		// Check enemies first
 		state.enemies.forEach((enemy) => {
 			if (destroyedBulletIds.has(bullet.id)) return;
 			if (distance(bullet.position, enemy.position) < BULLET_HIT_RADIUS) {
@@ -97,7 +76,6 @@ export function tickCombat(
 
 		if (destroyedBulletIds.has(bullet.id)) return;
 
-		// Then check regions
 		state.regions.forEach((region) => {
 			if (destroyedBulletIds.has(bullet.id)) return;
 			if (distance(bullet.position, region.position) < region.radius) {
@@ -107,71 +85,54 @@ export function tickCombat(
 		});
 	});
 
-	const destroyedEnemyIds = new Set<string>();
+	const destroyedEnemyPositions = state.enemies
+		.filter((e) => {
+			const dmg = enemyDamage.get(e.id) ?? 0;
+			return dmg > 0 && e.hp - dmg <= 0;
+		})
+		.map((e) => e.position);
+
 	const enemies = state.enemies
 		.map((e) => {
 			const dmg = enemyDamage.get(e.id) ?? 0;
 			if (dmg <= 0) return e;
 			const newHp = e.hp - dmg;
-			if (newHp <= 0) {
-				destroyedEnemyIds.add(e.id);
-				return null;
-			}
+			if (newHp <= 0) return null;
 			return { ...e, hp: newHp };
 		})
 		.filter((e): e is NonNullable<typeof e> => e !== null);
 
-	const destroyedRegionIds = new Set<string>();
 	const regions = state.regions
 		.map((r) => {
 			const dmg = regionDamage.get(r.id) ?? 0;
 			if (dmg <= 0) return r;
 			const newHp = r.hp - dmg;
-			if (newHp <= 0) {
-				destroyedRegionIds.add(r.id);
-				return null;
-			}
+			if (newHp <= 0) return null;
 			return { ...r, hp: newHp };
 		})
 		.filter((r): r is NonNullable<typeof r> => r !== null);
 
 	const bullets = state.bullets.filter((b) => !destroyedBulletIds.has(b.id));
 
-	const destroyedEnemyPositions = state.enemies
-		.filter((e) => destroyedEnemyIds.has(e.id))
-		.map((e) => e.position);
-
 	return {
 		state: { ...state, enemies, regions, bullets },
-		destroyed: {
-			bulletIds: [...destroyedBulletIds],
-			enemyIds: [...destroyedEnemyIds],
-			regionIds: [...destroyedRegionIds],
-			destroyedEnemyPositions,
-		},
+		destroyedEnemyPositions,
 	};
 }
 
-export function tickDefense(
-	state: GameState,
-): { state: GameState; breachedIds: ReadonlyArray<string> } {
+export function tickDefense(state: GameState): GameState {
 	const breached = state.enemies.filter(
 		(e) => distance(e.position, TARGET_POS) <= TARGET_RADIUS + ENEMY_RADIUS,
 	);
-	if (breached.length === 0) return { state, breachedIds: [] };
+	if (breached.length === 0) return state;
 
 	const breachedIds = new Set(breached.map((e) => e.id));
-	const enemies = state.enemies.filter((e) => !breachedIds.has(e.id));
 	const totalDamage = breached.reduce((sum, e) => sum + e.hp, 0);
-	const newHp = Math.max(0, state.defenseHp - totalDamage);
 
 	return {
-		state: {
-			...state,
-			enemies,
-			defenseHp: newHp,
-			gameOver: newHp <= 0,
-		},
-		breachedIds: [...breachedIds],
+		...state,
+		enemies: state.enemies.filter((e) => !breachedIds.has(e.id)),
+		defenseHp: Math.max(0, state.defenseHp - totalDamage),
+		gameOver: state.defenseHp - totalDamage <= 0,
 	};
 }

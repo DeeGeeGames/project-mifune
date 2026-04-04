@@ -3,7 +3,6 @@ import {
 	BULLET_DAMAGE,
 	BULLET_SPEED,
 	TURRET_FIRE_RATE,
-	TURRET_RANGE,
 	TURRET_SPREAD,
 	TURRET_TURN_SPEED,
 	PLACEMENT_MAX_X,
@@ -20,18 +19,19 @@ import {
 	distance,
 } from "./targeting.ts";
 
+function normalizeAngleDiff(target: number, current: number): number {
+	const raw = (target - current + 3 * Math.PI) % (2 * Math.PI) - Math.PI;
+	return raw;
+}
+
 function rotateToward(current: number, target: number, maxDelta: number): number {
-	let diff = target - current;
-	// Normalize to [-π, π]
-	while (diff > Math.PI) diff -= Math.PI * 2;
-	while (diff < -Math.PI) diff += Math.PI * 2;
+	const diff = normalizeAngleDiff(target, current);
 	return current + Math.max(-maxDelta, Math.min(maxDelta, diff));
 }
 
 function addSpread(velocity: Vec2): Vec2 {
 	const angle = Math.atan2(velocity.y, velocity.x);
-	const spread = (Math.random() - 0.5) * TURRET_SPREAD * 2;
-	const newAngle = angle + spread;
+	const newAngle = angle + (Math.random() - 0.5) * TURRET_SPREAD * 2;
 	const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y);
 	return {
 		x: Math.cos(newAngle) * speed,
@@ -52,17 +52,42 @@ function tryFire(
 			y: turret.position.y + Math.sin(turret.aimAngle),
 		}, BULLET_SPEED),
 	);
-	const bullet: Bullet = {
-		id: makeId(),
-		position: { ...turret.position },
-		velocity,
-		damage: BULLET_DAMAGE,
-	};
 
 	return {
 		turret: { ...turret, lastFiredAt: time },
-		bullet,
+		bullet: {
+			id: makeId(),
+			position: { ...turret.position },
+			velocity,
+			damage: BULLET_DAMAGE,
+		},
 	};
+}
+
+function tickSingleTurret(
+	turret: Turret,
+	isControlled: boolean,
+	pointerPosition: Vec2,
+	pointerDown: boolean,
+	nearestEnemy: ReturnType<typeof findNearestEnemy>,
+	time: number,
+	maxRotation: number,
+): { turret: Turret; bullet: Bullet | null } {
+	const targetAngle = isControlled
+		? aimAngle(turret.position, pointerPosition)
+		: nearestEnemy
+			? aimAngle(turret.position, leadTarget(turret.position, nearestEnemy, BULLET_SPEED))
+			: turret.aimAngle;
+
+	const rotated = { ...turret, aimAngle: rotateToward(turret.aimAngle, targetAngle, maxRotation) };
+
+	const shouldFire = isControlled ? pointerDown : nearestEnemy !== null;
+	if (!shouldFire) return { turret: rotated, bullet: null };
+
+	const result = tryFire(rotated, time);
+	if (!result) return { turret: rotated, bullet: null };
+
+	return { turret: result.turret, bullet: result.bullet };
 }
 
 export function tickTurrets(
@@ -71,53 +96,27 @@ export function tickTurrets(
 	pointerDown: boolean,
 	time: number,
 	delta: number,
-): { state: GameState; bullets: ReadonlyArray<Bullet> } {
-	const newBullets: Bullet[] = [];
+): GameState {
 	const control = state.controlMode;
 	const maxRotation = TURRET_TURN_SPEED * (delta / 1000);
 
-	const updatedTurrets = state.turrets.map((turret) => {
+	const results = state.turrets.map((turret) => {
 		const isControlled =
 			control.tag === "all" ||
 			(control.tag === "single" && control.turretId === turret.id);
 
-		const targetAngle = isControlled
-			? aimAngle(turret.position, pointerPosition)
-			: (() => {
-					const enemy = findNearestEnemy(turret, state.enemies);
-					if (!enemy) return turret.aimAngle;
-					return aimAngle(turret.position, leadTarget(turret.position, enemy, BULLET_SPEED));
-				})();
+		const nearestEnemy = isControlled ? null : findNearestEnemy(turret.position, state.enemies);
 
-		const newAimAngle = rotateToward(turret.aimAngle, targetAngle, maxRotation);
-		const rotated = { ...turret, aimAngle: newAimAngle };
-
-		if (isControlled && pointerDown) {
-			const result = tryFire(rotated, time);
-			if (result) {
-				newBullets.push(result.bullet);
-				return result.turret;
-			}
-			return rotated;
-		}
-
-		if (!isControlled) {
-			const target = findNearestEnemy(turret, state.enemies);
-			if (target) {
-				const result = tryFire(rotated, time);
-				if (result) {
-					newBullets.push(result.bullet);
-					return result.turret;
-				}
-			}
-		}
-
-		return rotated;
+		return tickSingleTurret(turret, isControlled, pointerPosition, pointerDown, nearestEnemy, time, maxRotation);
 	});
 
 	return {
-		state: { ...state, turrets: updatedTurrets },
-		bullets: newBullets,
+		...state,
+		turrets: results.map((r) => r.turret),
+		bullets: [
+			...state.bullets,
+			...results.map((r) => r.bullet).filter((b): b is Bullet => b !== null),
+		],
 	};
 }
 
@@ -134,9 +133,7 @@ export function createTurret(position: Vec2): Turret {
 	return {
 		id: makeId(),
 		position: { x: position.x, y: GROUND_Y },
-		range: TURRET_RANGE,
-		fireRate: TURRET_FIRE_RATE,
 		lastFiredAt: 0,
-		aimAngle: -Math.PI / 2, // start pointing up
+		aimAngle: -Math.PI / 2,
 	};
 }

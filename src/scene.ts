@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { GameState } from "./types.ts";
-import { TURRET_COST, RUNNER_COST, MAX_RUNNERS, WORLD_WIDTH, WORLD_HEIGHT, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TARGET_X, TARGET_Y } from "./config.ts";
+import { TURRET_COST, RUNNER_COST, MAX_RUNNERS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, TARGET_X, TARGET_Y } from "./config.ts";
 import { createInitialState, createRunner } from "./state.ts";
 import { tickWaves } from "./systems/waves.ts";
 import { tickRegions } from "./systems/regions.ts";
@@ -60,16 +60,12 @@ function create(this: Phaser.Scene): void {
 
 	this.input.mouse?.disableContextMenu();
 
-	// Zoom centered on mouse
 	this.input.on("wheel", (_pointer: Phaser.Input.Pointer, _gameObjects: unknown[], _dx: number, dy: number) => {
 		const oldZoom = cam.zoom;
 		const direction = dy < 0 ? 1 : -1;
 		const newZoom = Phaser.Math.Clamp(oldZoom + direction * ZOOM_STEP * oldZoom, ZOOM_MIN, ZOOM_MAX);
 
-		// scrollX/scrollY is the camera center in world space.
-		// Keep the world point under the mouse fixed:
-		// worldX = scrollX + (screenX - viewportW/2) / zoom
-		// Setting equal before/after: scrollX_new = scrollX_old + (sx - w/2) * (1/oldZoom - 1/newZoom)
+		// Keep world point under mouse fixed across zoom change
 		const sx = _pointer.x - VIEWPORT_WIDTH / 2;
 		const sy = _pointer.y - VIEWPORT_HEIGHT / 2;
 		cam.scrollX += sx * (1 / oldZoom - 1 / newZoom);
@@ -95,7 +91,6 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	const escapeJustPressed = keys.escape.isDown && !sceneState.prevEscape;
 	const buyRunnerJustPressed = keys.buyRunner.isDown && !sceneState.prevBuyRunner;
 
-	// Right-click pan
 	const cam = this.cameras.main;
 	if (rightDown && !sceneState.isPanning) {
 		sceneState = {
@@ -113,27 +108,26 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 
 	const pointerJustDown = pointer.isDown && !sceneState.prevPointerDown && !rightDown;
 
-	// Resolve control mode
 	const clickedTurret =
 		pointerJustDown && !rightDown
 			? findClickedTurret(pointerPosition, state.turrets)
 			: null;
 
-	const newControlMode = resolveControlMode(
-		state.controlMode,
-		toggleJustPressed,
-		escapeJustPressed,
-		false,
-		clickedTurret,
-		pointerJustDown,
-	);
-	state = { ...state, controlMode: newControlMode };
+	state = {
+		...state,
+		controlMode: resolveControlMode(
+			state.controlMode,
+			toggleJustPressed,
+			escapeJustPressed,
+			clickedTurret,
+			pointerJustDown,
+		),
+	};
 
-	// Handle turret placement (costs currency)
 	if (
 		pointerJustDown &&
 		!rightDown &&
-		newControlMode.tag === "none" &&
+		state.controlMode.tag === "none" &&
 		!clickedTurret &&
 		state.currency >= TURRET_COST &&
 		isValidPlacement(pointerPosition, state.turrets)
@@ -146,7 +140,6 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		};
 	}
 
-	// Handle runner purchase
 	if (
 		buyRunnerJustPressed &&
 		state.currency >= RUNNER_COST &&
@@ -159,49 +152,18 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		};
 	}
 
-	// Tick waves (spawn regions)
-	const waveResult = tickWaves(state, delta);
-	state = waveResult.state;
-
-	// Tick regions (age, spawn enemies)
-	const regionResult = tickRegions(state, delta);
-	state = regionResult.state;
-
-	// Tick turrets (fire bullets)
-	const turretResult = tickTurrets(
-		state,
-		pointerPosition,
-		pointer.isDown && !rightDown,
-		time,
-		delta,
-	);
-	state = {
-		...turretResult.state,
-		bullets: [...turretResult.state.bullets, ...turretResult.bullets],
-	};
-
-	// Tick movement
+	state = tickWaves(state, delta);
+	state = tickRegions(state, delta);
+	state = tickTurrets(state, pointerPosition, pointer.isDown && !rightDown, time, delta);
 	state = tickMovement(state, delta);
 
-	// Tick combat (bullets vs enemies and regions)
 	const combatResult = tickCombat(state);
-	state = combatResult.state;
+	state = tickResourceDrops(combatResult.state, combatResult.destroyedEnemyPositions);
 
-	// Drop resources from dead enemies
-	state = tickResourceDrops(state, combatResult.destroyed.destroyedEnemyPositions);
-
-	// Tick runners (collect resources, return to base)
 	state = tickRunners(state, delta);
+	state = tickRunnerDeath(state);
+	state = tickDefense(state);
 
-	// Kill runners touched by enemies
-	const runnerDeathResult = tickRunnerDeath(state);
-	state = runnerDeathResult.state;
-
-	// Tick defense breach
-	const defenseResult = tickDefense(state);
-	state = defenseResult.state;
-
-	// Sync to Phaser
 	syncSprites(this, sceneState.registry, state, pointerPosition, time);
 
 	sceneState = {

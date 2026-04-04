@@ -40,8 +40,6 @@ export const REGION_MAX_RADIUS = 150;
 export const REGION_BASE_SPAWN_INTERVAL = 900;    // ms between enemy spawns
 export const REGION_SPAWN_INTERVAL_SCALING = 60;  // ms reduction per wave
 export const REGION_MIN_SPAWN_INTERVAL = 180;
-export const REGION_SPAWN_SPREAD = 40;            // px enemy offset from region center
-
 // Waves
 export const WAVE_REGIONS_BASE = 1;               // regions per wave (+ waveNumber)
 export const WAVE_REGION_SPAWN_INTERVAL = 2500;   // ms between region spawns within a wave
