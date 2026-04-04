@@ -19,15 +19,27 @@ export type Turret = {
 	readonly arcCenter: number;
 	readonly arcWidth: number;
 	readonly arcRange: ArcRange;
+	readonly parentBlockId: EntityId | null;
+};
+
+export type BlockFace = "top" | "left" | "right";
+
+export type Block = {
+	readonly id: EntityId;
+	readonly position: Vec2;
+	readonly hp: number;
+	readonly maxHp: number;
 };
 
 export type PlacementState =
 	| { readonly tag: "idle" }
+	| { readonly tag: "placingBlock" }
 	| {
 		readonly tag: "aiming";
 		readonly position: Vec2;
 		readonly arcWidth: number;
 		readonly arcRange: ArcRange;
+		readonly parentBlockId: EntityId | null;
 	};
 
 export type Enemy = {
@@ -103,6 +115,7 @@ export type GameState = {
 	readonly regions: ReadonlyArray<SpawnRegion>;
 	readonly resources: ReadonlyArray<Resource>;
 	readonly runners: ReadonlyArray<Runner>;
+	readonly blocks: ReadonlyArray<Block>;
 	readonly controlMode: ControlMode;
 	readonly wave: WaveState;
 	readonly defenseHp: number;

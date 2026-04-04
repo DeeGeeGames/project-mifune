@@ -20,11 +20,19 @@ import {
 	RUNNER_COST,
 	MAX_RUNNERS,
 	TURRET_HOVER_RADIUS,
+	BLOCK_SIZE,
 } from "./config.ts";
 import { aimAngle, clampArcCenterToRange, distance as vecDistance } from "./systems/targeting.ts";
+import { snapToBlockGrid, isValidBlockPlacement, BLOCK_HALF } from "./systems/blocks.ts";
 
 type RegionSprites = {
 	readonly body: Phaser.GameObjects.Arc;
+	readonly hpBarBg: Phaser.GameObjects.Rectangle;
+	readonly hpBar: Phaser.GameObjects.Rectangle;
+};
+
+type BlockSprites = {
+	readonly body: Phaser.GameObjects.Rectangle;
 	readonly hpBarBg: Phaser.GameObjects.Rectangle;
 	readonly hpBar: Phaser.GameObjects.Rectangle;
 };
@@ -45,6 +53,7 @@ type SpriteRegistry = {
 	readonly resources: Map<EntityId, Phaser.GameObjects.Arc>;
 	readonly runners: Map<EntityId, Phaser.GameObjects.Rectangle>;
 	readonly regions: Map<EntityId, RegionSprites>;
+	readonly blocks: Map<EntityId, BlockSprites>;
 	readonly arcGraphics: Phaser.GameObjects.Graphics;
 	readonly ground: Phaser.GameObjects.Rectangle;
 	readonly targetSprite: Phaser.GameObjects.Arc;
@@ -198,6 +207,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		resources: new Map(),
 		runners: new Map(),
 		regions: new Map(),
+		blocks: new Map(),
 		ground,
 		targetSprite,
 		defenseBar,
@@ -304,6 +314,58 @@ export function syncSprites(
 			addWorld(hudCamera, hpBar);
 
 			registry.regions.set(region.id, { body, hpBarBg, hpBar });
+		}
+	});
+
+	// --- Blocks ---
+	const activeBlockIds = new Set(state.blocks.map((b) => b.id));
+
+	registry.blocks.forEach((sprites, id) => {
+		if (!activeBlockIds.has(id)) {
+			sprites.body.destroy();
+			sprites.hpBar.destroy();
+			sprites.hpBarBg.destroy();
+			registry.blocks.delete(id);
+		}
+	});
+
+	state.blocks.forEach((block) => {
+		const hpFraction = block.hp / block.maxHp;
+		const blockColor = hpFraction > 0.5 ? 0x667766 : hpFraction > 0.25 ? 0x776644 : 0x774444;
+		const barWidth = BLOCK_SIZE;
+		const barY = block.position.y - BLOCK_HALF - 6;
+
+		const existing = registry.blocks.get(block.id);
+		if (existing) {
+			existing.body.setPosition(block.position.x, block.position.y);
+			existing.body.setFillStyle(blockColor);
+			existing.hpBarBg.setPosition(block.position.x, barY);
+			existing.hpBar.setPosition(
+				block.position.x - barWidth / 2 + (barWidth * hpFraction) / 2,
+				barY,
+			);
+			existing.hpBar.setScale(hpFraction, 1);
+		} else {
+			const body = scene.add.rectangle(
+				block.position.x,
+				block.position.y,
+				BLOCK_SIZE,
+				BLOCK_SIZE,
+				blockColor,
+			);
+			body.setStrokeStyle(2, 0x88aa88);
+			body.setDepth(3);
+			addWorld(hudCamera, body);
+
+			const hpBarBg = scene.add.rectangle(block.position.x, barY, barWidth, 3, 0x333333);
+			hpBarBg.setDepth(8);
+			addWorld(hudCamera, hpBarBg);
+
+			const hpBar = scene.add.rectangle(block.position.x, barY, barWidth, 3, 0x88aa88);
+			hpBar.setDepth(9);
+			addWorld(hudCamera, hpBar);
+
+			registry.blocks.set(block.id, { body, hpBarBg, hpBar });
 		}
 	});
 
@@ -596,6 +658,27 @@ export function syncSprites(
 		registry.arcGraphics.strokeCircle(placement.position.x, placement.position.y, TURRET_RADIUS);
 	}
 
+	if (placement.tag === "placingBlock") {
+		const snapped = snapToBlockGrid(pointerPosition, state.blocks);
+		const valid = isValidBlockPlacement(snapped, state.blocks);
+		const ghostColor = valid ? 0x667766 : 0x774444;
+		const strokeColor = valid ? 0x88aa88 : 0xff4444;
+		registry.arcGraphics.fillStyle(ghostColor, 0.5);
+		registry.arcGraphics.lineStyle(2, strokeColor, 0.6);
+		registry.arcGraphics.fillRect(
+			snapped.x - BLOCK_HALF,
+			snapped.y - BLOCK_HALF,
+			BLOCK_SIZE,
+			BLOCK_SIZE,
+		);
+		registry.arcGraphics.strokeRect(
+			snapped.x - BLOCK_HALF,
+			snapped.y - BLOCK_HALF,
+			BLOCK_SIZE,
+			BLOCK_SIZE,
+		);
+	}
+
 	// --- HUD ---
 	registry.defenseText.setText(`Defense: ${state.defenseHp}/${DEFENSE_HP}`);
 
@@ -629,7 +712,9 @@ export function syncSprites(
 	registry.instructionText.setText(
 		placement.tag === "aiming"
 			? "Aim arc direction  |  Scroll = adjust width  |  Click = confirm  |  ESC = cancel"
-			: "Click = place turret  |  T = control all  |  Click turret = control one  |  R = buy runner  |  P = priority  |  ESC = release",
+			: placement.tag === "placingBlock"
+				? "Click = place block  |  ESC = cancel"
+				: "Click = place turret  |  B = place block  |  T = control all  |  Click turret = control one  |  R = buy runner  |  P = priority  |  ESC = release",
 	);
 
 	if (state.gameOver) {

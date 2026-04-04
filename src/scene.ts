@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import type { GameState, PlacementState } from "./types.ts";
-import { TURRET_COST, RUNNER_COST, MAX_RUNNERS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, TARGET_X, TARGET_Y, ARC_WIDTH_DEFAULT, ARC_WIDTH_MIN, ARC_SCROLL_STEP, GROUND_Y, GROUND_ARC_RANGE } from "./config.ts";
+import { TURRET_COST, RUNNER_COST, MAX_RUNNERS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, TARGET_X, TARGET_Y, ARC_WIDTH_DEFAULT, ARC_WIDTH_MIN, ARC_SCROLL_STEP, GROUND_Y, GROUND_ARC_RANGE, BLOCK_COST } from "./config.ts";
 import { createInitialState, createRunner } from "./state.ts";
 import { tickWaves } from "./systems/waves.ts";
 import { tickRegions } from "./systems/regions.ts";
@@ -10,6 +10,7 @@ import { tickResourceDrops } from "./systems/resources.ts";
 import { tickRunners, tickRunnerDeath } from "./systems/runners.ts";
 import { findClickedTurret, resolveControlMode } from "./systems/input.ts";
 import { aimAngle, clampArcCenterToRange } from "./systems/targeting.ts";
+import { createBlock, snapToBlockGrid, isValidBlockPlacement, findClickedBlockFace, faceCenterPosition, faceArcRange, tickBlockDamage, BLOCK_HALF } from "./systems/blocks.ts";
 import { createSpriteRegistry, syncSprites } from "./render.ts";
 
 const ZOOM_MIN = Math.max(VIEWPORT_WIDTH / WORLD_WIDTH, VIEWPORT_HEIGHT / WORLD_HEIGHT);
@@ -25,6 +26,7 @@ type SceneState = {
 		escape: Phaser.Input.Keyboard.Key;
 		buyRunner: Phaser.Input.Keyboard.Key;
 		togglePriority: Phaser.Input.Keyboard.Key;
+		placeBlock: Phaser.Input.Keyboard.Key;
 		panLeft: readonly Phaser.Input.Keyboard.Key[];
 		panRight: readonly Phaser.Input.Keyboard.Key[];
 		panUp: readonly Phaser.Input.Keyboard.Key[];
@@ -36,6 +38,7 @@ type SceneState = {
 	prevEscape: boolean;
 	prevBuyRunner: boolean;
 	prevTogglePriority: boolean;
+	prevPlaceBlock: boolean;
 	isPanning: boolean;
 	panStart: { x: number; y: number };
 	cameraStart: { x: number; y: number };
@@ -60,6 +63,7 @@ function create(this: Phaser.Scene): void {
 			escape: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
 			buyRunner: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
 			togglePriority: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P),
+			placeBlock: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B),
 			panLeft: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT)] as const,
 			panRight: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)] as const,
 			panUp: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP)] as const,
@@ -71,6 +75,7 @@ function create(this: Phaser.Scene): void {
 		prevEscape: false,
 		prevBuyRunner: false,
 		prevTogglePriority: false,
+		prevPlaceBlock: false,
 		isPanning: false,
 		panStart: { x: 0, y: 0 },
 		cameraStart: { x: 0, y: 0 },
@@ -125,6 +130,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	const escapeJustPressed = keys.escape.isDown && !sceneState.prevEscape;
 	const buyRunnerJustPressed = keys.buyRunner.isDown && !sceneState.prevBuyRunner;
 	const priorityJustPressed = keys.togglePriority.isDown && !sceneState.prevTogglePriority;
+	const placeBlockJustPressed = keys.placeBlock.isDown && !sceneState.prevPlaceBlock;
 
 	const cam = this.cameras.main;
 	if (rightDown && !sceneState.isPanning) {
@@ -165,36 +171,78 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		),
 	};
 
-	if (sceneState.placement.tag === "aiming" && (escapeJustPressed || toggleJustPressed)) {
+	if (
+		(sceneState.placement.tag === "aiming" || sceneState.placement.tag === "placingBlock") &&
+		(escapeJustPressed || toggleJustPressed)
+	) {
 		sceneState = { ...sceneState, placement: { tag: "idle" } };
 	}
 
-	// Two-phase placement
+	if (
+		sceneState.placement.tag === "idle" &&
+		placeBlockJustPressed &&
+		state.controlMode.tag === "none" &&
+		state.currency >= BLOCK_COST
+	) {
+		sceneState = { ...sceneState, placement: { tag: "placingBlock" } };
+	}
+
+	if (sceneState.placement.tag === "placingBlock") {
+		if (pointer.isDown && !rightDown) {
+			const snapped = snapToBlockGrid(pointerPosition, state.blocks);
+			const cursorInSnapped = Math.abs(snapped.x - pointerPosition.x) <= BLOCK_HALF && Math.abs(snapped.y - pointerPosition.y) <= BLOCK_HALF;
+			if (cursorInSnapped && isValidBlockPlacement(snapped, state.blocks) && state.currency >= BLOCK_COST) {
+				state = {
+					...state,
+					blocks: [...state.blocks, createBlock(snapped)],
+					currency: state.currency - BLOCK_COST,
+				};
+				if (state.currency < BLOCK_COST) {
+					sceneState = { ...sceneState, placement: { tag: "idle" } };
+				}
+			}
+		}
+	}
+
 	if (sceneState.placement.tag === "idle") {
-		// Phase A: click to set position
 		if (
 			pointerJustDown &&
 			!rightDown &&
 			state.controlMode.tag === "none" &&
 			!clickedTurret &&
-			state.currency >= TURRET_COST &&
-			isValidPlacement(pointerPosition, state.turrets)
+			state.currency >= TURRET_COST
 		) {
-			sceneState = {
-				...sceneState,
-				placement: {
-					tag: "aiming",
-					position: { x: pointerPosition.x, y: GROUND_Y },
-					arcWidth: Math.min(ARC_WIDTH_DEFAULT, GROUND_ARC_RANGE.width),
-					arcRange: GROUND_ARC_RANGE,
-				},
-			};
+			const blockFace = findClickedBlockFace(pointerPosition, state.blocks);
+			if (blockFace) {
+				const pos = faceCenterPosition(blockFace.block, blockFace.face);
+				const arcRange = faceArcRange(blockFace.face);
+				sceneState = {
+					...sceneState,
+					placement: {
+						tag: "aiming",
+						position: pos,
+						arcWidth: Math.min(ARC_WIDTH_DEFAULT, arcRange.width),
+						arcRange,
+						parentBlockId: blockFace.block.id,
+					},
+				};
+			} else if (isValidPlacement(pointerPosition, state.turrets)) {
+				sceneState = {
+					...sceneState,
+					placement: {
+						tag: "aiming",
+						position: { x: pointerPosition.x, y: GROUND_Y },
+						arcWidth: Math.min(ARC_WIDTH_DEFAULT, GROUND_ARC_RANGE.width),
+						arcRange: GROUND_ARC_RANGE,
+						parentBlockId: null,
+					},
+				};
+			}
 		}
 	} else if (sceneState.placement.tag === "aiming") {
-		// Phase B: click to confirm arc direction
 		if (pointerJustDown && !rightDown) {
 			const rawCenter = aimAngle(sceneState.placement.position, pointerPosition);
-			const { arcRange } = sceneState.placement;
+			const { arcRange, parentBlockId } = sceneState.placement;
 			const arcCenter = clampArcCenterToRange(
 				rawCenter,
 				sceneState.placement.arcWidth,
@@ -206,6 +254,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 				arcCenter,
 				sceneState.placement.arcWidth,
 				arcRange,
+				parentBlockId,
 			);
 			state = {
 				...state,
@@ -240,8 +289,14 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	state = tickTurrets(state, pointerPosition, pointer.isDown && !rightDown, time, delta);
 	state = tickMovement(state, delta);
 
+	const blockResult = tickBlockDamage(state);
+	state = blockResult.state;
+
 	const combatResult = tickCombat(state);
-	state = tickResourceDrops(combatResult.state, combatResult.destroyedEnemyPositions);
+	state = tickResourceDrops(combatResult.state, [
+		...blockResult.destroyedEnemyPositions,
+		...combatResult.destroyedEnemyPositions,
+	]);
 
 	state = tickRunners(state, delta);
 	state = tickRunnerDeath(state);
@@ -257,6 +312,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		prevEscape: keys.escape.isDown,
 		prevBuyRunner: keys.buyRunner.isDown,
 		prevTogglePriority: keys.togglePriority.isDown,
+		prevPlaceBlock: keys.placeBlock.isDown,
 	};
 }
 

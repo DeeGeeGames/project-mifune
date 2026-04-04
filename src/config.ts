@@ -8,7 +8,7 @@ export const GROUND_Y = WORLD_HEIGHT - 140;
 
 export const TARGET_X = WORLD_WIDTH / 2;
 export const TARGET_Y = GROUND_Y;
-export const TARGET_RADIUS = 20;
+export const TARGET_RADIUS = 40;
 export const DEFENSE_HP = 10;
 
 export const TURRET_RANGE = 1200;
@@ -67,6 +67,14 @@ export const GROUND_ARC_RANGE = { center: ARC_RANGE_CENTER, width: ARC_RANGE_WID
 
 export const REGION_BURST_ARC_WIDTH = Math.PI / 4;          // 45° momentum cone per region
 export const REGION_BURST_VALID_RANGE = { center: ARC_RANGE_CENTER, width: ARC_RANGE_WIDTH } as const;
+
+// Blocks
+export const BLOCK_SIZE = 36;
+export const BLOCK_HP = 20;
+export const BLOCK_COST = 10;
+export const BLOCK_FACE_CLICK_THRESHOLD = 24;
+export const RIGHT_FACE_ARC_RANGE = { center: 0, width: Math.PI } as const;
+export const LEFT_FACE_ARC_RANGE = { center: Math.PI, width: Math.PI } as const;
 
 // Economy
 export const TURRET_COST = 50;

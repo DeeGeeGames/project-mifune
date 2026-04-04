@@ -65,6 +65,7 @@ export function createInitialState(): GameState {
 		regions: [],
 		resources: [],
 		runners: createInitialRunners(),
+		blocks: [],
 		controlMode: { tag: "none" },
 		wave: createInitialWave(),
 		defenseHp: DEFENSE_HP,

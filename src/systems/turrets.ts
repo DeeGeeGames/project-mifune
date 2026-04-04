@@ -1,4 +1,4 @@
-import type { ArcRange, Bullet, GameState, Turret, Vec2 } from "../types.ts";
+import type { ArcRange, Bullet, EntityId, GameState, Turret, Vec2 } from "../types.ts";
 import {
 	BULLET_DAMAGE,
 	BULLET_SPEED,
@@ -143,15 +143,17 @@ export function createTurret(
 	arcCenter: number,
 	arcWidth: number,
 	arcRange: ArcRange,
+	parentBlockId: EntityId | null = null,
 ): Turret {
 	return {
 		id: makeId(),
-		position: { x: position.x, y: GROUND_Y },
+		position: parentBlockId ? position : { x: position.x, y: GROUND_Y },
 		lastFiredAt: 0,
 		aimAngle: arcCenter,
 		ammo: TURRET_MAX_AMMO,
 		arcCenter,
 		arcWidth,
 		arcRange,
+		parentBlockId,
 	};
 }
