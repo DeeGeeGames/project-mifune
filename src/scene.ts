@@ -1,16 +1,10 @@
 import Phaser from "phaser";
 import type { GameState, PlacementState } from "./types.ts";
-import { TURRET_COST, RUNNER_COST, MAX_RUNNERS, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, TARGET_X, TARGET_Y, ARC_WIDTH_DEFAULT, ARC_WIDTH_MIN, ARC_SCROLL_STEP, GROUND_Y, GROUND_ARC_RANGE, BLOCK_COST } from "./config.ts";
-import { createInitialState, createRunner } from "./state.ts";
-import { tickWaves } from "./systems/waves.ts";
-import { tickRegions } from "./systems/regions.ts";
-import { tickTurrets, isValidPlacement, createTurret } from "./systems/turrets.ts";
-import { tickMovement, tickCombat, tickDefense } from "./systems/combat.ts";
-import { tickResourceDrops } from "./systems/resources.ts";
-import { tickRunners, tickRunnerDeath } from "./systems/runners.ts";
+import { VIEWPORT_WIDTH, VIEWPORT_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT, TARGET_X, TARGET_Y } from "./config.ts";
+import { createInitialState } from "./state.ts";
 import { findClickedTurret, resolveControlMode } from "./systems/input.ts";
-import { aimAngle, clampArcCenterToRange } from "./systems/targeting.ts";
-import { createBlock, snapToBlockGrid, isValidBlockPlacement, findClickedBlockFace, faceCenterPosition, faceArcRange, tickBlockDamage, BLOCK_HALF } from "./systems/blocks.ts";
+import { tickPlacement, adjustArcWidth } from "./systems/placement.ts";
+import { tickGameSystems } from "./systems/gameLoop.ts";
 import { createSpriteRegistry, syncSprites } from "./render.ts";
 
 const ZOOM_MIN = Math.max(VIEWPORT_WIDTH / WORLD_WIDTH, VIEWPORT_HEIGHT / WORLD_HEIGHT);
@@ -87,15 +81,9 @@ function create(this: Phaser.Scene): void {
 		if (!sceneState) return;
 
 		if (sceneState.placement.tag === "aiming") {
-			const direction = dy < 0 ? 1 : -1;
-			const newWidth = Phaser.Math.Clamp(
-				sceneState.placement.arcWidth + direction * ARC_SCROLL_STEP,
-				ARC_WIDTH_MIN,
-				sceneState.placement.arcRange.width,
-			);
 			sceneState = {
 				...sceneState,
-				placement: { ...sceneState.placement, arcWidth: newWidth },
+				placement: adjustArcWidth(sceneState.placement, dy),
 			};
 			return;
 		}
@@ -104,7 +92,6 @@ function create(this: Phaser.Scene): void {
 		const direction = dy < 0 ? 1 : -1;
 		const newZoom = Phaser.Math.Clamp(oldZoom + direction * ZOOM_STEP * oldZoom, ZOOM_MIN, ZOOM_MAX);
 
-		// Keep world point under mouse fixed across zoom change
 		const sx = _pointer.x - VIEWPORT_WIDTH / 2;
 		const sy = _pointer.y - VIEWPORT_HEIGHT / 2;
 		cam.scrollX += sx * (1 / oldZoom - 1 / newZoom);
@@ -132,6 +119,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	const priorityJustPressed = keys.togglePriority.isDown && !sceneState.prevTogglePriority;
 	const placeBlockJustPressed = keys.placeBlock.isDown && !sceneState.prevPlaceBlock;
 
+	// Camera panning
 	const cam = this.cameras.main;
 	if (rightDown && !sceneState.isPanning) {
 		sceneState = {
@@ -153,6 +141,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	if (keys.panUp.some(k => k.isDown)) cam.scrollY -= panPx;
 	if (keys.panDown.some(k => k.isDown)) cam.scrollY += panPx;
 
+	// Input detection
 	const pointerJustDown = pointer.isDown && !sceneState.prevPointerDown && !rightDown;
 
 	const clickedTurret =
@@ -171,142 +160,35 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		),
 	};
 
-	if (
-		(sceneState.placement.tag === "aiming" || sceneState.placement.tag === "placingBlock") &&
-		(escapeJustPressed || toggleJustPressed)
-	) {
-		sceneState = { ...sceneState, placement: { tag: "idle" } };
-	}
+	// Placement & economy
+	const placementResult = tickPlacement(sceneState.placement, state, {
+		pointerPosition,
+		pointerDown: pointer.isDown && !rightDown,
+		pointerJustDown,
+		rightDown,
+		escapeJustPressed,
+		toggleJustPressed,
+		placeBlockJustPressed,
+		buyRunnerJustPressed,
+		priorityJustPressed,
+		clickedTurret,
+	});
+	state = placementResult.state;
 
-	if (
-		sceneState.placement.tag === "idle" &&
-		placeBlockJustPressed &&
-		state.controlMode.tag === "none" &&
-		state.currency >= BLOCK_COST
-	) {
-		sceneState = { ...sceneState, placement: { tag: "placingBlock" } };
-	}
+	// Game systems
+	state = tickGameSystems(state, {
+		pointerPosition,
+		pointerDown: pointer.isDown && !rightDown,
+		time,
+		delta,
+	});
 
-	if (sceneState.placement.tag === "placingBlock") {
-		if (pointer.isDown && !rightDown) {
-			const snapped = snapToBlockGrid(pointerPosition, state.blocks);
-			const cursorInSnapped = Math.abs(snapped.x - pointerPosition.x) <= BLOCK_HALF && Math.abs(snapped.y - pointerPosition.y) <= BLOCK_HALF;
-			if (cursorInSnapped && isValidBlockPlacement(snapped, state.blocks) && state.currency >= BLOCK_COST) {
-				state = {
-					...state,
-					blocks: [...state.blocks, createBlock(snapped)],
-					currency: state.currency - BLOCK_COST,
-				};
-				if (state.currency < BLOCK_COST) {
-					sceneState = { ...sceneState, placement: { tag: "idle" } };
-				}
-			}
-		}
-	}
-
-	if (sceneState.placement.tag === "idle") {
-		if (
-			pointerJustDown &&
-			!rightDown &&
-			state.controlMode.tag === "none" &&
-			!clickedTurret &&
-			state.currency >= TURRET_COST
-		) {
-			const blockFace = findClickedBlockFace(pointerPosition, state.blocks);
-			if (blockFace) {
-				const pos = faceCenterPosition(blockFace.block, blockFace.face);
-				const arcRange = faceArcRange(blockFace.face);
-				sceneState = {
-					...sceneState,
-					placement: {
-						tag: "aiming",
-						position: pos,
-						arcWidth: Math.min(ARC_WIDTH_DEFAULT, arcRange.width),
-						arcRange,
-						parentBlockId: blockFace.block.id,
-					},
-				};
-			} else if (isValidPlacement(pointerPosition, state.turrets)) {
-				sceneState = {
-					...sceneState,
-					placement: {
-						tag: "aiming",
-						position: { x: pointerPosition.x, y: GROUND_Y },
-						arcWidth: Math.min(ARC_WIDTH_DEFAULT, GROUND_ARC_RANGE.width),
-						arcRange: GROUND_ARC_RANGE,
-						parentBlockId: null,
-					},
-				};
-			}
-		}
-	} else if (sceneState.placement.tag === "aiming") {
-		if (pointerJustDown && !rightDown) {
-			const rawCenter = aimAngle(sceneState.placement.position, pointerPosition);
-			const { arcRange, parentBlockId } = sceneState.placement;
-			const arcCenter = clampArcCenterToRange(
-				rawCenter,
-				sceneState.placement.arcWidth,
-				arcRange.center,
-				arcRange.width,
-			);
-			const turret = createTurret(
-				sceneState.placement.position,
-				arcCenter,
-				sceneState.placement.arcWidth,
-				arcRange,
-				parentBlockId,
-			);
-			state = {
-				...state,
-				turrets: [...state.turrets, turret],
-				currency: state.currency - TURRET_COST,
-			};
-			sceneState = { ...sceneState, placement: { tag: "idle" } };
-		}
-	}
-
-	if (priorityJustPressed) {
-		state = {
-			...state,
-			runnerPriority: state.runnerPriority === "resources" ? "ammo" : "resources",
-		};
-	}
-
-	if (
-		buyRunnerJustPressed &&
-		state.currency >= RUNNER_COST &&
-		state.runners.length < MAX_RUNNERS
-	) {
-		state = {
-			...state,
-			runners: [...state.runners, createRunner()],
-			currency: state.currency - RUNNER_COST,
-		};
-	}
-
-	state = tickWaves(state, delta);
-	state = tickRegions(state, delta);
-	state = tickTurrets(state, pointerPosition, pointer.isDown && !rightDown, time, delta);
-	state = tickMovement(state, delta);
-
-	const blockResult = tickBlockDamage(state);
-	state = blockResult.state;
-
-	const combatResult = tickCombat(state);
-	state = tickResourceDrops(combatResult.state, [
-		...blockResult.destroyedEnemyPositions,
-		...combatResult.destroyedEnemyPositions,
-	]);
-
-	state = tickRunners(state, delta);
-	state = tickRunnerDeath(state);
-	state = tickDefense(state);
-
-	syncSprites(this, sceneState.registry, state, pointerPosition, time, sceneState.placement);
+	syncSprites(this, sceneState.registry, state, pointerPosition, time, placementResult.placement);
 
 	sceneState = {
 		...sceneState,
 		gameState: state,
+		placement: placementResult.placement,
 		prevPointerDown: pointer.isDown,
 		prevToggle: keys.toggle.isDown,
 		prevEscape: keys.escape.isDown,
