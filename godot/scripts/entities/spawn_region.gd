@@ -1,8 +1,6 @@
 extends Area2D
 class_name SpawnRegion
 
-const ENEMY_SCENE: PackedScene = preload("res://scenes/entities/enemy.tscn")
-
 var hp: int = 0
 var max_hp: int = 0
 var lifetime: float = 0.0
@@ -20,8 +18,6 @@ func initialize(wave_number: int) -> void:
 
 func _ready() -> void:
 	add_to_group("regions")
-	collision_layer = 1 << (Constants.LAYER_ENEMIES - 1)  # So bullets hit us
-	collision_mask = 0
 
 	# Compute wave-scaled params
 	lifetime = minf(Constants.REGION_BASE_LIFETIME + _wave_number * Constants.REGION_LIFETIME_SCALING, Constants.REGION_MAX_LIFETIME)
@@ -35,9 +31,9 @@ func _ready() -> void:
 	# Set up collision shape
 	var shape := CircleShape2D.new()
 	shape.radius = region_radius
-	var collision := CollisionShape2D.new()
-	collision.shape = shape
-	add_child(collision)
+	var coll := CollisionShape2D.new()
+	coll.shape = shape
+	add_child(coll)
 
 	# Start spawning with initial half-interval delay
 	spawn_timer.wait_time = spawn_interval
@@ -67,10 +63,6 @@ func _on_spawn_timer_timeout() -> void:
 	spawn_timer.start(spawn_interval)
 
 func _spawn_enemy() -> void:
-	var enemies_container: Node = get_node_or_null("/root/Main/World/Enemies")
-	if enemies_container == null:
-		return
-
 	var offset_angle: float = randf() * TAU
 	var offset_dist: float = randf() * region_radius
 	var spawn_pos: Vector2 = global_position + Vector2(cos(offset_angle), sin(offset_angle)) * offset_dist
@@ -79,9 +71,7 @@ func _spawn_enemy() -> void:
 	var burst_speed: float = Constants.ENEMY_SPAWN_BURST_SPEED * (0.5 + randf() * 0.5)
 	var momentum: Vector2 = Vector2(cos(burst_angle), sin(burst_angle)) * burst_speed
 
-	var enemy: Enemy = ENEMY_SCENE.instantiate()
-	enemy.initialize(spawn_pos, momentum)
-	enemies_container.add_child(enemy)
+	GameManager.enemy_spawn_requested.emit(spawn_pos, momentum)
 
 func _draw() -> void:
 	var hp_ratio: float = float(hp) / float(max_hp) if max_hp > 0 else 1.0

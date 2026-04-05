@@ -1,15 +1,24 @@
 extends Node2D
 
-@onready var resources_container: Node2D = $World/Resources
-@onready var runners_container: Node2D = $World/Runners
-
 const RESOURCE_SCENE: PackedScene = preload("res://scenes/entities/resource_pickup.tscn")
 const RUNNER_SCENE: PackedScene = preload("res://scenes/entities/runner.tscn")
+const BULLET_SCENE: PackedScene = preload("res://scenes/entities/bullet.tscn")
+const ENEMY_SCENE: PackedScene = preload("res://scenes/entities/enemy.tscn")
+const SPAWN_REGION_SCENE: PackedScene = preload("res://scenes/entities/spawn_region.tscn")
+
+@onready var resources_container: Node2D = $World/Resources
+@onready var runners_container: Node2D = $World/Runners
+@onready var bullets_container: Node2D = $World/Bullets
+@onready var enemies_container: Node2D = $World/Enemies
+@onready var regions_container: Node2D = $World/SpawnRegions
 
 func _ready() -> void:
 	GameManager.enemy_died.connect(_on_enemy_died)
 	GameManager.runner_purchased.connect(_on_runner_purchased)
 	GameManager.block_destroyed.connect(_on_block_destroyed)
+	GameManager.bullet_spawn_requested.connect(_on_bullet_spawn_requested)
+	GameManager.enemy_spawn_requested.connect(_on_enemy_spawn_requested)
+	GameManager.region_spawn_requested.connect(_on_region_spawn_requested)
 
 	for i: int in Constants.STARTING_RUNNERS:
 		_spawn_runner()
@@ -32,16 +41,32 @@ func _on_block_destroyed(block_id: int) -> void:
 		if turret is Turret and (turret as Turret).parent_block_id == block_id:
 			turret.queue_free()
 
+func _on_bullet_spawn_requested(pos: Vector2, vel: Vector2) -> void:
+	var bullet: Bullet = BULLET_SCENE.instantiate()
+	bullet.initialize(pos, vel)
+	bullets_container.add_child(bullet)
+
+func _on_enemy_spawn_requested(pos: Vector2, momentum: Vector2) -> void:
+	var enemy: Enemy = ENEMY_SCENE.instantiate()
+	enemy.initialize(pos, momentum)
+	enemies_container.add_child(enemy)
+
+func _on_region_spawn_requested(pos: Vector2, wave_number: int) -> void:
+	var region: SpawnRegion = SPAWN_REGION_SCENE.instantiate()
+	region.position = pos
+	region.initialize(wave_number)
+	regions_container.add_child(region)
+
 func _unhandled_input(event: InputEvent) -> void:
 	if GameManager.game_over:
 		return
 
 	if event.is_action_pressed("fire"):
-		if GameManager.control_mode["tag"] == "none" and GameManager.placement_state["tag"] == "idle":
+		if GameManager.control_mode == GameManagerClass.ControlMode.NONE and GameManager.placement_state == GameManagerClass.PlacementState.IDLE:
 			var world_pos: Vector2 = get_global_mouse_position()
 			var clicked_turret: Node2D = _find_clicked_turret(world_pos)
 			if clicked_turret != null:
-				GameManager.set_control_mode({ "tag": "single", "turret_id": clicked_turret.get_instance_id() })
+				GameManager.set_control_mode(GameManagerClass.ControlMode.SINGLE, clicked_turret.get_instance_id())
 				get_viewport().set_input_as_handled()
 
 func _find_clicked_turret(world_pos: Vector2) -> Node2D:

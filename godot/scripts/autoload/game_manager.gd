@@ -4,18 +4,24 @@ extends Node
 # The *Class suffix avoids name collision with the autoload instance name "GameManager".
 class_name GameManagerClass
 
+enum ControlMode { NONE, ALL, SINGLE }
+enum PlacementState { IDLE, PLACING_TURRET, AIMING, PLACING_BLOCK }
+
 # --- Signals ---
 signal currency_changed(new_amount: int)
 signal defense_damaged(new_hp: int)
 signal game_over_triggered
 signal wave_started(wave_number: int)
 signal wave_cleared
-signal control_mode_changed(mode: Dictionary[String, Variant])
+signal control_mode_changed(mode: ControlMode)
 signal runner_priority_changed(priority: String)
-signal placement_state_changed(state: Dictionary[String, Variant])
+signal placement_state_changed(state: PlacementState)
 signal runner_purchased
 signal enemy_died(pos: Vector2)
 signal block_destroyed(block_id: int)
+signal bullet_spawn_requested(pos: Vector2, vel: Vector2)
+signal enemy_spawn_requested(pos: Vector2, momentum: Vector2)
+signal region_spawn_requested(pos: Vector2, wave_number: int)
 
 # --- State ---
 var currency: int = Constants.STARTING_CURRENCY
@@ -23,14 +29,20 @@ var wave_number: int = Constants.STARTING_WAVE
 var defense_hp: int = Constants.DEFENSE_HP
 var game_over: bool = false
 
-# Control mode: { "tag": "none" } | { "tag": "all" } | { "tag": "single", "turret_id": int }
-var control_mode: Dictionary[String, Variant] = { "tag": "none" }
+# Control mode
+var control_mode: ControlMode = ControlMode.NONE
+var controlled_turret_id: int = -1
 
 # Runner priority: "resources" or "ammo"
 var runner_priority: String = "resources"
 
-# Placement state: { "tag": "idle" } | { "tag": "placing_turret" } | { "tag": "aiming", ... } | { "tag": "placing_block" }
-var placement_state: Dictionary[String, Variant] = { "tag": "idle" }
+# Placement state
+var placement_state: PlacementState = PlacementState.IDLE
+var aiming_position: Vector2 = Vector2.ZERO
+var aiming_arc_width: float = 0.0
+var aiming_arc_range_center: float = 0.0
+var aiming_arc_range_width: float = 0.0
+var aiming_parent_block_id: int = -1
 
 # --- Currency ---
 func add_currency(amount: int) -> void:
@@ -53,18 +65,19 @@ func damage_defense(amount: int) -> void:
 		game_over_triggered.emit()
 
 # --- Control mode ---
-func set_control_mode(mode: Dictionary[String, Variant]) -> void:
+func set_control_mode(mode: ControlMode, turret_id: int = -1) -> void:
 	control_mode = mode
+	controlled_turret_id = turret_id
 	control_mode_changed.emit(mode)
 
 func toggle_control_all() -> void:
-	if control_mode["tag"] == "all":
-		set_control_mode({ "tag": "none" })
+	if control_mode == ControlMode.ALL:
+		set_control_mode(ControlMode.NONE)
 	else:
-		set_control_mode({ "tag": "all" })
+		set_control_mode(ControlMode.ALL)
 
 func release_control() -> void:
-	set_control_mode({ "tag": "none" })
+	set_control_mode(ControlMode.NONE)
 
 # --- Runner priority ---
 func toggle_runner_priority() -> void:
@@ -72,9 +85,24 @@ func toggle_runner_priority() -> void:
 	runner_priority_changed.emit(runner_priority)
 
 # --- Placement state ---
-func set_placement_state(state: Dictionary[String, Variant]) -> void:
+func set_placement_state(state: PlacementState) -> void:
 	placement_state = state
 	placement_state_changed.emit(state)
+
+func enter_aiming(pos: Vector2, arc_width: float, arc_range_center: float, arc_range_width: float, parent_block_id: int) -> void:
+	aiming_position = pos
+	aiming_arc_width = arc_width
+	aiming_arc_range_center = arc_range_center
+	aiming_arc_range_width = arc_range_width
+	aiming_parent_block_id = parent_block_id
+	placement_state = PlacementState.AIMING
+	placement_state_changed.emit(PlacementState.AIMING)
+
+func set_aiming_arc_width(width: float) -> void:
+	if is_equal_approx(aiming_arc_width, width):
+		return
+	aiming_arc_width = width
+	placement_state_changed.emit(PlacementState.AIMING)
 
 # --- Input (global hotkeys) ---
 func _unhandled_input(event: InputEvent) -> void:
@@ -82,14 +110,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	if event.is_action_pressed("toggle_control"):
-		if placement_state["tag"] != "idle":
-			set_placement_state({ "tag": "idle" })
+		if placement_state != PlacementState.IDLE:
+			set_placement_state(PlacementState.IDLE)
 		else:
 			toggle_control_all()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("cancel"):
-		if placement_state["tag"] != "idle":
-			set_placement_state({ "tag": "idle" })
+		if placement_state != PlacementState.IDLE:
+			set_placement_state(PlacementState.IDLE)
 		else:
 			release_control()
 		get_viewport().set_input_as_handled()

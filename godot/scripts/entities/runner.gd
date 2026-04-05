@@ -12,7 +12,16 @@ func _ready() -> void:
 	add_to_group("runners")
 
 func die() -> void:
+	_release_claims()
 	queue_free()
+
+func _release_claims() -> void:
+	if target_node == null or not is_instance_valid(target_node):
+		return
+	if current_state == State.RESUPPLYING and target_node is Turret:
+		(target_node as Turret).unclaim()
+	elif current_state == State.COLLECTING and target_node is ResourcePickup:
+		(target_node as ResourcePickup).claimed_by = null
 
 func _physics_process(delta: float) -> void:
 	match current_state:
@@ -28,17 +37,12 @@ func _physics_process(delta: float) -> void:
 	queue_redraw()
 
 func _tick_idle() -> void:
-	var primary_found: bool = false
-	var secondary_found: bool = false
-
 	if GameManager.runner_priority == "ammo":
-		primary_found = _try_find_ammo_task()
-		if not primary_found:
-			secondary_found = _try_find_resource_task()
+		if not _try_find_ammo_task():
+			_try_find_resource_task()
 	else:
-		primary_found = _try_find_resource_task()
-		if not primary_found:
-			secondary_found = _try_find_ammo_task()
+		if not _try_find_resource_task():
+			_try_find_ammo_task()
 
 func _try_find_resource_task() -> bool:
 	var nearest: Area2D = null
@@ -67,36 +71,31 @@ func _try_find_ammo_task() -> bool:
 	if global_position.distance_to(Constants.TARGET_POS) > Constants.RUNNER_BASE_ARRIVE_DISTANCE:
 		return false
 
-	var nearest: Node2D = null
+	var nearest: Turret = null
 	var nearest_dist: float = INF
 
 	for turret: Node in get_tree().get_nodes_in_group("turrets"):
 		if not is_instance_valid(turret):
 			continue
-		if not turret is Turret or not (turret as Turret).needs_ammo():
+		if not turret is Turret:
 			continue
-		# Check if already claimed by another runner
-		if _is_turret_claimed(turret):
+		var t: Turret = turret as Turret
+		if not t.needs_ammo():
 			continue
-		var dist: float = global_position.distance_to(turret.global_position)
+		if t.is_claimed():
+			continue
+		var dist: float = global_position.distance_to(t.global_position)
 		if dist < nearest_dist:
 			nearest_dist = dist
-			nearest = turret
+			nearest = t
 
 	if nearest == null:
 		return false
 
+	nearest.claim(self)
 	target_node = nearest
 	current_state = State.RESUPPLYING
 	return true
-
-func _is_turret_claimed(turret: Node2D) -> bool:
-	for runner: Node in get_tree().get_nodes_in_group("runners"):
-		if runner == self:
-			continue
-		if runner.current_state == State.RESUPPLYING and runner.target_node == turret:
-			return true
-	return false
 
 func _tick_collecting(_delta: float) -> void:
 	if not is_instance_valid(target_node):
@@ -104,26 +103,24 @@ func _tick_collecting(_delta: float) -> void:
 		target_node = null
 		return
 
-	var dir: Vector2 = (target_node.global_position - global_position)
-	if dir.length() < Constants.RUNNER_PICKUP_DISTANCE:
+	if global_position.distance_to(target_node.global_position) < Constants.RUNNER_PICKUP_DISTANCE:
 		carrying = target_node.collect()
 		target_node = null
 		current_state = State.RETURNING
 		return
 
-	velocity = dir.normalized() * speed
+	velocity = Targeting.velocity_toward(global_position, target_node.global_position, speed)
 	move_and_slide()
 
 func _tick_returning(_delta: float) -> void:
-	var to_base: Vector2 = Constants.TARGET_POS - global_position
-	if to_base.length() < Constants.RUNNER_BASE_ARRIVE_DISTANCE:
+	if global_position.distance_to(Constants.TARGET_POS) < Constants.RUNNER_BASE_ARRIVE_DISTANCE:
 		GameManager.add_currency(carrying)
 		carrying = 0
 		position = Constants.TARGET_POS
 		current_state = State.IDLE
 		return
 
-	velocity = to_base.normalized() * speed
+	velocity = Targeting.velocity_toward(global_position, Constants.TARGET_POS, speed)
 	move_and_slide()
 
 func _tick_resupplying(_delta: float) -> void:
@@ -132,15 +129,16 @@ func _tick_resupplying(_delta: float) -> void:
 		target_node = null
 		return
 
-	var dir: Vector2 = (target_node.global_position - global_position)
-	if dir.length() < Constants.RUNNER_BASE_ARRIVE_DISTANCE:
+	if global_position.distance_to(target_node.global_position) < Constants.RUNNER_BASE_ARRIVE_DISTANCE:
 		if target_node is Turret:
-			(target_node as Turret).reload(Constants.RUNNER_RELOAD_AMOUNT)
+			var t: Turret = target_node as Turret
+			t.reload(Constants.RUNNER_RELOAD_AMOUNT)
+			t.unclaim()
 		target_node = null
 		current_state = State.IDLE
 		return
 
-	velocity = dir.normalized() * speed
+	velocity = Targeting.velocity_toward(global_position, target_node.global_position, speed)
 	move_and_slide()
 
 func _draw() -> void:

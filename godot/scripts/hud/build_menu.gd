@@ -8,17 +8,20 @@ func _ready() -> void:
 	turret_button.pressed.connect(_on_turret_pressed)
 	block_button.pressed.connect(_on_block_pressed)
 	runner_button.pressed.connect(_on_runner_pressed)
-
-func _process(_delta: float) -> void:
+	GameManager.currency_changed.connect(func(_v: int) -> void: _update_button_states())
+	GameManager.control_mode_changed.connect(func(_v: GameManagerClass.ControlMode) -> void: _update_button_states())
+	GameManager.placement_state_changed.connect(func(_v: GameManagerClass.PlacementState) -> void: _update_button_states())
+	get_tree().node_added.connect(func(_n: Node) -> void: _update_button_states.call_deferred())
+	get_tree().node_removed.connect(func(_n: Node) -> void: _update_button_states.call_deferred())
 	_update_button_states()
 
 func _update_button_states() -> void:
-	var ps: Dictionary[String, Variant] = GameManager.placement_state
-	var cm: Dictionary[String, Variant] = GameManager.control_mode
+	var ps: GameManagerClass.PlacementState = GameManager.placement_state
+	var cm: GameManagerClass.ControlMode = GameManager.control_mode
 
 	# Turret button
-	var turret_enabled: bool = GameManager.currency >= Constants.TURRET_COST and cm["tag"] == "none"
-	var turret_active: bool = ps["tag"] == "placing_turret" or ps["tag"] == "aiming"
+	var turret_enabled: bool = GameManager.currency >= Constants.TURRET_COST and cm == GameManagerClass.ControlMode.NONE
+	var turret_active: bool = ps == GameManagerClass.PlacementState.PLACING_TURRET or ps == GameManagerClass.PlacementState.AIMING
 	turret_button.disabled = not turret_enabled and not turret_active
 	turret_button.text = "Turret  $%d" % Constants.TURRET_COST
 	if turret_active:
@@ -27,8 +30,8 @@ func _update_button_states() -> void:
 		turret_button.remove_theme_color_override("font_color")
 
 	# Block button
-	var block_enabled: bool = GameManager.currency >= Constants.BLOCK_COST and cm["tag"] == "none"
-	var block_active: bool = ps["tag"] == "placing_block"
+	var block_enabled: bool = GameManager.currency >= Constants.BLOCK_COST and cm == GameManagerClass.ControlMode.NONE
+	var block_active: bool = ps == GameManagerClass.PlacementState.PLACING_BLOCK
 	block_button.disabled = not block_enabled and not block_active
 	block_button.text = "Block  $%d" % Constants.BLOCK_COST
 	if block_active:
@@ -43,26 +46,26 @@ func _update_button_states() -> void:
 	runner_button.text = "Runner  $%d" % Constants.RUNNER_COST
 
 func _on_turret_pressed() -> void:
-	if GameManager.control_mode["tag"] != "none":
+	if GameManager.control_mode != GameManagerClass.ControlMode.NONE:
 		return
 	if GameManager.currency < Constants.TURRET_COST:
 		return
-	var ps: Dictionary[String, Variant] = GameManager.placement_state
-	if ps["tag"] == "placing_turret" or ps["tag"] == "aiming":
-		GameManager.set_placement_state({ "tag": "idle" })
+	var ps: GameManagerClass.PlacementState = GameManager.placement_state
+	if ps == GameManagerClass.PlacementState.PLACING_TURRET or ps == GameManagerClass.PlacementState.AIMING:
+		GameManager.set_placement_state(GameManagerClass.PlacementState.IDLE)
 	else:
-		GameManager.set_placement_state({ "tag": "placing_turret" })
+		GameManager.set_placement_state(GameManagerClass.PlacementState.PLACING_TURRET)
 
 func _on_block_pressed() -> void:
-	if GameManager.control_mode["tag"] != "none":
+	if GameManager.control_mode != GameManagerClass.ControlMode.NONE:
 		return
 	if GameManager.currency < Constants.BLOCK_COST:
 		return
-	var ps: Dictionary[String, Variant] = GameManager.placement_state
-	if ps["tag"] == "placing_block":
-		GameManager.set_placement_state({ "tag": "idle" })
+	var ps: GameManagerClass.PlacementState = GameManager.placement_state
+	if ps == GameManagerClass.PlacementState.PLACING_BLOCK:
+		GameManager.set_placement_state(GameManagerClass.PlacementState.IDLE)
 	else:
-		GameManager.set_placement_state({ "tag": "placing_block" })
+		GameManager.set_placement_state(GameManagerClass.PlacementState.PLACING_BLOCK)
 
 func _on_runner_pressed() -> void:
 	GameManager.try_buy_runner()

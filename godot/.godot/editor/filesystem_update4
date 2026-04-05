@@ -1,15 +1,3 @@
-res://scenes/entities/bullet.tscn
-res://scripts/camera_controller.gd
-res://scripts/main.gd
-res://scripts/autoload/game_manager.gd
-res://scripts/entities/block.gd
-res://scripts/entities/bullet.gd
 res://scripts/entities/enemy.gd
-res://scripts/entities/resource_pickup.gd
 res://scripts/entities/runner.gd
-res://scripts/entities/spawn_region.gd
 res://scripts/entities/turret.gd
-res://scripts/hud/build_menu.gd
-res://scripts/hud/hud.gd
-res://scripts/systems/placement_manager.gd
-res://scenes/entities/runner.tscn

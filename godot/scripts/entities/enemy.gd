@@ -6,9 +6,14 @@ var speed: float = Constants.ENEMY_SPEED
 var spawn_momentum: Vector2 = Vector2.ZERO
 var momentum_factor: float = 1.0
 var base_velocity: Vector2 = Vector2.ZERO
+var runners_in_range: Array[CharacterBody2D] = []
+
+@onready var aggro_area: Area2D = $AggroArea
 
 func _ready() -> void:
 	add_to_group("enemies")
+	aggro_area.body_entered.connect(_on_aggro_body_entered)
+	aggro_area.body_exited.connect(_on_aggro_body_exited)
 
 func initialize(pos: Vector2, momentum: Vector2) -> void:
 	position = pos
@@ -31,7 +36,16 @@ func die(drop_resource: bool) -> void:
 		GameManager.enemy_died.emit(global_position)
 	queue_free()
 
+func _on_aggro_body_entered(body: Node2D) -> void:
+	if body is Runner:
+		runners_in_range.append(body)
+
+func _on_aggro_body_exited(body: Node2D) -> void:
+	runners_in_range.erase(body)
+
 func _physics_process(delta: float) -> void:
+	runners_in_range = runners_in_range.filter(func(r: CharacterBody2D) -> bool: return is_instance_valid(r))
+
 	# Decay momentum
 	momentum_factor = maxf(0.0, momentum_factor - Constants.ENEMY_MOMENTUM_DECAY * delta)
 
@@ -60,7 +74,7 @@ func _find_target() -> Vector2:
 	var nearest_dist: float = Constants.ENEMY_RUNNER_AGGRO_RANGE
 	var nearest_pos: Vector2 = Constants.TARGET_POS
 
-	for runner: Node in get_tree().get_nodes_in_group("runners"):
+	for runner: CharacterBody2D in runners_in_range:
 		var dist: float = global_position.distance_to(runner.global_position)
 		if dist < nearest_dist:
 			nearest_dist = dist
@@ -70,7 +84,7 @@ func _find_target() -> Vector2:
 
 func _check_runner_contact() -> void:
 	var contact_dist: float = Constants.RUNNER_SIZE + Constants.ENEMY_RADIUS
-	for runner: Node in get_tree().get_nodes_in_group("runners"):
+	for runner: CharacterBody2D in runners_in_range:
 		if global_position.distance_to(runner.global_position) < contact_dist:
 			if runner is Runner:
 				(runner as Runner).die()

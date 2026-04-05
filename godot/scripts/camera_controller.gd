@@ -25,7 +25,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and is_panning:
 		_handle_pan_motion(event as InputEventMouseMotion)
 	elif event.is_action_pressed("zoom_in") or event.is_action_pressed("zoom_out"):
-		if GameManager.placement_state["tag"] == "aiming":
+		if GameManager.placement_state == GameManagerClass.PlacementState.AIMING:
 			var dy: float = 1.0 if event.is_action_pressed("zoom_out") else -1.0
 			_adjust_arc_width(dy)
 			get_viewport().set_input_as_handled()
@@ -51,19 +51,15 @@ func _handle_zoom(event: InputEventMouseButton) -> void:
 	zoom = Vector2(new_zoom, new_zoom)
 
 func _adjust_arc_width(dy: float) -> void:
-	var ps: Dictionary[String, Variant] = GameManager.placement_state
-	if ps["tag"] != "aiming":
+	if GameManager.placement_state != GameManagerClass.PlacementState.AIMING:
 		return
 	var direction: float = -1.0 if dy < 0 else 1.0
-	var arc_range: Dictionary[String, Variant] = ps["arc_range"] as Dictionary[String, Variant]
 	var new_width: float = clampf(
-		ps["arc_width"] as float + direction * Constants.ARC_SCROLL_STEP,
+		GameManager.aiming_arc_width + direction * Constants.ARC_SCROLL_STEP,
 		Constants.ARC_WIDTH_MIN,
-		arc_range["width"],
+		GameManager.aiming_arc_range_width,
 	)
-	var updated: Dictionary[String, Variant] = ps.duplicate()
-	updated["arc_width"] = new_width
-	GameManager.set_placement_state(updated)
+	GameManager.set_aiming_arc_width(new_width)
 
 func _process(delta: float) -> void:
 	# Keyboard panning

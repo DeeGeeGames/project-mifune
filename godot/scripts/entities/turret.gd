@@ -1,17 +1,17 @@
 extends Node2D
 class_name Turret
 
-const BULLET_SCENE: PackedScene = preload("res://scenes/entities/bullet.tscn")
-
 var aim_angle: float = -PI / 2.0
 var ammo: int = Constants.TURRET_MAX_AMMO
 var arc_center: float = Constants.ARC_RANGE_CENTER
 var arc_width: float = Constants.ARC_WIDTH_DEFAULT
-var arc_range: Dictionary[String, Variant] = Constants.GROUND_ARC_RANGE
+var arc_range_center: float = Constants.GROUND_ARC_RANGE_CENTER
+var arc_range_width: float = Constants.GROUND_ARC_RANGE_WIDTH
 var parent_block_id: int = -1
 var can_fire: bool = true
 var is_controlled_cache: bool = false
 var enemies_in_range: Array[CharacterBody2D] = []
+var claimed_by_runner: Node2D = null
 
 @onready var range_area: Area2D = $RangeArea
 @onready var fire_timer: Timer = $FireTimer
@@ -22,16 +22,15 @@ func _ready() -> void:
 	fire_timer.one_shot = true
 	fire_timer.timeout.connect(_on_fire_timer_timeout)
 
-	range_area.collision_layer = 1 << (Constants.LAYER_TURRET_RANGE - 1)
-	range_area.collision_mask = 1 << (Constants.LAYER_ENEMIES - 1)
 	range_area.body_entered.connect(_on_range_body_entered)
 	range_area.body_exited.connect(_on_range_body_exited)
 
-func initialize(pos: Vector2, p_arc_center: float, p_arc_width: float, p_arc_range: Dictionary[String, Variant], p_parent_block_id: int = -1) -> void:
+func initialize(pos: Vector2, p_arc_center: float, p_arc_width: float, p_arc_range_center: float, p_arc_range_width: float, p_parent_block_id: int = -1) -> void:
 	position = pos
 	arc_center = p_arc_center
 	arc_width = p_arc_width
-	arc_range = p_arc_range
+	arc_range_center = p_arc_range_center
+	arc_range_width = p_arc_range_width
 	aim_angle = p_arc_center
 	parent_block_id = p_parent_block_id
 
@@ -44,6 +43,15 @@ func reload(amount: int) -> void:
 func needs_ammo() -> bool:
 	return ammo <= Constants.TURRET_RELOAD_THRESHOLD
 
+func claim(runner: Node2D) -> void:
+	claimed_by_runner = runner
+
+func unclaim() -> void:
+	claimed_by_runner = null
+
+func is_claimed() -> bool:
+	return claimed_by_runner != null
+
 func _on_range_body_entered(body: Node2D) -> void:
 	if body is CharacterBody2D:
 		enemies_in_range.append(body)
@@ -55,8 +63,9 @@ func _on_fire_timer_timeout() -> void:
 	can_fire = true
 
 func _process(delta: float) -> void:
-	# Clean up freed enemies
 	enemies_in_range = enemies_in_range.filter(func(e: CharacterBody2D) -> bool: return is_instance_valid(e))
+	if claimed_by_runner != null and not is_instance_valid(claimed_by_runner):
+		claimed_by_runner = null
 
 	var max_rotation: float = Constants.TURRET_TURN_SPEED * delta
 	is_controlled_cache = _is_controlled()
@@ -69,16 +78,12 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 func _is_controlled() -> bool:
-	var mode: Dictionary[String, Variant] = GameManager.control_mode
-	if mode["tag"] == "all":
-		var mouse_pos: Vector2 = get_global_mouse_position()
-		var mouse_angle: float = Targeting.aim_angle(global_position, mouse_pos)
-		return Targeting.is_angle_in_arc(mouse_angle, arc_range["center"], arc_range["width"])
-	if mode["tag"] == "single" and mode.has("turret_id") and mode["turret_id"] == get_instance_id():
-		var mouse_pos: Vector2 = get_global_mouse_position()
-		var mouse_angle: float = Targeting.aim_angle(global_position, mouse_pos)
-		return Targeting.is_angle_in_arc(mouse_angle, arc_range["center"], arc_range["width"])
-	return false
+	var mode: GameManagerClass.ControlMode = GameManager.control_mode
+	var controlled: bool = mode == GameManagerClass.ControlMode.ALL or (mode == GameManagerClass.ControlMode.SINGLE and GameManager.controlled_turret_id == get_instance_id())
+	if not controlled:
+		return false
+	var mouse_angle: float = Targeting.aim_angle(global_position, get_global_mouse_position())
+	return Targeting.is_angle_in_arc(mouse_angle, arc_range_center, arc_range_width)
 
 func _tick_controlled(max_rotation: float) -> void:
 	var mouse_pos: Vector2 = get_global_mouse_position()
@@ -132,16 +137,11 @@ func _try_fire() -> void:
 	can_fire = false
 	fire_timer.start()
 
-	# Spawn bullet at barrel tip
 	var barrel_tip: Vector2 = global_position + Vector2(cos(aim_angle), sin(aim_angle)) * Constants.TURRET_BARREL_LENGTH
-
-	# Apply spread
 	var spread_angle: float = aim_angle + (randf() - 0.5) * Constants.TURRET_SPREAD * 2.0
 	var bullet_vel: Vector2 = Vector2(cos(spread_angle), sin(spread_angle)) * Constants.BULLET_SPEED
 
-	var bullet: Bullet = BULLET_SCENE.instantiate()
-	bullet.initialize(barrel_tip, bullet_vel)
-	get_node("/root/Main/World/Bullets").add_child(bullet)
+	GameManager.bullet_spawn_requested.emit(barrel_tip, bullet_vel)
 
 func _draw() -> void:
 	var body_color: Color = Color(0.0, 1.0, 1.0) if is_controlled_cache else Color(0.0, 0.8, 0.0)

@@ -80,11 +80,14 @@ const ARC_SCROLL_STEP := PI / 18.0  # 10 degrees per scroll tick
 # Per-turret valid arc range (ground turrets = upper semicircle)
 const ARC_RANGE_CENTER := -PI / 2.0  # up
 const ARC_RANGE_WIDTH := PI  # 180 degrees total
-const GROUND_ARC_RANGE: Dictionary[String, Variant] = { "center": ARC_RANGE_CENTER, "width": ARC_RANGE_WIDTH }
+const GROUND_ARC_RANGE_CENTER: float = ARC_RANGE_CENTER
+const GROUND_ARC_RANGE_WIDTH: float = ARC_RANGE_WIDTH
 
 # Block face arc ranges
-const RIGHT_FACE_ARC_RANGE: Dictionary[String, Variant] = { "center": 0.0, "width": PI }
-const LEFT_FACE_ARC_RANGE: Dictionary[String, Variant] = { "center": PI, "width": PI }
+const RIGHT_FACE_ARC_RANGE_CENTER: float = 0.0
+const RIGHT_FACE_ARC_RANGE_WIDTH: float = PI
+const LEFT_FACE_ARC_RANGE_CENTER: float = PI
+const LEFT_FACE_ARC_RANGE_WIDTH: float = PI
 
 # Blocks
 const BLOCK_SIZE := 36.0

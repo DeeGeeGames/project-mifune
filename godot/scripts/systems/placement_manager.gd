@@ -14,15 +14,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		_handle_click(get_global_mouse_position())
 
 func _handle_click(world_pos: Vector2) -> void:
-	var ps: Dictionary[String, Variant] = GameManager.placement_state
-	var tag: String = ps["tag"] as String
+	var state: GameManagerClass.PlacementState = GameManager.placement_state
 
-	match tag:
-		"placing_turret":
+	match state:
+		GameManagerClass.PlacementState.PLACING_TURRET:
 			_handle_turret_placement_click(world_pos)
-		"aiming":
-			_handle_aiming_confirm(world_pos, ps)
-		"placing_block":
+		GameManagerClass.PlacementState.AIMING:
+			_handle_aiming_confirm(world_pos)
+		GameManagerClass.PlacementState.PLACING_BLOCK:
 			_handle_block_placement_click(world_pos)
 
 func _handle_turret_placement_click(world_pos: Vector2) -> void:
@@ -34,48 +33,55 @@ func _handle_turret_placement_click(world_pos: Vector2) -> void:
 	if face_result != null:
 		var face_dict: Dictionary[String, Variant] = face_result as Dictionary[String, Variant]
 		var face_pos: Vector2 = face_dict["position"] as Vector2
-		var face_arc_range: Dictionary[String, Variant] = face_dict["arc_range"] as Dictionary[String, Variant]
+		var face_arc_range_center: float = face_dict["arc_range_center"] as float
+		var face_arc_range_width: float = face_dict["arc_range_width"] as float
 		var block_id: int = face_dict["block_id"] as int
-		GameManager.set_placement_state({
-			"tag": "aiming",
-			"position": face_pos,
-			"arc_width": minf(Constants.ARC_WIDTH_DEFAULT, face_arc_range["width"]),
-			"arc_range": face_arc_range,
-			"parent_block_id": block_id,
-		})
+		GameManager.enter_aiming(
+			face_pos,
+			minf(Constants.ARC_WIDTH_DEFAULT, face_arc_range_width),
+			face_arc_range_center,
+			face_arc_range_width,
+			block_id,
+		)
 		return
 
 	# Check valid ground placement
 	if _is_valid_ground_placement(world_pos):
 		var ground_pos: Vector2 = Vector2(world_pos.x, Constants.GROUND_Y)
-		GameManager.set_placement_state({
-			"tag": "aiming",
-			"position": ground_pos,
-			"arc_width": minf(Constants.ARC_WIDTH_DEFAULT, Constants.GROUND_ARC_RANGE["width"]),
-			"arc_range": Constants.GROUND_ARC_RANGE,
-			"parent_block_id": -1,
-		})
+		GameManager.enter_aiming(
+			ground_pos,
+			minf(Constants.ARC_WIDTH_DEFAULT, Constants.GROUND_ARC_RANGE_WIDTH),
+			Constants.GROUND_ARC_RANGE_CENTER,
+			Constants.GROUND_ARC_RANGE_WIDTH,
+			-1,
+		)
 
-func _handle_aiming_confirm(world_pos: Vector2, ps: Dictionary[String, Variant]) -> void:
-	var turret_pos: Vector2 = ps["position"] as Vector2
-	var arc_range: Dictionary[String, Variant] = ps["arc_range"] as Dictionary[String, Variant]
+func _handle_aiming_confirm(world_pos: Vector2) -> void:
+	var turret_pos: Vector2 = GameManager.aiming_position
 	var raw_center: float = Targeting.aim_angle(turret_pos, world_pos)
 	var arc_center: float = Targeting.clamp_arc_center_to_range(
 		raw_center,
-		ps["arc_width"] as float,
-		arc_range["center"],
-		arc_range["width"],
+		GameManager.aiming_arc_width,
+		GameManager.aiming_arc_range_center,
+		GameManager.aiming_arc_range_width,
 	)
 
 	var turret: Turret = TURRET_SCENE.instantiate()
-	turret.initialize(turret_pos, arc_center, ps["arc_width"] as float, ps["arc_range"] as Dictionary[String, Variant], ps["parent_block_id"] as int)
+	turret.initialize(
+		turret_pos,
+		arc_center,
+		GameManager.aiming_arc_width,
+		GameManager.aiming_arc_range_center,
+		GameManager.aiming_arc_range_width,
+		GameManager.aiming_parent_block_id,
+	)
 	get_node("/root/Main/World/Turrets").add_child(turret)
 	GameManager.spend_currency(Constants.TURRET_COST)
 
 	if GameManager.currency >= Constants.TURRET_COST:
-		GameManager.set_placement_state({ "tag": "placing_turret" })
+		GameManager.set_placement_state(GameManagerClass.PlacementState.PLACING_TURRET)
 	else:
-		GameManager.set_placement_state({ "tag": "idle" })
+		GameManager.set_placement_state(GameManagerClass.PlacementState.IDLE)
 
 func _handle_block_placement_click(world_pos: Vector2) -> void:
 	if GameManager.currency < Constants.BLOCK_COST:
@@ -97,7 +103,7 @@ func _handle_block_placement_click(world_pos: Vector2) -> void:
 	GameManager.spend_currency(Constants.BLOCK_COST)
 
 	if GameManager.currency < Constants.BLOCK_COST:
-		GameManager.set_placement_state({ "tag": "idle" })
+		GameManager.set_placement_state(GameManagerClass.PlacementState.IDLE)
 
 # --- Block grid snapping ---
 func _snap_to_block_grid(world_pos: Vector2) -> Vector2:
@@ -155,9 +161,9 @@ func _find_clicked_block_face(click_pos: Vector2) -> Variant:
 	var best_dist: float = Constants.BLOCK_FACE_CLICK_THRESHOLD
 
 	var face_defs: Array[Dictionary] = [
-		{ "face": "top", "offset": Vector2(0, -half), "arc_range": Constants.GROUND_ARC_RANGE },
-		{ "face": "left", "offset": Vector2(-half, 0), "arc_range": Constants.LEFT_FACE_ARC_RANGE },
-		{ "face": "right", "offset": Vector2(half, 0), "arc_range": Constants.RIGHT_FACE_ARC_RANGE },
+		{ "face": "top", "offset": Vector2(0, -half), "arc_range_center": Constants.GROUND_ARC_RANGE_CENTER, "arc_range_width": Constants.GROUND_ARC_RANGE_WIDTH },
+		{ "face": "left", "offset": Vector2(-half, 0), "arc_range_center": Constants.LEFT_FACE_ARC_RANGE_CENTER, "arc_range_width": Constants.LEFT_FACE_ARC_RANGE_WIDTH },
+		{ "face": "right", "offset": Vector2(half, 0), "arc_range_center": Constants.RIGHT_FACE_ARC_RANGE_CENTER, "arc_range_width": Constants.RIGHT_FACE_ARC_RANGE_WIDTH },
 	]
 
 	for block: Node in blocks:
@@ -180,7 +186,8 @@ func _find_clicked_block_face(click_pos: Vector2) -> Variant:
 				best_dist = dist
 				best = {
 					"position": face_pos,
-					"arc_range": face_def["arc_range"],
+					"arc_range_center": face_def["arc_range_center"],
+					"arc_range_width": face_def["arc_range_width"],
 					"block_id": block.block_id,
 				}
 
@@ -188,18 +195,18 @@ func _find_clicked_block_face(click_pos: Vector2) -> Variant:
 
 # --- Drawing ghost previews ---
 func _process(_delta: float) -> void:
-	queue_redraw()
+	if GameManager.placement_state != GameManagerClass.PlacementState.IDLE:
+		queue_redraw()
 
 func _draw() -> void:
-	var ps: Dictionary[String, Variant] = GameManager.placement_state
-	var tag: String = ps["tag"] as String
+	var state: GameManagerClass.PlacementState = GameManager.placement_state
 
-	match tag:
-		"placing_turret":
+	match state:
+		GameManagerClass.PlacementState.PLACING_TURRET:
 			_draw_turret_ghost()
-		"aiming":
-			_draw_aiming_preview(ps)
-		"placing_block":
+		GameManagerClass.PlacementState.AIMING:
+			_draw_aiming_preview()
+		GameManagerClass.PlacementState.PLACING_BLOCK:
 			_draw_block_ghost()
 
 func _draw_turret_ghost() -> void:
@@ -207,22 +214,20 @@ func _draw_turret_ghost() -> void:
 	var local_pos: Vector2 = to_local(Vector2(world_pos.x, Constants.GROUND_Y))
 	draw_circle(local_pos, Constants.TURRET_RADIUS, Color(0.0, 0.8, 0.0, 0.4))
 
-func _draw_aiming_preview(ps: Dictionary[String, Variant]) -> void:
-	var turret_pos: Vector2 = ps["position"] as Vector2
-	var arc_range: Dictionary[String, Variant] = ps["arc_range"] as Dictionary[String, Variant]
-	var arc_width: float = ps["arc_width"] as float
+func _draw_aiming_preview() -> void:
+	var turret_pos: Vector2 = GameManager.aiming_position
 	var local_pos: Vector2 = to_local(turret_pos)
 	var mouse_pos: Vector2 = get_global_mouse_position()
 	var raw_center: float = Targeting.aim_angle(turret_pos, mouse_pos)
 	var arc_center: float = Targeting.clamp_arc_center_to_range(
-		raw_center, arc_width, arc_range["center"], arc_range["width"],
+		raw_center, GameManager.aiming_arc_width, GameManager.aiming_arc_range_center, GameManager.aiming_arc_range_width,
 	)
 
 	# Draw valid range (light gray)
-	DrawUtils.draw_arc_wedge(self, local_pos, 80.0, arc_range["center"], arc_range["width"], Color(0.5, 0.5, 0.5, 0.15), 24)
+	DrawUtils.draw_arc_wedge(self, local_pos, 80.0, GameManager.aiming_arc_range_center, GameManager.aiming_arc_range_width, Color(0.5, 0.5, 0.5, 0.15), 24)
 
 	# Draw selected arc (cyan)
-	DrawUtils.draw_arc_wedge(self, local_pos, 80.0, arc_center, arc_width, Color(0.0, 1.0, 1.0, 0.2), 24)
+	DrawUtils.draw_arc_wedge(self, local_pos, 80.0, arc_center, GameManager.aiming_arc_width, Color(0.0, 1.0, 1.0, 0.2), 24)
 
 	# Ghost turret
 	draw_circle(local_pos, Constants.TURRET_RADIUS, Color(0.0, 1.0, 1.0, 0.5))
@@ -237,4 +242,3 @@ func _draw_block_ghost() -> void:
 	var valid: bool = _is_valid_block_placement(snapped)
 	var color: Color = Color(0.0, 0.8, 0.0, 0.4) if valid else Color(1.0, 0.0, 0.0, 0.4)
 	draw_rect(Rect2(local_pos.x - half, local_pos.y - half, Constants.BLOCK_SIZE, Constants.BLOCK_SIZE), color)
-
