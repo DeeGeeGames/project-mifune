@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://main001"]
+[gd_scene load_steps=8 format=3 uid="uid://main001"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/camera_controller.gd" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/hud/hud.tscn" id="4"]
 [ext_resource type="Script" path="res://scripts/systems/placement_manager.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/ground.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/systems/wave_manager.gd" id="7"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1")
@@ -30,6 +31,9 @@ script = ExtResource("6")
 [node name="Resources" type="Node2D" parent="World"]
 
 [node name="Runners" type="Node2D" parent="World"]
+
+[node name="WaveManager" type="Node" parent="."]
+script = ExtResource("7")
 
 [node name="PlacementManager" type="Node2D" parent="."]
 script = ExtResource("5")

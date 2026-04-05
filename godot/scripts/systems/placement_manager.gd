@@ -69,7 +69,7 @@ func _handle_aiming_confirm(world_pos: Vector2, ps: Dictionary[String, Variant])
 
 	var turret: Turret = TURRET_SCENE.instantiate()
 	turret.initialize(turret_pos, arc_center, ps["arc_width"] as float, ps["arc_range"] as Dictionary[String, Variant], ps["parent_block_id"] as int)
-	GameManager.turrets_container.add_child(turret)
+	get_node("/root/Main/World/Turrets").add_child(turret)
 	GameManager.spend_currency(Constants.TURRET_COST)
 
 	if GameManager.currency >= Constants.TURRET_COST:
@@ -93,7 +93,7 @@ func _handle_block_placement_click(world_pos: Vector2) -> void:
 
 	var block: Block = BLOCK_SCENE.instantiate()
 	block.initialize(snapped)
-	GameManager.blocks_container.add_child(block)
+	get_node("/root/Main/World/Blocks").add_child(block)
 	GameManager.spend_currency(Constants.BLOCK_COST)
 
 	if GameManager.currency < Constants.BLOCK_COST:

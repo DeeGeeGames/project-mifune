@@ -1,4 +1,8 @@
 extends Node
+# class_name enables static type checking on GameManager.method() calls across the project.
+# Without it, Godot types the autoload global as Node and can't verify methods at parse time.
+# The *Class suffix avoids name collision with the autoload instance name "GameManager".
+class_name GameManagerClass
 
 # --- Signals ---
 signal currency_changed(new_amount: int)
@@ -27,87 +31,6 @@ var runner_priority: String = "resources"
 
 # Placement state: { "tag": "idle" } | { "tag": "placing_turret" } | { "tag": "aiming", ... } | { "tag": "placing_block" }
 var placement_state: Dictionary[String, Variant] = { "tag": "idle" }
-
-# --- Wave state ---
-var regions_to_spawn: int = 0
-var region_spawn_timer: float = 0.0
-var between_waves: bool = false
-var intermission_timer: float = 0.0
-
-const SPAWN_REGION_SCENE: PackedScene = preload("res://scenes/entities/spawn_region.tscn")
-
-# --- Node references (set by main.gd) ---
-var enemies_container: Node2D = null
-var regions_container: Node2D = null
-var turrets_container: Node2D = null
-var runners_container: Node2D = null
-var bullets_container: Node2D = null
-var resources_container: Node2D = null
-var blocks_container: Node2D = null
-
-func _ready() -> void:
-	_start_wave(Constants.STARTING_WAVE)
-
-func _start_wave(wave_num: int) -> void:
-	wave_number = wave_num
-	regions_to_spawn = Constants.WAVE_REGIONS_BASE + wave_number
-	region_spawn_timer = 0.0
-	between_waves = false
-	intermission_timer = 0.0
-	wave_started.emit(wave_number)
-
-func _process(delta: float) -> void:
-	if game_over:
-		return
-	_tick_waves(delta)
-
-func _tick_waves(delta: float) -> void:
-	if between_waves:
-		intermission_timer -= delta
-		if intermission_timer <= 0.0:
-			_start_wave(wave_number + 1)
-		return
-
-	var active_regions := get_tree().get_nodes_in_group("regions").size()
-	var active_enemies := get_tree().get_nodes_in_group("enemies").size()
-
-	if regions_to_spawn <= 0 and active_regions == 0 and active_enemies == 0:
-		between_waves = true
-		intermission_timer = Constants.WAVE_INTERMISSION
-		wave_cleared.emit()
-		return
-
-	if regions_to_spawn <= 0:
-		return
-	if active_regions >= Constants.WAVE_MAX_CONCURRENT_REGIONS:
-		return
-
-	region_spawn_timer -= delta
-	if region_spawn_timer > 0.0:
-		return
-
-	_spawn_region()
-	regions_to_spawn -= 1
-	region_spawn_timer = Constants.WAVE_REGION_SPAWN_INTERVAL
-
-func _spawn_region() -> void:
-	if not is_instance_valid(regions_container):
-		return
-
-	var pos := _random_region_position()
-	var region: SpawnRegion = SPAWN_REGION_SCENE.instantiate()
-	region.position = pos
-	region.initialize(wave_number)
-	regions_container.add_child(region)
-
-func _random_region_position() -> Vector2:
-	for i: int in Constants.REGION_MAX_PLACEMENT_ATTEMPTS:
-		var x := Constants.REGION_MARGIN + randf() * (Constants.WORLD_WIDTH - Constants.REGION_MARGIN * 2.0)
-		var y := Constants.REGION_MARGIN + randf() * (Constants.GROUND_Y - Constants.REGION_MARGIN * 2.0)
-		var offset := Vector2(x, y) - Constants.TARGET_POS
-		if offset.length_squared() > Constants.REGION_SAFE_RADIUS * Constants.REGION_SAFE_RADIUS:
-			return Vector2(x, y)
-	return Vector2(Constants.REGION_MARGIN, Constants.REGION_MARGIN)
 
 # --- Currency ---
 func add_currency(amount: int) -> void:

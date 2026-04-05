@@ -25,7 +25,8 @@ func _process(_delta: float) -> void:
 
 func _update_stats() -> void:
 	defense_label.text = "Defense: %d/%d" % [GameManager.defense_hp, Constants.DEFENSE_HP]
-	var wave_status: String = " (intermission)" if GameManager.between_waves else ""
+	var wave_mgr: Node = get_node_or_null("/root/Main/WaveManager")
+	var wave_status: String = " (intermission)" if wave_mgr != null and wave_mgr.between_waves else ""
 	wave_label.text = "Wave: %d%s" % [GameManager.wave_number, wave_status]
 
 	var turret_count: int = get_tree().get_nodes_in_group("turrets").size()

@@ -141,7 +141,7 @@ func _try_fire() -> void:
 
 	var bullet: Bullet = BULLET_SCENE.instantiate()
 	bullet.initialize(barrel_tip, bullet_vel)
-	GameManager.bullets_container.add_child(bullet)
+	get_node("/root/Main/World/Bullets").add_child(bullet)
 
 func _draw() -> void:
 	var body_color: Color = Color(0.0, 1.0, 1.0) if is_controlled_cache else Color(0.0, 0.8, 0.0)

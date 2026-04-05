@@ -12,3 +12,4 @@ res://scripts/entities/turret.gd
 res://scripts/hud/build_menu.gd
 res://scripts/hud/hud.gd
 res://scripts/systems/placement_manager.gd
+res://scenes/entities/runner.tscn

@@ -1,35 +1,16 @@
 extends Node2D
 
-@onready var world: Node2D = $World
-@onready var enemies_container: Node2D = $World/Enemies
-@onready var regions_container: Node2D = $World/SpawnRegions
-@onready var turrets_container: Node2D = $World/Turrets
-@onready var runners_container: Node2D = $World/Runners
-@onready var bullets_container: Node2D = $World/Bullets
 @onready var resources_container: Node2D = $World/Resources
-@onready var blocks_container: Node2D = $World/Blocks
-@onready var game_camera: Camera2D = $Camera
-@onready var placement_manager: Node2D = $PlacementManager
+@onready var runners_container: Node2D = $World/Runners
 
 const RESOURCE_SCENE: PackedScene = preload("res://scenes/entities/resource_pickup.tscn")
 const RUNNER_SCENE: PackedScene = preload("res://scenes/entities/runner.tscn")
 
 func _ready() -> void:
-	# Wire up GameManager container references
-	GameManager.enemies_container = enemies_container
-	GameManager.regions_container = regions_container
-	GameManager.turrets_container = turrets_container
-	GameManager.runners_container = runners_container
-	GameManager.bullets_container = bullets_container
-	GameManager.resources_container = resources_container
-	GameManager.blocks_container = blocks_container
-
-	# Connect signals
 	GameManager.enemy_died.connect(_on_enemy_died)
 	GameManager.runner_purchased.connect(_on_runner_purchased)
 	GameManager.block_destroyed.connect(_on_block_destroyed)
 
-	# Spawn starting runners
 	for i: int in Constants.STARTING_RUNNERS:
 		_spawn_runner()
 
@@ -51,14 +32,10 @@ func _on_block_destroyed(block_id: int) -> void:
 		if turret is Turret and (turret as Turret).parent_block_id == block_id:
 			turret.queue_free()
 
-func get_mouse_world_position() -> Vector2:
-	return get_global_mouse_position()
-
 func _unhandled_input(event: InputEvent) -> void:
 	if GameManager.game_over:
 		return
 
-	# Click on turret to enter single control mode
 	if event.is_action_pressed("fire"):
 		if GameManager.control_mode["tag"] == "none" and GameManager.placement_state["tag"] == "idle":
 			var world_pos: Vector2 = get_global_mouse_position()

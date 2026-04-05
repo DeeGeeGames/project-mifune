@@ -1,4 +1,6 @@
 extends Node
+# See GameManagerClass for why autoloads get a class_name.
+class_name ConstantsClass
 
 # Viewport & World
 const VIEWPORT_WIDTH := 1280.0

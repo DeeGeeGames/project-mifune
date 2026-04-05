@@ -67,22 +67,21 @@ func _on_spawn_timer_timeout() -> void:
 	spawn_timer.start(spawn_interval)
 
 func _spawn_enemy() -> void:
-	if not is_instance_valid(GameManager.enemies_container):
+	var enemies_container: Node = get_node_or_null("/root/Main/World/Enemies")
+	if enemies_container == null:
 		return
 
-	# Random position within region
 	var offset_angle: float = randf() * TAU
 	var offset_dist: float = randf() * region_radius
 	var spawn_pos: Vector2 = global_position + Vector2(cos(offset_angle), sin(offset_angle)) * offset_dist
 
-	# Burst momentum
 	var burst_angle: float = burst_arc_center + (randf() * 2.0 - 1.0) * (burst_arc_width / 2.0)
 	var burst_speed: float = Constants.ENEMY_SPAWN_BURST_SPEED * (0.5 + randf() * 0.5)
 	var momentum: Vector2 = Vector2(cos(burst_angle), sin(burst_angle)) * burst_speed
 
 	var enemy: Enemy = ENEMY_SCENE.instantiate()
 	enemy.initialize(spawn_pos, momentum)
-	GameManager.enemies_container.add_child(enemy)
+	enemies_container.add_child(enemy)
 
 func _draw() -> void:
 	var hp_ratio: float = float(hp) / float(max_hp) if max_hp > 0 else 1.0
