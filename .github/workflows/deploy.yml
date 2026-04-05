@@ -23,12 +23,14 @@ jobs:
       - uses: oven-sh/setup-bun@v2
 
       - run: bun install --frozen-lockfile
+        working-directory: phaser
 
       - run: bun run build
+        working-directory: phaser
 
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: phaser/dist
 
   deploy:
     needs: build
