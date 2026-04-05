@@ -37,7 +37,7 @@ func _update_button_states() -> void:
 		block_button.remove_theme_color_override("font_color")
 
 	# Runner button
-	var runner_count: int = GameManager.runners_container.get_child_count() if is_instance_valid(GameManager.runners_container) else 0
+	var runner_count: int = get_tree().get_nodes_in_group("runners").size()
 	var runner_enabled: bool = GameManager.currency >= Constants.RUNNER_COST and runner_count < Constants.MAX_RUNNERS
 	runner_button.disabled = not runner_enabled
 	runner_button.text = "Runner  $%d" % Constants.RUNNER_COST

@@ -34,6 +34,8 @@ var region_spawn_timer: float = 0.0
 var between_waves: bool = false
 var intermission_timer: float = 0.0
 
+const SPAWN_REGION_SCENE: PackedScene = preload("res://scenes/entities/spawn_region.tscn")
+
 # --- Node references (set by main.gd) ---
 var enemies_container: Node2D = null
 var regions_container: Node2D = null
@@ -42,15 +44,6 @@ var runners_container: Node2D = null
 var bullets_container: Node2D = null
 var resources_container: Node2D = null
 var blocks_container: Node2D = null
-
-# Preloaded scenes (set by main.gd)
-var spawn_region_scene: PackedScene = null
-var enemy_scene: PackedScene = null
-var bullet_scene: PackedScene = null
-var resource_scene: PackedScene = null
-var runner_scene: PackedScene = null
-var turret_scene: PackedScene = null
-var block_scene: PackedScene = null
 
 func _ready() -> void:
 	_start_wave(Constants.STARTING_WAVE)
@@ -69,17 +62,14 @@ func _process(delta: float) -> void:
 	_tick_waves(delta)
 
 func _tick_waves(delta: float) -> void:
-	if not is_instance_valid(regions_container) or not is_instance_valid(enemies_container):
-		return
-
 	if between_waves:
 		intermission_timer -= delta
 		if intermission_timer <= 0.0:
 			_start_wave(wave_number + 1)
 		return
 
-	var active_regions := regions_container.get_child_count()
-	var active_enemies := enemies_container.get_child_count()
+	var active_regions := get_tree().get_nodes_in_group("regions").size()
+	var active_enemies := get_tree().get_nodes_in_group("enemies").size()
 
 	if regions_to_spawn <= 0 and active_regions == 0 and active_enemies == 0:
 		between_waves = true
@@ -101,11 +91,11 @@ func _tick_waves(delta: float) -> void:
 	region_spawn_timer = Constants.WAVE_REGION_SPAWN_INTERVAL
 
 func _spawn_region() -> void:
-	if not is_instance_valid(spawn_region_scene) or not is_instance_valid(regions_container):
+	if not is_instance_valid(regions_container):
 		return
 
 	var pos := _random_region_position()
-	var region: Node2D = spawn_region_scene.instantiate()
+	var region: SpawnRegion = SPAWN_REGION_SCENE.instantiate()
 	region.position = pos
 	region.initialize(wave_number)
 	regions_container.add_child(region)
@@ -168,31 +158,27 @@ func _unhandled_input(event: InputEvent) -> void:
 	if game_over:
 		return
 
-	if event is InputEventKey and event.pressed and not event.echo:
-		match event.keycode:
-			KEY_T:
-				if placement_state["tag"] != "idle":
-					set_placement_state({ "tag": "idle" })
-				else:
-					toggle_control_all()
-				get_viewport().set_input_as_handled()
-			KEY_ESCAPE:
-				if placement_state["tag"] != "idle":
-					set_placement_state({ "tag": "idle" })
-				else:
-					release_control()
-				get_viewport().set_input_as_handled()
-			KEY_P:
-				toggle_runner_priority()
-				get_viewport().set_input_as_handled()
-			KEY_R:
-				try_buy_runner()
-				get_viewport().set_input_as_handled()
+	if event.is_action_pressed("toggle_control"):
+		if placement_state["tag"] != "idle":
+			set_placement_state({ "tag": "idle" })
+		else:
+			toggle_control_all()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("cancel"):
+		if placement_state["tag"] != "idle":
+			set_placement_state({ "tag": "idle" })
+		else:
+			release_control()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("toggle_priority"):
+		toggle_runner_priority()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("buy_runner"):
+		try_buy_runner()
+		get_viewport().set_input_as_handled()
 
 func try_buy_runner() -> void:
-	if not is_instance_valid(runners_container):
-		return
-	if runners_container.get_child_count() >= Constants.MAX_RUNNERS:
+	if get_tree().get_nodes_in_group("runners").size() >= Constants.MAX_RUNNERS:
 		return
 	if not spend_currency(Constants.RUNNER_COST):
 		return

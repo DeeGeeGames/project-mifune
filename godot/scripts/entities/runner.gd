@@ -8,6 +8,9 @@ var target_node: Node2D = null
 var carrying: int = 0
 var speed: float = Constants.RUNNER_SPEED
 
+func _ready() -> void:
+	add_to_group("runners")
+
 func die() -> void:
 	queue_free()
 
@@ -38,13 +41,10 @@ func _tick_idle() -> void:
 			secondary_found = _try_find_ammo_task()
 
 func _try_find_resource_task() -> bool:
-	if not is_instance_valid(GameManager.resources_container):
-		return false
-
 	var nearest: Area2D = null
 	var nearest_dist: float = INF
 
-	for resource: Node in GameManager.resources_container.get_children():
+	for resource: Node in get_tree().get_nodes_in_group("resources"):
 		if not is_instance_valid(resource):
 			continue
 		if resource.claimed_by != null and resource.claimed_by != self:
@@ -67,13 +67,10 @@ func _try_find_ammo_task() -> bool:
 	if global_position.distance_to(Constants.TARGET_POS) > Constants.RUNNER_BASE_ARRIVE_DISTANCE:
 		return false
 
-	if not is_instance_valid(GameManager.turrets_container):
-		return false
-
 	var nearest: Node2D = null
 	var nearest_dist: float = INF
 
-	for turret: Node in GameManager.turrets_container.get_children():
+	for turret: Node in get_tree().get_nodes_in_group("turrets"):
 		if not is_instance_valid(turret):
 			continue
 		if not turret is Turret or not (turret as Turret).needs_ammo():
@@ -94,9 +91,7 @@ func _try_find_ammo_task() -> bool:
 	return true
 
 func _is_turret_claimed(turret: Node2D) -> bool:
-	if not is_instance_valid(GameManager.runners_container):
-		return false
-	for runner: Node in GameManager.runners_container.get_children():
+	for runner: Node in get_tree().get_nodes_in_group("runners"):
 		if runner == self:
 			continue
 		if runner.current_state == State.RESUPPLYING and runner.target_node == turret:

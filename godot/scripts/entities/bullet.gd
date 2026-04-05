@@ -6,8 +6,10 @@ var damage: int = Constants.BULLET_DAMAGE
 var has_hit: bool = false
 
 func _ready() -> void:
+	add_to_group("bullets")
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
+	$LifetimeTimer.timeout.connect(queue_free)
 
 func initialize(pos: Vector2, vel: Vector2) -> void:
 	position = pos
@@ -15,11 +17,6 @@ func initialize(pos: Vector2, vel: Vector2) -> void:
 
 func _physics_process(delta: float) -> void:
 	position += velocity_vec * delta
-
-	# Bounds check
-	if position.x < -50.0 or position.x > Constants.WORLD_WIDTH + 50.0 \
-		or position.y < -50.0 or position.y > Constants.WORLD_HEIGHT + 50.0:
-		queue_free()
 
 func _on_body_entered(body: Node2D) -> void:
 	if has_hit:

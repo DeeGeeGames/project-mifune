@@ -6,6 +6,7 @@ var max_hp: int = Constants.BLOCK_HP
 var block_id: int = 0
 
 func _ready() -> void:
+	add_to_group("blocks")
 	block_id = get_instance_id()
 
 func initialize(pos: Vector2) -> void:

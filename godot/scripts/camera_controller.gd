@@ -15,30 +15,22 @@ func _ready() -> void:
 	zoom = Vector2(Constants.INITIAL_ZOOM, Constants.INITIAL_ZOOM)
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		_handle_mouse_button(event as InputEventMouseButton)
+	if event.is_action_pressed("pan_camera"):
+		is_panning = true
+		pan_start = (event as InputEventMouseButton).position
+		camera_start = position
+		get_viewport().set_input_as_handled()
+	elif event.is_action_released("pan_camera"):
+		is_panning = false
 	elif event is InputEventMouseMotion and is_panning:
 		_handle_pan_motion(event as InputEventMouseMotion)
-
-func _handle_mouse_button(event: InputEventMouseButton) -> void:
-	match event.button_index:
-		MOUSE_BUTTON_RIGHT:
-			if event.pressed:
-				is_panning = true
-				pan_start = event.position
-				camera_start = position
-			else:
-				is_panning = false
-		MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN:
-			if not event.pressed:
-				return
-			# Delegate to arc width if in aiming state
-			if GameManager.placement_state["tag"] == "aiming":
-				var dy: float = 1.0 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else -1.0
-				_adjust_arc_width(dy)
-				get_viewport().set_input_as_handled()
-				return
-			_handle_zoom(event)
+	elif event.is_action_pressed("zoom_in") or event.is_action_pressed("zoom_out"):
+		if GameManager.placement_state["tag"] == "aiming":
+			var dy: float = 1.0 if event.is_action_pressed("zoom_out") else -1.0
+			_adjust_arc_width(dy)
+			get_viewport().set_input_as_handled()
+			return
+		_handle_zoom(event as InputEventMouseButton)
 
 func _handle_pan_motion(event: InputEventMouseMotion) -> void:
 	var delta_screen: Vector2 = pan_start - event.position
@@ -47,7 +39,7 @@ func _handle_pan_motion(event: InputEventMouseMotion) -> void:
 
 func _handle_zoom(event: InputEventMouseButton) -> void:
 	var old_zoom: float = zoom.x
-	var direction: float = 1.0 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1.0
+	var direction: float = 1.0 if event.is_action("zoom_in") else -1.0
 	var new_zoom: float = clampf(old_zoom + direction * Constants.ZOOM_STEP * old_zoom, Constants.ZOOM_MIN, Constants.ZOOM_MAX)
 
 	# Zoom toward cursor
@@ -76,13 +68,13 @@ func _adjust_arc_width(dy: float) -> void:
 func _process(delta: float) -> void:
 	# Keyboard panning
 	var pan_dir: Vector2 = Vector2.ZERO
-	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT):
+	if Input.is_action_pressed("pan_left"):
 		pan_dir.x -= 1.0
-	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT):
+	if Input.is_action_pressed("pan_right"):
 		pan_dir.x += 1.0
-	if Input.is_key_pressed(KEY_W) or Input.is_key_pressed(KEY_UP):
+	if Input.is_action_pressed("pan_up"):
 		pan_dir.y -= 1.0
-	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
+	if Input.is_action_pressed("pan_down"):
 		pan_dir.y += 1.0
 
 	if pan_dir != Vector2.ZERO:

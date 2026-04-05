@@ -1,5 +1,8 @@
 extends Node2D
 
+const TURRET_SCENE: PackedScene = preload("res://scenes/entities/turret.tscn")
+const BLOCK_SCENE: PackedScene = preload("res://scenes/entities/block.tscn")
+
 func _ready() -> void:
 	z_index = 10
 
@@ -7,7 +10,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if GameManager.game_over:
 		return
 
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	if event.is_action_pressed("fire"):
 		_handle_click(get_global_mouse_position())
 
 func _handle_click(world_pos: Vector2) -> void:
@@ -64,7 +67,7 @@ func _handle_aiming_confirm(world_pos: Vector2, ps: Dictionary[String, Variant])
 		arc_range["width"],
 	)
 
-	var turret: Node2D = GameManager.turret_scene.instantiate()
+	var turret: Turret = TURRET_SCENE.instantiate()
 	turret.initialize(turret_pos, arc_center, ps["arc_width"] as float, ps["arc_range"] as Dictionary[String, Variant], ps["parent_block_id"] as int)
 	GameManager.turrets_container.add_child(turret)
 	GameManager.spend_currency(Constants.TURRET_COST)
@@ -88,7 +91,7 @@ func _handle_block_placement_click(world_pos: Vector2) -> void:
 	if not _is_valid_block_placement(snapped):
 		return
 
-	var block: StaticBody2D = GameManager.block_scene.instantiate()
+	var block: Block = BLOCK_SCENE.instantiate()
 	block.initialize(snapped)
 	GameManager.blocks_container.add_child(block)
 	GameManager.spend_currency(Constants.BLOCK_COST)
@@ -98,7 +101,7 @@ func _handle_block_placement_click(world_pos: Vector2) -> void:
 
 # --- Block grid snapping ---
 func _snap_to_block_grid(world_pos: Vector2) -> Vector2:
-	var blocks: Array[Node] = GameManager.blocks_container.get_children()
+	var blocks: Array[Node] = get_tree().get_nodes_in_group("blocks")
 
 	if blocks.size() > 0:
 		var best_pos: Vector2 = Vector2.ZERO
@@ -132,21 +135,21 @@ func _is_valid_block_placement(snapped: Vector2) -> bool:
 		return false
 	if snapped.y < 0.0:
 		return false
-	return not _has_block_at(snapped, GameManager.blocks_container.get_children())
+	return not _has_block_at(snapped, get_tree().get_nodes_in_group("blocks"))
 
 # --- Ground turret placement validation ---
 func _is_valid_ground_placement(world_pos: Vector2) -> bool:
 	if world_pos.x < Constants.PLACEMENT_MIN_X or world_pos.x > Constants.PLACEMENT_MAX_X:
 		return false
 	var snapped: Vector2 = Vector2(world_pos.x, Constants.GROUND_Y)
-	for turret: Node in GameManager.turrets_container.get_children():
+	for turret: Node in get_tree().get_nodes_in_group("turrets"):
 		if turret.global_position.distance_to(snapped) <= Constants.TURRET_RADIUS * 2.5:
 			return false
 	return true
 
 # --- Block face detection ---
 func _find_clicked_block_face(click_pos: Vector2) -> Variant:
-	var blocks: Array[Node] = GameManager.blocks_container.get_children()
+	var blocks: Array[Node] = get_tree().get_nodes_in_group("blocks")
 	var half: float = Constants.BLOCK_HALF
 	var best: Variant = null
 	var best_dist: float = Constants.BLOCK_FACE_CLICK_THRESHOLD

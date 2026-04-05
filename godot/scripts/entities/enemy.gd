@@ -7,6 +7,9 @@ var spawn_momentum: Vector2 = Vector2.ZERO
 var momentum_factor: float = 1.0
 var base_velocity: Vector2 = Vector2.ZERO
 
+func _ready() -> void:
+	add_to_group("enemies")
+
 func initialize(pos: Vector2, momentum: Vector2) -> void:
 	position = pos
 	spawn_momentum = momentum
@@ -54,14 +57,10 @@ func _physics_process(delta: float) -> void:
 			return
 
 func _find_target() -> Vector2:
-	var runners: Node2D = GameManager.runners_container
-	if not is_instance_valid(runners):
-		return Constants.TARGET_POS
-
 	var nearest_dist: float = Constants.ENEMY_RUNNER_AGGRO_RANGE
 	var nearest_pos: Vector2 = Constants.TARGET_POS
 
-	for runner: Node in runners.get_children():
+	for runner: Node in get_tree().get_nodes_in_group("runners"):
 		var dist: float = global_position.distance_to(runner.global_position)
 		if dist < nearest_dist:
 			nearest_dist = dist
@@ -70,11 +69,8 @@ func _find_target() -> Vector2:
 	return nearest_pos
 
 func _check_runner_contact() -> void:
-	var runners: Node2D = GameManager.runners_container
-	if not is_instance_valid(runners):
-		return
 	var contact_dist: float = Constants.RUNNER_SIZE + Constants.ENEMY_RADIUS
-	for runner: Node in runners.get_children():
+	for runner: Node in get_tree().get_nodes_in_group("runners"):
 		if global_position.distance_to(runner.global_position) < contact_dist:
 			if runner is Runner:
 				(runner as Runner).die()

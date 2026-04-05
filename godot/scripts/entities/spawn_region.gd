@@ -1,6 +1,8 @@
 extends Area2D
 class_name SpawnRegion
 
+const ENEMY_SCENE: PackedScene = preload("res://scenes/entities/enemy.tscn")
+
 var hp: int = 0
 var max_hp: int = 0
 var lifetime: float = 0.0
@@ -17,6 +19,7 @@ func initialize(wave_number: int) -> void:
 	_wave_number = wave_number
 
 func _ready() -> void:
+	add_to_group("regions")
 	collision_layer = 1 << (Constants.LAYER_ENEMIES - 1)  # So bullets hit us
 	collision_mask = 0
 
@@ -64,7 +67,7 @@ func _on_spawn_timer_timeout() -> void:
 	spawn_timer.start(spawn_interval)
 
 func _spawn_enemy() -> void:
-	if not is_instance_valid(GameManager.enemy_scene) or not is_instance_valid(GameManager.enemies_container):
+	if not is_instance_valid(GameManager.enemies_container):
 		return
 
 	# Random position within region
@@ -77,7 +80,7 @@ func _spawn_enemy() -> void:
 	var burst_speed: float = Constants.ENEMY_SPAWN_BURST_SPEED * (0.5 + randf() * 0.5)
 	var momentum: Vector2 = Vector2(cos(burst_angle), sin(burst_angle)) * burst_speed
 
-	var enemy: CharacterBody2D = GameManager.enemy_scene.instantiate()
+	var enemy: Enemy = ENEMY_SCENE.instantiate()
 	enemy.initialize(spawn_pos, momentum)
 	GameManager.enemies_container.add_child(enemy)
 

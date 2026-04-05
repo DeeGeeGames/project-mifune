@@ -28,7 +28,7 @@ func _update_stats() -> void:
 	var wave_status: String = " (intermission)" if GameManager.between_waves else ""
 	wave_label.text = "Wave: %d%s" % [GameManager.wave_number, wave_status]
 
-	var turret_count: int = GameManager.turrets_container.get_child_count() if is_instance_valid(GameManager.turrets_container) else 0
+	var turret_count: int = get_tree().get_nodes_in_group("turrets").size()
 	turret_label.text = "Turrets: %d" % turret_count
 
 	var mode_str: String
@@ -43,7 +43,7 @@ func _update_stats() -> void:
 
 	currency_label.text = "Currency: $%d" % GameManager.currency
 
-	var runner_count: int = GameManager.runners_container.get_child_count() if is_instance_valid(GameManager.runners_container) else 0
+	var runner_count: int = get_tree().get_nodes_in_group("runners").size()
 	runner_label.text = "Runners: %d/%d" % [runner_count, Constants.MAX_RUNNERS]
 	priority_label.text = "Priority: %s (P)" % GameManager.runner_priority.to_upper()
 

@@ -1,6 +1,8 @@
 extends Node2D
 class_name Turret
 
+const BULLET_SCENE: PackedScene = preload("res://scenes/entities/bullet.tscn")
+
 var aim_angle: float = -PI / 2.0
 var ammo: int = Constants.TURRET_MAX_AMMO
 var arc_center: float = Constants.ARC_RANGE_CENTER
@@ -15,6 +17,7 @@ var enemies_in_range: Array[CharacterBody2D] = []
 @onready var fire_timer: Timer = $FireTimer
 
 func _ready() -> void:
+	add_to_group("turrets")
 	fire_timer.wait_time = Constants.TURRET_FIRE_INTERVAL
 	fire_timer.one_shot = true
 	fire_timer.timeout.connect(_on_fire_timer_timeout)
@@ -82,7 +85,7 @@ func _tick_controlled(max_rotation: float) -> void:
 	var target_angle: float = Targeting.aim_angle(global_position, mouse_pos)
 	aim_angle = Targeting.rotate_toward(aim_angle, target_angle, max_rotation)
 
-	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+	if Input.is_action_pressed("fire"):
 		_try_fire()
 
 func _tick_autonomous(max_rotation: float) -> void:
@@ -136,7 +139,7 @@ func _try_fire() -> void:
 	var spread_angle: float = aim_angle + (randf() - 0.5) * Constants.TURRET_SPREAD * 2.0
 	var bullet_vel: Vector2 = Vector2(cos(spread_angle), sin(spread_angle)) * Constants.BULLET_SPEED
 
-	var bullet: Area2D = GameManager.bullet_scene.instantiate()
+	var bullet: Bullet = BULLET_SCENE.instantiate()
 	bullet.initialize(barrel_tip, bullet_vel)
 	GameManager.bullets_container.add_child(bullet)
 
