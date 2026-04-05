@@ -1,4 +1,4 @@
-import type { GameState, PlacementState, Turret, Vec2 } from "../types.ts";
+import type { GameState, MenuAction, PlacementState, Turret, Vec2 } from "../types.ts";
 import {
 	TURRET_COST,
 	BLOCK_COST,
@@ -9,6 +9,7 @@ import {
 	GROUND_ARC_RANGE,
 	RUNNER_COST,
 	MAX_RUNNERS,
+	MENU_BUTTON_DEFS,
 } from "../config.ts";
 import { createRunner } from "../state.ts";
 import { isValidPlacement, createTurret } from "./turrets.ts";
@@ -30,9 +31,8 @@ export type PlacementInput = {
 	readonly rightDown: boolean;
 	readonly escapeJustPressed: boolean;
 	readonly toggleJustPressed: boolean;
-	readonly placeBlockJustPressed: boolean;
-	readonly buyRunnerJustPressed: boolean;
 	readonly priorityJustPressed: boolean;
+	readonly menuAction: MenuAction | null;
 	readonly clickedTurret: Turret | null;
 };
 
@@ -61,10 +61,26 @@ function tickCancellation(
 	input: PlacementInput,
 ): PlacementState {
 	if (
-		(placement.tag === "aiming" || placement.tag === "placingBlock") &&
+		(placement.tag === "aiming" || placement.tag === "placingBlock" || placement.tag === "placingTurret") &&
 		(input.escapeJustPressed || input.toggleJustPressed)
 	) {
 		return { tag: "idle" };
+	}
+	return placement;
+}
+
+function tickEnterTurretMode(
+	placement: PlacementState,
+	state: GameState,
+	input: PlacementInput,
+): PlacementState {
+	if (
+		placement.tag === "idle" &&
+		input.menuAction === "turret" &&
+		state.controlMode.tag === "none" &&
+		state.currency >= TURRET_COST
+	) {
+		return { tag: "placingTurret" };
 	}
 	return placement;
 }
@@ -76,7 +92,7 @@ function tickEnterBlockMode(
 ): PlacementState {
 	if (
 		placement.tag === "idle" &&
-		input.placeBlockJustPressed &&
+		input.menuAction === "block" &&
 		state.controlMode.tag === "none" &&
 		state.currency >= BLOCK_COST
 	) {
@@ -120,10 +136,8 @@ function tickEnterAiming(
 	state: GameState,
 	input: PlacementInput,
 ): PlacementState {
-	if (placement.tag !== "idle") return placement;
+	if (placement.tag !== "placingTurret") return placement;
 	if (!input.pointerJustDown || input.rightDown) return placement;
-	if (state.controlMode.tag !== "none") return placement;
-	if (input.clickedTurret) return placement;
 	if (state.currency < TURRET_COST) return placement;
 
 	const blockFace = findClickedBlockFace(input.pointerPosition, state.blocks);
@@ -176,19 +190,20 @@ function tickConfirmAiming(
 		placement.parentBlockId,
 	);
 
+	const newCurrency = state.currency - TURRET_COST;
 	return {
-		placement: { tag: "idle" },
+		placement: newCurrency >= TURRET_COST ? { tag: "placingTurret" } : { tag: "idle" },
 		state: {
 			...state,
 			turrets: [...state.turrets, turret],
-			currency: state.currency - TURRET_COST,
+			currency: newCurrency,
 		},
 	};
 }
 
 function tickBuyRunner(state: GameState, input: PlacementInput): GameState {
 	if (
-		input.buyRunnerJustPressed &&
+		input.menuAction === "runner" &&
 		state.currency >= RUNNER_COST &&
 		state.runners.length < MAX_RUNNERS
 	) {
@@ -217,7 +232,8 @@ export function tickPlacement(
 	input: PlacementInput,
 ): PlacementResult {
 	const cancelled = tickCancellation(placement, input);
-	const withBlockMode = tickEnterBlockMode(cancelled, state, input);
+	const withTurretMode = tickEnterTurretMode(cancelled, state, input);
+	const withBlockMode = tickEnterBlockMode(withTurretMode, state, input);
 	const blockResult = tickBlockPlacement(withBlockMode, state, input);
 	const withAiming = tickEnterAiming(blockResult.placement, blockResult.state, input);
 	const aimResult = tickConfirmAiming(withAiming, blockResult.state, input);
@@ -225,4 +241,41 @@ export function tickPlacement(
 	const withRunner = tickBuyRunner(withPriority, input);
 
 	return { placement: aimResult.placement, state: withRunner };
+}
+
+export type MenuButtonState = {
+	readonly action: MenuAction;
+	readonly enabled: boolean;
+	readonly active: boolean;
+	readonly label: string;
+};
+
+function menuButtonEnabled(action: MenuAction, state: GameState): boolean {
+	const enabledCheck: Record<MenuAction, () => boolean> = {
+		turret: () => state.currency >= TURRET_COST && state.controlMode.tag === "none",
+		block: () => state.currency >= BLOCK_COST && state.controlMode.tag === "none",
+		runner: () => state.currency >= RUNNER_COST && state.runners.length < MAX_RUNNERS,
+	};
+	return enabledCheck[action]();
+}
+
+function menuButtonActive(action: MenuAction, placement: PlacementState): boolean {
+	const activeCheck: Record<MenuAction, () => boolean> = {
+		turret: () => placement.tag === "placingTurret" || placement.tag === "aiming",
+		block: () => placement.tag === "placingBlock",
+		runner: () => false,
+	};
+	return activeCheck[action]();
+}
+
+export function computeMenuState(
+	state: GameState,
+	placement: PlacementState,
+): ReadonlyArray<MenuButtonState> {
+	return MENU_BUTTON_DEFS.map((def) => ({
+		action: def.action,
+		enabled: menuButtonEnabled(def.action, state),
+		active: menuButtonActive(def.action, placement),
+		label: `${def.label}  $${def.cost}`,
+	}));
 }

@@ -1,5 +1,5 @@
 import type Phaser from "phaser";
-import type { EntityId, GameState, PlacementState, Vec2 } from "./types.ts";
+import type { EntityId, GameState, MenuAction, PlacementState, Vec2 } from "./types.ts";
 import {
 	TURRET_RADIUS,
 	TURRET_BARREL_LENGTH,
@@ -16,14 +16,20 @@ import {
 	VIEWPORT_WIDTH,
 	VIEWPORT_HEIGHT,
 	RUNNER_SIZE,
-	TURRET_COST,
-	RUNNER_COST,
-	MAX_RUNNERS,
 	TURRET_HOVER_RADIUS,
 	BLOCK_SIZE,
+	MAX_RUNNERS,
+	MENU_PANEL_WIDTH,
+	MENU_PANEL_HEIGHT,
+	MENU_BUTTON_HEIGHT,
+	MENU_BUTTON_GAP,
+	MENU_BUTTON_DEFS,
+	MENU_PADDING,
 } from "./config.ts";
 import { aimAngle, clampArcCenterToRange, distance as vecDistance } from "./systems/targeting.ts";
-import { snapToBlockGrid, isValidBlockPlacement, BLOCK_HALF } from "./systems/blocks.ts";
+import { snapToBlockGrid, isValidBlockPlacement, findClickedBlockFace, BLOCK_HALF } from "./systems/blocks.ts";
+import { isValidPlacement } from "./systems/turrets.ts";
+import { computeMenuState } from "./systems/placement.ts";
 
 type RegionSprites = {
 	readonly body: Phaser.GameObjects.Arc;
@@ -40,6 +46,12 @@ type BlockSprites = {
 type TurretAmmoBar = {
 	readonly bg: Phaser.GameObjects.Rectangle;
 	readonly fill: Phaser.GameObjects.Rectangle;
+};
+
+type MenuButtonSprites = {
+	readonly bg: Phaser.GameObjects.Rectangle;
+	readonly label: Phaser.GameObjects.Text;
+	readonly action: MenuAction;
 };
 
 type SpriteRegistry = {
@@ -67,6 +79,8 @@ type SpriteRegistry = {
 	readonly priorityText: Phaser.GameObjects.Text;
 	readonly gameOverText: Phaser.GameObjects.Text;
 	readonly instructionText: Phaser.GameObjects.Text;
+	readonly menuBar: Phaser.GameObjects.Rectangle;
+	readonly menuButtons: ReadonlyArray<MenuButtonSprites>;
 };
 
 function addHud(
@@ -184,7 +198,7 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 	const instructionText = scene.add.text(
 		VIEWPORT_WIDTH / 2,
 		VIEWPORT_HEIGHT - 20,
-		"Click = place turret  |  T = control all  |  Click turret = control one  |  R = buy runner  |  P = priority  |  ESC = release",
+		"",
 		{
 			fontSize: "14px",
 			color: "#666666",
@@ -194,6 +208,44 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 	instructionText.setOrigin(0.5);
 	instructionText.setDepth(10);
 	addHud(scene, mainCam, instructionText);
+
+	// --- Menu panel (top-right button stack) ---
+	const btnWidth = MENU_PANEL_WIDTH - MENU_PADDING * 2;
+	const panelX = VIEWPORT_WIDTH - MENU_PANEL_WIDTH;
+
+	const menuBar = scene.add.rectangle(
+		panelX + MENU_PANEL_WIDTH / 2,
+		MENU_PANEL_HEIGHT / 2,
+		MENU_PANEL_WIDTH,
+		MENU_PANEL_HEIGHT,
+		0x111111,
+		0.9,
+	);
+	menuBar.setDepth(15);
+	addHud(scene, mainCam, menuBar);
+
+	const menuX = panelX + MENU_PANEL_WIDTH / 2;
+	const menuStartY = MENU_PADDING + MENU_BUTTON_HEIGHT / 2;
+
+	const menuButtons: ReadonlyArray<MenuButtonSprites> = MENU_BUTTON_DEFS.map((def, i) => {
+		const y = menuStartY + i * (MENU_BUTTON_HEIGHT + MENU_BUTTON_GAP);
+
+		const bg = scene.add.rectangle(menuX, y, btnWidth, MENU_BUTTON_HEIGHT, 0x333333);
+		bg.setStrokeStyle(2, 0x666666);
+		bg.setDepth(16);
+		addHud(scene, mainCam, bg);
+
+		const label = scene.add.text(menuX, y, def.label, {
+			fontSize: "14px",
+			color: "#cccccc",
+			fontFamily: "monospace",
+		});
+		label.setOrigin(0.5);
+		label.setDepth(17);
+		addHud(scene, mainCam, label);
+
+		return { bg, label, action: def.action };
+	});
 
 	return {
 		hudCamera,
@@ -220,8 +272,39 @@ export function createSpriteRegistry(scene: Phaser.Scene): SpriteRegistry {
 		priorityText,
 		gameOverText,
 		instructionText,
+		menuBar,
+		menuButtons,
 	};
 }
+
+export function isOverMenuPanel(screenX: number, screenY: number): boolean {
+	return screenX >= VIEWPORT_WIDTH - MENU_PANEL_WIDTH && screenY <= MENU_PANEL_HEIGHT;
+}
+
+export function hitTestMenuButton(
+	screenX: number,
+	screenY: number,
+): MenuAction | null {
+	if (!isOverMenuPanel(screenX, screenY)) return null;
+
+	const relY = screenY - MENU_PADDING;
+	if (relY < 0) return null;
+
+	const slot = MENU_BUTTON_HEIGHT + MENU_BUTTON_GAP;
+	const index = Math.floor(relY / slot);
+	const withinButton = relY - index * slot;
+	if (withinButton > MENU_BUTTON_HEIGHT) return null;
+	if (index < 0 || index >= MENU_BUTTON_DEFS.length) return null;
+
+	return MENU_BUTTON_DEFS[index].action;
+}
+
+const INSTRUCTION_TEXT: Record<PlacementState["tag"], string> = {
+	placingTurret: "Click ground or block face to position  |  ESC = cancel",
+	aiming: "Aim arc direction  |  Scroll = adjust width  |  Click = confirm  |  ESC = cancel",
+	placingBlock: "Click = place block  |  ESC = cancel",
+	idle: "T = control all  |  Click turret = control one  |  P = priority  |  ESC = release",
+};
 
 function getBarrelEnd(position: Vec2, angle: number): Vec2 {
 	return {
@@ -679,6 +762,19 @@ export function syncSprites(
 		);
 	}
 
+	if (placement.tag === "placingTurret") {
+		const onBlockFace = findClickedBlockFace(pointerPosition, state.blocks);
+		const valid = onBlockFace
+			? true
+			: isValidPlacement(pointerPosition, state.turrets);
+		const ghostColor = valid ? 0x004444 : 0x440000;
+		const strokeColor = valid ? 0x00ffff : 0xff4444;
+		registry.arcGraphics.fillStyle(ghostColor, 0.5);
+		registry.arcGraphics.lineStyle(2, strokeColor, 0.6);
+		registry.arcGraphics.fillCircle(pointerPosition.x, pointerPosition.y, TURRET_RADIUS);
+		registry.arcGraphics.strokeCircle(pointerPosition.x, pointerPosition.y, TURRET_RADIUS);
+	}
+
 	// --- HUD ---
 	registry.defenseText.setText(`Defense: ${state.defenseHp}/${DEFENSE_HP}`);
 
@@ -695,7 +791,7 @@ export function syncSprites(
 		: `Wave ${state.wave.waveNumber}  |  Regions: ${state.regions.length + state.wave.regionsToSpawn}  |  Enemies: ${state.enemies.length}`;
 	registry.waveText.setText(waveLabel);
 
-	registry.turretCountText.setText(`Turrets: ${state.turrets.length}  (cost: ${TURRET_COST})`);
+	registry.turretCountText.setText(`Turrets: ${state.turrets.length}`);
 
 	const modeLabel =
 		state.controlMode.tag === "none"
@@ -706,16 +802,24 @@ export function syncSprites(
 	registry.controlModeText.setText(modeLabel);
 
 	registry.currencyText.setText(`Currency: ${state.currency}`);
-	registry.runnerCountText.setText(`Runners: ${state.runners.length}/${MAX_RUNNERS}  (R to buy: ${RUNNER_COST})`);
+	registry.runnerCountText.setText(`Runners: ${state.runners.length}/${MAX_RUNNERS}`);
 	registry.priorityText.setText(`Priority: ${state.runnerPriority === "ammo" ? "AMMO" : "Resources"}  (P)`);
 
-	registry.instructionText.setText(
-		placement.tag === "aiming"
-			? "Aim arc direction  |  Scroll = adjust width  |  Click = confirm  |  ESC = cancel"
-			: placement.tag === "placingBlock"
-				? "Click = place block  |  ESC = cancel"
-				: "Click = place turret  |  B = place block  |  T = control all  |  Click turret = control one  |  R = buy runner  |  P = priority  |  ESC = release",
-	);
+	registry.instructionText.setText(INSTRUCTION_TEXT[placement.tag]);
+
+	// --- Menu buttons ---
+	const menuState = computeMenuState(state, placement);
+	registry.menuButtons.forEach((btn) => {
+		const ms = menuState.find((s) => s.action === btn.action);
+		if (!ms) return;
+		const fillColor = ms.active ? 0x005555 : ms.enabled ? 0x333333 : 0x1a1a1a;
+		const strokeColor = ms.active ? 0x00ffff : ms.enabled ? 0x666666 : 0x333333;
+		const textColor = ms.active ? "#00ffff" : ms.enabled ? "#cccccc" : "#555555";
+		btn.bg.setFillStyle(fillColor);
+		btn.bg.setStrokeStyle(2, strokeColor);
+		btn.label.setText(ms.label);
+		btn.label.setColor(textColor);
+	});
 
 	if (state.gameOver) {
 		registry.gameOverText.setVisible(true);

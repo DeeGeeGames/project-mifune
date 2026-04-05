@@ -93,6 +93,21 @@ export const ENEMY_RUNNER_AGGRO_RANGE = 120;
 export const RUNNER_PICKUP_DISTANCE = 15;
 export const RUNNER_BASE_ARRIVE_DISTANCE = 25;
 
+// Build menu (right-side panel)
+export const MENU_PANEL_WIDTH = 140;
+export const MENU_BUTTON_HEIGHT = 48;
+export const MENU_BUTTON_GAP = 8;
+export const MENU_PADDING = 8;
+export const MENU_BUTTON_DEFS = [
+	{ action: "turret" as const, label: "Turret", cost: TURRET_COST },
+	{ action: "block" as const, label: "Block", cost: BLOCK_COST },
+	{ action: "runner" as const, label: "Runner", cost: RUNNER_COST },
+] as const;
+export const MENU_PANEL_HEIGHT =
+	MENU_BUTTON_DEFS.length * MENU_BUTTON_HEIGHT +
+	(MENU_BUTTON_DEFS.length - 1) * MENU_BUTTON_GAP +
+	MENU_PADDING * 2;
+
 // Ammo
 export const TURRET_MAX_AMMO = 1000;
 export const TURRET_RELOAD_THRESHOLD = 500;

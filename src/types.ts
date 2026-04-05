@@ -31,8 +31,11 @@ export type Block = {
 	readonly maxHp: number;
 };
 
+export type MenuAction = "turret" | "block" | "runner";
+
 export type PlacementState =
 	| { readonly tag: "idle" }
+	| { readonly tag: "placingTurret" }
 	| { readonly tag: "placingBlock" }
 	| {
 		readonly tag: "aiming";

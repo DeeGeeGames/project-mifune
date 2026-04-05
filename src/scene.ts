@@ -5,7 +5,7 @@ import { createInitialState } from "./state.ts";
 import { findClickedTurret, resolveControlMode } from "./systems/input.ts";
 import { tickPlacement, adjustArcWidth } from "./systems/placement.ts";
 import { tickGameSystems } from "./systems/gameLoop.ts";
-import { createSpriteRegistry, syncSprites } from "./render.ts";
+import { createSpriteRegistry, syncSprites, hitTestMenuButton, isOverMenuPanel } from "./render.ts";
 
 const ZOOM_MIN = Math.max(VIEWPORT_WIDTH / WORLD_WIDTH, VIEWPORT_HEIGHT / WORLD_HEIGHT);
 const ZOOM_MAX = 3;
@@ -18,9 +18,7 @@ type SceneState = {
 	keys: {
 		toggle: Phaser.Input.Keyboard.Key;
 		escape: Phaser.Input.Keyboard.Key;
-		buyRunner: Phaser.Input.Keyboard.Key;
 		togglePriority: Phaser.Input.Keyboard.Key;
-		placeBlock: Phaser.Input.Keyboard.Key;
 		panLeft: readonly Phaser.Input.Keyboard.Key[];
 		panRight: readonly Phaser.Input.Keyboard.Key[];
 		panUp: readonly Phaser.Input.Keyboard.Key[];
@@ -30,9 +28,7 @@ type SceneState = {
 	prevPointerDown: boolean;
 	prevToggle: boolean;
 	prevEscape: boolean;
-	prevBuyRunner: boolean;
 	prevTogglePriority: boolean;
-	prevPlaceBlock: boolean;
 	isPanning: boolean;
 	panStart: { x: number; y: number };
 	cameraStart: { x: number; y: number };
@@ -55,9 +51,7 @@ function create(this: Phaser.Scene): void {
 		keys: {
 			toggle: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.T),
 			escape: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC),
-			buyRunner: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R),
 			togglePriority: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P),
-			placeBlock: keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.B),
 			panLeft: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT)] as const,
 			panRight: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT)] as const,
 			panUp: [keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W), keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP)] as const,
@@ -67,9 +61,7 @@ function create(this: Phaser.Scene): void {
 		prevPointerDown: false,
 		prevToggle: false,
 		prevEscape: false,
-		prevBuyRunner: false,
 		prevTogglePriority: false,
-		prevPlaceBlock: false,
 		isPanning: false,
 		panStart: { x: 0, y: 0 },
 		cameraStart: { x: 0, y: 0 },
@@ -115,9 +107,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	const rightDown = pointer.rightButtonDown();
 	const toggleJustPressed = keys.toggle.isDown && !sceneState.prevToggle;
 	const escapeJustPressed = keys.escape.isDown && !sceneState.prevEscape;
-	const buyRunnerJustPressed = keys.buyRunner.isDown && !sceneState.prevBuyRunner;
 	const priorityJustPressed = keys.togglePriority.isDown && !sceneState.prevTogglePriority;
-	const placeBlockJustPressed = keys.placeBlock.isDown && !sceneState.prevPlaceBlock;
 
 	// Camera panning
 	const cam = this.cameras.main;
@@ -142,10 +132,14 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 	if (keys.panDown.some(k => k.isDown)) cam.scrollY += panPx;
 
 	// Input detection
-	const pointerJustDown = pointer.isDown && !sceneState.prevPointerDown && !rightDown;
+	const rawPointerJustDown = pointer.isDown && !sceneState.prevPointerDown && !rightDown;
+	const menuAction = rawPointerJustDown ? hitTestMenuButton(pointer.x, pointer.y) : null;
+	const pointerOverMenu = isOverMenuPanel(pointer.x, pointer.y);
+	const worldPointerJustDown = rawPointerJustDown && menuAction === null && !pointerOverMenu;
+	const worldPointerDown = pointer.isDown && !rightDown && !pointerOverMenu;
 
 	const clickedTurret =
-		pointerJustDown && !rightDown
+		worldPointerJustDown
 			? findClickedTurret(pointerPosition, state.turrets)
 			: null;
 
@@ -156,21 +150,20 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 			toggleJustPressed,
 			escapeJustPressed,
 			clickedTurret,
-			pointerJustDown,
+			worldPointerJustDown,
 		),
 	};
 
 	// Placement & economy
 	const placementResult = tickPlacement(sceneState.placement, state, {
 		pointerPosition,
-		pointerDown: pointer.isDown && !rightDown,
-		pointerJustDown,
+		pointerDown: worldPointerDown,
+		pointerJustDown: worldPointerJustDown,
 		rightDown,
 		escapeJustPressed,
 		toggleJustPressed,
-		placeBlockJustPressed,
-		buyRunnerJustPressed,
 		priorityJustPressed,
+		menuAction,
 		clickedTurret,
 	});
 	state = placementResult.state;
@@ -192,9 +185,7 @@ function update(this: Phaser.Scene, time: number, delta: number): void {
 		prevPointerDown: pointer.isDown,
 		prevToggle: keys.toggle.isDown,
 		prevEscape: keys.escape.isDown,
-		prevBuyRunner: keys.buyRunner.isDown,
 		prevTogglePriority: keys.togglePriority.isDown,
-		prevPlaceBlock: keys.placeBlock.isDown,
 	};
 }
 
