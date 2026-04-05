@@ -3,13 +3,20 @@ class_name Runner
 
 enum State { IDLE, COLLECTING, RETURNING, RESUPPLYING }
 
+@export var config: RunnerConfig = preload("res://resources/defaults/runner_default.tres")
+
 var current_state: State = State.IDLE
 var target_node: Node2D = null
 var carrying: int = 0
-var speed: float = Constants.RUNNER_SPEED
+var speed: float = 0.0
+var _prev_state: State = State.IDLE
+
+@onready var hurt_area: Area2D = $HurtArea
 
 func _ready() -> void:
+	speed = config.speed
 	add_to_group("runners")
+	hurt_area.body_entered.connect(_on_hurt_area_body_entered)
 
 func die() -> void:
 	_release_claims()
@@ -34,10 +41,12 @@ func _physics_process(delta: float) -> void:
 		State.RESUPPLYING:
 			_tick_resupplying(delta)
 
-	queue_redraw()
+	if current_state != _prev_state:
+		_prev_state = current_state
+		queue_redraw()
 
 func _tick_idle() -> void:
-	if GameManager.runner_priority == "ammo":
+	if GameManager.runner_priority == GameManagerClass.RunnerPriority.AMMO:
 		if not _try_find_ammo_task():
 			_try_find_resource_task()
 	else:
@@ -68,7 +77,7 @@ func _try_find_resource_task() -> bool:
 
 func _try_find_ammo_task() -> bool:
 	# Can only resupply if near base
-	if global_position.distance_to(Constants.TARGET_POS) > Constants.RUNNER_BASE_ARRIVE_DISTANCE:
+	if global_position.distance_to(Constants.TARGET_POS) > config.base_arrive_distance:
 		return false
 
 	var nearest: Turret = null
@@ -103,7 +112,7 @@ func _tick_collecting(_delta: float) -> void:
 		target_node = null
 		return
 
-	if global_position.distance_to(target_node.global_position) < Constants.RUNNER_PICKUP_DISTANCE:
+	if global_position.distance_to(target_node.global_position) < config.pickup_distance:
 		carrying = target_node.collect()
 		target_node = null
 		current_state = State.RETURNING
@@ -113,7 +122,7 @@ func _tick_collecting(_delta: float) -> void:
 	move_and_slide()
 
 func _tick_returning(_delta: float) -> void:
-	if global_position.distance_to(Constants.TARGET_POS) < Constants.RUNNER_BASE_ARRIVE_DISTANCE:
+	if global_position.distance_to(Constants.TARGET_POS) < config.base_arrive_distance:
 		GameManager.add_currency(carrying)
 		carrying = 0
 		position = Constants.TARGET_POS
@@ -129,10 +138,10 @@ func _tick_resupplying(_delta: float) -> void:
 		target_node = null
 		return
 
-	if global_position.distance_to(target_node.global_position) < Constants.RUNNER_BASE_ARRIVE_DISTANCE:
+	if global_position.distance_to(target_node.global_position) < config.base_arrive_distance:
 		if target_node is Turret:
 			var t: Turret = target_node as Turret
-			t.reload(Constants.RUNNER_RELOAD_AMOUNT)
+			t.reload(config.reload_amount)
 			t.unclaim()
 		target_node = null
 		current_state = State.IDLE
@@ -140,6 +149,10 @@ func _tick_resupplying(_delta: float) -> void:
 
 	velocity = Targeting.velocity_toward(global_position, target_node.global_position, speed)
 	move_and_slide()
+
+func _on_hurt_area_body_entered(body: Node2D) -> void:
+	if body is Enemy:
+		die()
 
 func _draw() -> void:
 	var color: Color
@@ -153,5 +166,5 @@ func _draw() -> void:
 		State.RESUPPLYING:
 			color = Color(1.0, 0.6, 0.0)
 
-	var rect: Rect2 = Rect2(-Constants.RUNNER_SIZE / 2.0, -Constants.RUNNER_SIZE, Constants.RUNNER_SIZE, Constants.RUNNER_SIZE * 2.0)
+	var rect: Rect2 = Rect2(-config.size / 2.0, -config.size, config.size, config.size * 2.0)
 	draw_rect(rect, color)

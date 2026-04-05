@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="RunnerConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/runner_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+speed = 120.0
+size = 10.0
+pickup_distance = 15.0
+base_arrive_distance = 25.0
+reload_amount = 500

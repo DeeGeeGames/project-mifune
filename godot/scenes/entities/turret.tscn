@@ -1,12 +1,14 @@
-[gd_scene load_steps=3 format=3 uid="uid://turret001"]
+[gd_scene load_steps=4 format=3 uid="uid://turret001"]
 
 [ext_resource type="Script" path="res://scripts/entities/turret.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/defaults/turret_default.tres" id="2"]
 
 [sub_resource type="CircleShape2D" id="range_shape"]
 radius = 1200.0
 
 [node name="Turret" type="Node2D"]
 script = ExtResource("1")
+config = ExtResource("2")
 
 [node name="RangeArea" type="Area2D" parent="."]
 collision_layer = 128

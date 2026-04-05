@@ -1,3 +1,8 @@
 res://scripts/entities/enemy.gd
 res://scripts/entities/runner.gd
 res://scripts/entities/turret.gd
+res://scripts/autoload/game_manager.gd
+res://scripts/entities/block.gd
+res://resources/defaults/enemy_default.tres
+res://scripts/resources/bullet_config.gd
+res://scripts/resources/enemy_config.gd

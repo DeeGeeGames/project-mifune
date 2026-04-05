@@ -53,7 +53,7 @@ func _on_control_mode_changed(_mode: GameManagerClass.ControlMode) -> void:
 func _on_placement_state_changed(_state: GameManagerClass.PlacementState) -> void:
 	_update_instructions()
 
-func _on_runner_priority_changed(_priority: String) -> void:
+func _on_runner_priority_changed(_priority: GameManagerClass.RunnerPriority) -> void:
 	_update_priority_label()
 
 func _on_tree_changed(_node: Node) -> void:
@@ -92,7 +92,13 @@ func _update_runner_count() -> void:
 	runner_label.text = "Runners: %d/%d" % [runner_count, Constants.MAX_RUNNERS]
 
 func _update_priority_label() -> void:
-	priority_label.text = "Priority: %s (P)" % GameManager.runner_priority.to_upper()
+	var priority_str: String
+	match GameManager.runner_priority:
+		GameManagerClass.RunnerPriority.AMMO:
+			priority_str = "AMMO"
+		_:
+			priority_str = "RESOURCES"
+	priority_label.text = "Priority: %s (P)" % priority_str
 
 func _update_instructions() -> void:
 	match GameManager.placement_state:

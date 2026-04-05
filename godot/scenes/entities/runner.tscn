@@ -1,14 +1,27 @@
-[gd_scene format=3 uid="uid://runner001"]
+[gd_scene load_steps=5 format=3 uid="uid://runner001"]
 
 [ext_resource type="Script" uid="uid://dijm5ocqa8s6t" path="res://scripts/entities/runner.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/defaults/runner_default.tres" id="2"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_ycedw"]
 size = Vector2(10, 20)
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hurtarea"]
+radius = 22.0
 
 [node name="Runner" type="CharacterBody2D" unique_id=1151964153]
 collision_layer = 64
 collision_mask = 0
 script = ExtResource("1")
+config = ExtResource("2")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=1313823761]
 shape = SubResource("RectangleShape2D_ycedw")
+
+[node name="HurtArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 8
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtArea"]
+shape = SubResource("CircleShape2D_hurtarea")

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RegionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/region_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+base_lifetime = 2.0
+lifetime_scaling = 1.0
+max_lifetime = 24.0
+base_hp = 32
+hp_scaling = 8
+base_radius = 80.0
+radius_scaling = 4.0
+max_radius = 150.0
+base_spawn_interval = 0.2
+spawn_interval_scaling = 0.06
+min_spawn_interval = 0.08
+burst_arc_width = 0.7853982
+burst_valid_range_center = -1.5707963
+burst_valid_range_width = 3.1415927

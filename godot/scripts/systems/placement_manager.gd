@@ -1,5 +1,8 @@
 extends Node2D
 
+signal turret_placed(turret: Turret)
+signal block_placed(block: Block)
+
 const TURRET_SCENE: PackedScene = preload("res://scenes/entities/turret.tscn")
 const BLOCK_SCENE: PackedScene = preload("res://scenes/entities/block.tscn")
 
@@ -7,9 +10,6 @@ func _ready() -> void:
 	z_index = 10
 
 func _unhandled_input(event: InputEvent) -> void:
-	if GameManager.game_over:
-		return
-
 	if event.is_action_pressed("fire"):
 		_handle_click(get_global_mouse_position())
 
@@ -75,7 +75,7 @@ func _handle_aiming_confirm(world_pos: Vector2) -> void:
 		GameManager.aiming_arc_range_width,
 		GameManager.aiming_parent_block_id,
 	)
-	get_node("/root/Main/World/Turrets").add_child(turret)
+	turret_placed.emit(turret)
 	GameManager.spend_currency(Constants.TURRET_COST)
 
 	if GameManager.currency >= Constants.TURRET_COST:
@@ -99,7 +99,7 @@ func _handle_block_placement_click(world_pos: Vector2) -> void:
 
 	var block: Block = BLOCK_SCENE.instantiate()
 	block.initialize(snapped)
-	get_node("/root/Main/World/Blocks").add_child(block)
+	block_placed.emit(block)
 	GameManager.spend_currency(Constants.BLOCK_COST)
 
 	if GameManager.currency < Constants.BLOCK_COST:

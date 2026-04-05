@@ -1,8 +1,12 @@
 extends CharacterBody2D
 class_name Enemy
 
-var hp: int = Constants.ENEMY_HP
-var speed: float = Constants.ENEMY_SPEED
+signal died(pos: Vector2)
+
+@export var config: EnemyConfig = preload("res://resources/defaults/enemy_default.tres")
+
+var hp: int = 0
+var speed: float = 0.0
 var spawn_momentum: Vector2 = Vector2.ZERO
 var momentum_factor: float = 1.0
 var base_velocity: Vector2 = Vector2.ZERO
@@ -11,6 +15,8 @@ var runners_in_range: Array[CharacterBody2D] = []
 @onready var aggro_area: Area2D = $AggroArea
 
 func _ready() -> void:
+	hp = config.hp
+	speed = config.speed
 	add_to_group("enemies")
 	aggro_area.body_entered.connect(_on_aggro_body_entered)
 	aggro_area.body_exited.connect(_on_aggro_body_exited)
@@ -30,10 +36,12 @@ func take_damage(amount: int) -> void:
 	hp -= amount
 	if hp <= 0:
 		die(true)
+		return
+	queue_redraw()
 
 func die(drop_resource: bool) -> void:
 	if drop_resource:
-		GameManager.enemy_died.emit(global_position)
+		died.emit(global_position)
 	queue_free()
 
 func _on_aggro_body_entered(body: Node2D) -> void:
@@ -47,7 +55,7 @@ func _physics_process(delta: float) -> void:
 	runners_in_range = runners_in_range.filter(func(r: CharacterBody2D) -> bool: return is_instance_valid(r))
 
 	# Decay momentum
-	momentum_factor = maxf(0.0, momentum_factor - Constants.ENEMY_MOMENTUM_DECAY * delta)
+	momentum_factor = maxf(0.0, momentum_factor - config.momentum_decay * delta)
 
 	# Find target (runner aggro or base)
 	var target_pos: Vector2 = _find_target()
@@ -57,9 +65,6 @@ func _physics_process(delta: float) -> void:
 	var move_vel: Vector2 = base_velocity * (1.0 - momentum_factor) + spawn_momentum * momentum_factor
 	velocity = move_vel
 	move_and_slide()
-
-	# Check runner kills
-	_check_runner_contact()
 
 	# Check block collisions (via move_and_slide)
 	for i: int in get_slide_collision_count():
@@ -71,7 +76,7 @@ func _physics_process(delta: float) -> void:
 			return
 
 func _find_target() -> Vector2:
-	var nearest_dist: float = Constants.ENEMY_RUNNER_AGGRO_RANGE
+	var nearest_dist: float = config.aggro_range
 	var nearest_pos: Vector2 = Constants.TARGET_POS
 
 	for runner: CharacterBody2D in runners_in_range:
@@ -82,17 +87,10 @@ func _find_target() -> Vector2:
 
 	return nearest_pos
 
-func _check_runner_contact() -> void:
-	var contact_dist: float = Constants.RUNNER_SIZE + Constants.ENEMY_RADIUS
-	for runner: CharacterBody2D in runners_in_range:
-		if global_position.distance_to(runner.global_position) < contact_dist:
-			if runner is Runner:
-				(runner as Runner).die()
-
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, Constants.ENEMY_RADIUS, Color(1.0, 0.27, 0.13))
+	draw_circle(Vector2.ZERO, config.radius, Color(1.0, 0.27, 0.13))
 	# HP bar
-	if hp < Constants.ENEMY_HP:
-		var bar_w: float = Constants.ENEMY_RADIUS * 2.0
-		var ratio: float = float(hp) / float(Constants.ENEMY_HP)
-		DrawUtils.draw_bar(self, 0.0, -Constants.ENEMY_RADIUS - 6.0, bar_w, 3.0, ratio, Color(1.0, 0.0, 0.0))
+	if hp < config.hp:
+		var bar_w: float = config.radius * 2.0
+		var ratio: float = float(hp) / float(config.hp)
+		DrawUtils.draw_bar(self, 0.0, -config.radius - 6.0, bar_w, 3.0, ratio, Color(1.0, 0.0, 0.0))

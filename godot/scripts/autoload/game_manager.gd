@@ -6,6 +6,7 @@ class_name GameManagerClass
 
 enum ControlMode { NONE, ALL, SINGLE }
 enum PlacementState { IDLE, PLACING_TURRET, AIMING, PLACING_BLOCK }
+enum RunnerPriority { RESOURCES, AMMO }
 
 # --- Signals ---
 signal currency_changed(new_amount: int)
@@ -14,13 +15,9 @@ signal game_over_triggered
 signal wave_started(wave_number: int)
 signal wave_cleared
 signal control_mode_changed(mode: ControlMode)
-signal runner_priority_changed(priority: String)
+signal runner_priority_changed(priority: RunnerPriority)
 signal placement_state_changed(state: PlacementState)
 signal runner_purchased
-signal enemy_died(pos: Vector2)
-signal block_destroyed(block_id: int)
-signal bullet_spawn_requested(pos: Vector2, vel: Vector2)
-signal enemy_spawn_requested(pos: Vector2, momentum: Vector2)
 signal region_spawn_requested(pos: Vector2, wave_number: int)
 
 # --- State ---
@@ -33,8 +30,8 @@ var game_over: bool = false
 var control_mode: ControlMode = ControlMode.NONE
 var controlled_turret_id: int = -1
 
-# Runner priority: "resources" or "ammo"
-var runner_priority: String = "resources"
+# Runner priority
+var runner_priority: RunnerPriority = RunnerPriority.RESOURCES
 
 # Placement state
 var placement_state: PlacementState = PlacementState.IDLE
@@ -63,6 +60,7 @@ func damage_defense(amount: int) -> void:
 	if defense_hp <= 0:
 		game_over = true
 		game_over_triggered.emit()
+		get_tree().paused = true
 
 # --- Control mode ---
 func set_control_mode(mode: ControlMode, turret_id: int = -1) -> void:
@@ -81,7 +79,7 @@ func release_control() -> void:
 
 # --- Runner priority ---
 func toggle_runner_priority() -> void:
-	runner_priority = "ammo" if runner_priority == "resources" else "resources"
+	runner_priority = RunnerPriority.AMMO if runner_priority == RunnerPriority.RESOURCES else RunnerPriority.RESOURCES
 	runner_priority_changed.emit(runner_priority)
 
 # --- Placement state ---

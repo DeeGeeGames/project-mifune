@@ -1,11 +1,14 @@
 extends Area2D
 class_name Bullet
 
+@export var config: BulletConfig = preload("res://resources/defaults/bullet_default.tres")
+
 var velocity_vec: Vector2 = Vector2.ZERO
-var damage: int = Constants.BULLET_DAMAGE
+var damage: int = 0
 var has_hit: bool = false
 
 func _ready() -> void:
+	damage = config.damage
 	add_to_group("bullets")
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
@@ -35,4 +38,4 @@ func _on_area_entered(area: Area2D) -> void:
 		queue_free()
 
 func _draw() -> void:
-	draw_circle(Vector2.ZERO, Constants.BULLET_RADIUS, Color(1.0, 1.0, 0.0))
+	draw_circle(Vector2.ZERO, config.radius, Color(1.0, 1.0, 0.0))

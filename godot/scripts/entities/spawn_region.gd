@@ -1,6 +1,10 @@
 extends Area2D
 class_name SpawnRegion
 
+signal enemy_requested(pos: Vector2, momentum: Vector2)
+
+@export var config: RegionConfig = preload("res://resources/defaults/region_default.tres")
+
 var hp: int = 0
 var max_hp: int = 0
 var lifetime: float = 0.0
@@ -8,7 +12,7 @@ var age: float = 0.0
 var region_radius: float = 0.0
 var spawn_interval: float = 0.0
 var burst_arc_center: float = 0.0
-var burst_arc_width: float = Constants.REGION_BURST_ARC_WIDTH
+var burst_arc_width: float = 0.0
 var _wave_number: int = 1
 
 @onready var spawn_timer: Timer = $SpawnTimer
@@ -20,13 +24,13 @@ func _ready() -> void:
 	add_to_group("regions")
 
 	# Compute wave-scaled params
-	lifetime = minf(Constants.REGION_BASE_LIFETIME + _wave_number * Constants.REGION_LIFETIME_SCALING, Constants.REGION_MAX_LIFETIME)
-	hp = Constants.REGION_BASE_HP + _wave_number * Constants.REGION_HP_SCALING
+	lifetime = minf(config.base_lifetime + _wave_number * config.lifetime_scaling, config.max_lifetime)
+	hp = config.base_hp + _wave_number * config.hp_scaling
 	max_hp = hp
-	region_radius = minf(Constants.REGION_BASE_RADIUS + _wave_number * Constants.REGION_RADIUS_SCALING, Constants.REGION_MAX_RADIUS)
-	spawn_interval = maxf(Constants.REGION_BASE_SPAWN_INTERVAL - _wave_number * Constants.REGION_SPAWN_INTERVAL_SCALING, Constants.REGION_MIN_SPAWN_INTERVAL)
-	burst_arc_center = _random_arc_center(Constants.REGION_BURST_ARC_WIDTH, Constants.REGION_BURST_VALID_RANGE_CENTER, Constants.REGION_BURST_VALID_RANGE_WIDTH)
-	burst_arc_width = Constants.REGION_BURST_ARC_WIDTH
+	region_radius = minf(config.base_radius + _wave_number * config.radius_scaling, config.max_radius)
+	spawn_interval = maxf(config.base_spawn_interval - _wave_number * config.spawn_interval_scaling, config.min_spawn_interval)
+	burst_arc_center = _random_arc_center(config.burst_arc_width, config.burst_valid_range_center, config.burst_valid_range_width)
+	burst_arc_width = config.burst_arc_width
 
 	# Set up collision shape
 	var shape := CircleShape2D.new()
@@ -71,7 +75,7 @@ func _spawn_enemy() -> void:
 	var burst_speed: float = Constants.ENEMY_SPAWN_BURST_SPEED * (0.5 + randf() * 0.5)
 	var momentum: Vector2 = Vector2(cos(burst_angle), sin(burst_angle)) * burst_speed
 
-	GameManager.enemy_spawn_requested.emit(spawn_pos, momentum)
+	enemy_requested.emit(spawn_pos, momentum)
 
 func _draw() -> void:
 	var hp_ratio: float = float(hp) / float(max_hp) if max_hp > 0 else 1.0

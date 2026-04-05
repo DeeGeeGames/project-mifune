@@ -4,18 +4,12 @@ var regions_to_spawn: int = 0
 var between_waves: bool = false
 
 var region_spawn_timer: Timer
-var intermission_timer: Timer
 
 func _ready() -> void:
 	region_spawn_timer = Timer.new()
 	region_spawn_timer.one_shot = true
 	region_spawn_timer.timeout.connect(_on_region_spawn_timeout)
 	add_child(region_spawn_timer)
-
-	intermission_timer = Timer.new()
-	intermission_timer.one_shot = true
-	intermission_timer.timeout.connect(_on_intermission_timeout)
-	add_child(intermission_timer)
 
 	_start_wave(Constants.STARTING_WAVE)
 
@@ -24,11 +18,10 @@ func _start_wave(wave_num: int) -> void:
 	regions_to_spawn = Constants.WAVE_REGIONS_BASE + wave_num
 	between_waves = false
 	region_spawn_timer.stop()
-	intermission_timer.stop()
 	GameManager.wave_started.emit(wave_num)
 
 func _process(_delta: float) -> void:
-	if GameManager.game_over or between_waves:
+	if between_waves:
 		return
 	_check_wave_state()
 
@@ -43,7 +36,7 @@ func _check_wave_state() -> void:
 	if active_regions == 0 and active_enemies == 0:
 		between_waves = true
 		GameManager.wave_cleared.emit()
-		intermission_timer.start(Constants.WAVE_INTERMISSION)
+		_start_intermission()
 
 func _try_spawn_next_region() -> void:
 	var active_regions: int = get_tree().get_nodes_in_group("regions").size()
@@ -60,7 +53,8 @@ func _on_region_spawn_timeout() -> void:
 	GameManager.region_spawn_requested.emit(pos, GameManager.wave_number)
 	regions_to_spawn -= 1
 
-func _on_intermission_timeout() -> void:
+func _start_intermission() -> void:
+	await get_tree().create_timer(Constants.WAVE_INTERMISSION).timeout
 	_start_wave(GameManager.wave_number + 1)
 
 func _random_region_position() -> Vector2:

@@ -1,8 +1,12 @@
 extends Node2D
 class_name Turret
 
+signal fired(pos: Vector2, vel: Vector2)
+
+@export var config: TurretConfig = preload("res://resources/defaults/turret_default.tres")
+
 var aim_angle: float = -PI / 2.0
-var ammo: int = Constants.TURRET_MAX_AMMO
+var ammo: int = 0
 var arc_center: float = Constants.ARC_RANGE_CENTER
 var arc_width: float = Constants.ARC_WIDTH_DEFAULT
 var arc_range_center: float = Constants.GROUND_ARC_RANGE_CENTER
@@ -12,13 +16,18 @@ var can_fire: bool = true
 var is_controlled_cache: bool = false
 var enemies_in_range: Array[CharacterBody2D] = []
 var claimed_by_runner: Node2D = null
+var _prev_aim_angle: float = -PI / 2.0
+var _prev_controlled: bool = false
+var _prev_ammo: int = 0
 
 @onready var range_area: Area2D = $RangeArea
 @onready var fire_timer: Timer = $FireTimer
 
 func _ready() -> void:
+	ammo = config.max_ammo
+	_prev_ammo = ammo
 	add_to_group("turrets")
-	fire_timer.wait_time = Constants.TURRET_FIRE_INTERVAL
+	fire_timer.wait_time = 1.0 / config.fire_rate
 	fire_timer.one_shot = true
 	fire_timer.timeout.connect(_on_fire_timer_timeout)
 
@@ -38,10 +47,10 @@ func get_parent_block_id() -> int:
 	return parent_block_id
 
 func reload(amount: int) -> void:
-	ammo = mini(Constants.TURRET_MAX_AMMO, ammo + amount)
+	ammo = mini(config.max_ammo, ammo + amount)
 
 func needs_ammo() -> bool:
-	return ammo <= Constants.TURRET_RELOAD_THRESHOLD
+	return ammo <= config.reload_threshold
 
 func claim(runner: Node2D) -> void:
 	claimed_by_runner = runner
@@ -67,7 +76,7 @@ func _process(delta: float) -> void:
 	if claimed_by_runner != null and not is_instance_valid(claimed_by_runner):
 		claimed_by_runner = null
 
-	var max_rotation: float = Constants.TURRET_TURN_SPEED * delta
+	var max_rotation: float = config.turn_speed * delta
 	is_controlled_cache = _is_controlled()
 
 	if is_controlled_cache:
@@ -75,7 +84,12 @@ func _process(delta: float) -> void:
 	else:
 		_tick_autonomous(max_rotation)
 
-	queue_redraw()
+	var needs_redraw: bool = not is_equal_approx(aim_angle, _prev_aim_angle) or is_controlled_cache != _prev_controlled or ammo != _prev_ammo
+	_prev_aim_angle = aim_angle
+	_prev_controlled = is_controlled_cache
+	_prev_ammo = ammo
+	if needs_redraw:
+		queue_redraw()
 
 func _is_controlled() -> bool:
 	var mode: GameManagerClass.ControlMode = GameManager.control_mode
@@ -116,7 +130,7 @@ func _tick_autonomous(max_rotation: float) -> void:
 
 func _find_nearest_enemy_in_arc() -> CharacterBody2D:
 	var nearest: CharacterBody2D = null
-	var nearest_dist: float = Constants.TURRET_RANGE
+	var nearest_dist: float = config.turret_range
 
 	for enemy: CharacterBody2D in enemies_in_range:
 		var angle: float = Targeting.aim_angle(global_position, enemy.global_position)
@@ -137,30 +151,30 @@ func _try_fire() -> void:
 	can_fire = false
 	fire_timer.start()
 
-	var barrel_tip: Vector2 = global_position + Vector2(cos(aim_angle), sin(aim_angle)) * Constants.TURRET_BARREL_LENGTH
-	var spread_angle: float = aim_angle + (randf() - 0.5) * Constants.TURRET_SPREAD * 2.0
+	var barrel_tip: Vector2 = global_position + Vector2(cos(aim_angle), sin(aim_angle)) * config.barrel_length
+	var spread_angle: float = aim_angle + (randf() - 0.5) * config.spread * 2.0
 	var bullet_vel: Vector2 = Vector2(cos(spread_angle), sin(spread_angle)) * Constants.BULLET_SPEED
 
-	GameManager.bullet_spawn_requested.emit(barrel_tip, bullet_vel)
+	fired.emit(barrel_tip, bullet_vel)
 
 func _draw() -> void:
 	var body_color: Color = Color(0.0, 1.0, 1.0) if is_controlled_cache else Color(0.0, 0.8, 0.0)
 
 	# Body circle
-	draw_circle(Vector2.ZERO, Constants.TURRET_RADIUS, body_color)
+	draw_circle(Vector2.ZERO, config.radius, body_color)
 
 	# Barrel
-	var barrel_end: Vector2 = Vector2(cos(aim_angle), sin(aim_angle)) * Constants.TURRET_BARREL_LENGTH
+	var barrel_end: Vector2 = Vector2(cos(aim_angle), sin(aim_angle)) * config.barrel_length
 	draw_line(Vector2.ZERO, barrel_end, body_color, 3.0)
 
 	# Ammo bar
-	var ratio: float = float(ammo) / float(Constants.TURRET_MAX_AMMO)
+	var ratio: float = float(ammo) / float(config.max_ammo)
 	var ammo_color: Color = Color(0.0, 1.0, 0.0) if ratio > 0.5 else (Color(1.0, 1.0, 0.0) if ratio > 0.25 else Color(1.0, 0.0, 0.0))
-	DrawUtils.draw_bar(self, 0.0, Constants.TURRET_RADIUS + 4.0, Constants.TURRET_RADIUS * 2.0, 3.0, ratio, ammo_color)
+	DrawUtils.draw_bar(self, 0.0, config.radius + 4.0, config.radius * 2.0, 3.0, ratio, ammo_color)
 
 	# Range ring when controlled
 	if is_controlled_cache:
-		draw_arc(Vector2.ZERO, Constants.TURRET_RANGE, 0, TAU, 64, Color(0.0, 1.0, 1.0, 0.15), 1.0)
+		draw_arc(Vector2.ZERO, config.turret_range, 0, TAU, 64, Color(0.0, 1.0, 1.0, 0.15), 1.0)
 
 	# Arc visualization
 	_draw_arc_wedge()

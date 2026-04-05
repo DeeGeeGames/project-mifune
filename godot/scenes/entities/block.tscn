@@ -1,6 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://block001"]
+[gd_scene load_steps=4 format=3 uid="uid://block001"]
 
 [ext_resource type="Script" path="res://scripts/entities/block.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/defaults/block_default.tres" id="2"]
 
 [sub_resource type="RectangleShape2D" id="block_shape"]
 size = Vector2(36, 36)
@@ -9,6 +10,7 @@ size = Vector2(36, 36)
 collision_layer = 4
 collision_mask = 0
 script = ExtResource("1")
+config = ExtResource("2")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("block_shape")
