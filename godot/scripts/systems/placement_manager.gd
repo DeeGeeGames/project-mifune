@@ -228,10 +228,10 @@ func _draw_aiming_preview() -> void:
 	)
 
 	# Draw valid range (light gray)
-	DrawUtils.draw_arc_wedge(self, local_pos, 80.0, GameManager.aiming_arc_range_center, GameManager.aiming_arc_range_width, Color(0.5, 0.5, 0.5, 0.15), 24)
+	DrawUtils.draw_arc_wedge(self, local_pos, Constants.TURRET_RANGE, GameManager.aiming_arc_range_center, GameManager.aiming_arc_range_width, Color(0.5, 0.5, 0.5, 0.15), 24)
 
 	# Draw selected arc (cyan)
-	DrawUtils.draw_arc_wedge(self, local_pos, 80.0, arc_center, GameManager.aiming_arc_width, Color(0.0, 1.0, 1.0, 0.2), 24)
+	DrawUtils.draw_arc_wedge(self, local_pos, Constants.TURRET_RANGE, arc_center, GameManager.aiming_arc_width, Color(0.0, 1.0, 1.0, 0.2), 24)
 
 	# Ghost turret
 	draw_circle(local_pos, Constants.TURRET_RADIUS, Color(0.0, 1.0, 1.0, 0.5))

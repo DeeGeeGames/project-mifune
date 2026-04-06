@@ -182,4 +182,4 @@ func _draw() -> void:
 func _draw_arc_wedge() -> void:
 	if not is_controlled_cache:
 		return
-	DrawUtils.draw_arc_wedge(self, Vector2.ZERO, 60.0, arc_center, arc_width, Color(0.0, 1.0, 1.0, 0.1), 16)
+	DrawUtils.draw_arc_wedge(self, Vector2.ZERO, config.turret_range, arc_center, arc_width, Color(0.0, 1.0, 1.0, 0.1), 16)
