@@ -1,0 +1,26 @@
+[gd_scene format=3 uid="uid://walker001"]
+
+[ext_resource type="Script" path="res://scripts/entities/walker.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/defaults/walker_default.tres" id="2"]
+
+[sub_resource type="CircleShape2D" id="walker_shape"]
+radius = 14.0
+
+[sub_resource type="CircleShape2D" id="aggro_shape"]
+radius = 100.0
+
+[node name="Walker" type="CharacterBody2D"]
+collision_layer = 8
+collision_mask = 6
+script = ExtResource("1")
+config = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("walker_shape")
+
+[node name="AggroArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 64
+
+[node name="AggroShape" type="CollisionShape2D" parent="AggroArea"]
+shape = SubResource("aggro_shape")

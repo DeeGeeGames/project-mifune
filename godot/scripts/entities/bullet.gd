@@ -24,17 +24,17 @@ func _physics_process(delta: float) -> void:
 func _on_body_entered(body: Node2D) -> void:
 	if has_hit:
 		return
-	if body is Enemy:
+	if body.is_in_group("enemies") and body.has_method("take_damage"):
 		has_hit = true
-		(body as Enemy).take_damage(damage)
+		body.take_damage(damage)
 		queue_free()
 
 func _on_area_entered(area: Area2D) -> void:
 	if has_hit:
 		return
-	if area is SpawnRegion:
+	if area.is_in_group("regions") and area.has_method("take_damage"):
 		has_hit = true
-		(area as SpawnRegion).take_damage(damage)
+		area.take_damage(damage)
 		queue_free()
 
 func _draw() -> void:

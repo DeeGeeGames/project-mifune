@@ -115,7 +115,7 @@ func _tick_autonomous(max_rotation: float) -> void:
 		aim_angle = Targeting.rotate_toward(aim_angle, arc_center, max_rotation)
 		return
 
-	var enemy_vel: Vector2 = (target_enemy as Enemy).get_velocity_for_targeting() if target_enemy is Enemy else Vector2.ZERO
+	var enemy_vel: Vector2 = target_enemy.get_velocity_for_targeting() if target_enemy.has_method("get_velocity_for_targeting") else Vector2.ZERO
 	var lead_pos: Vector2 = Targeting.lead_target(
 		global_position,
 		target_enemy.global_position,

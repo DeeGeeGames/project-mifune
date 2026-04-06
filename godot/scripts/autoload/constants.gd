@@ -34,6 +34,10 @@ const BULLET_DAMAGE := 1
 const BULLET_RADIUS := 4.0
 const BULLET_HIT_RADIUS := 16.0
 
+# Walker Spawner placement
+const WALKER_REGION_MIN_Y := GROUND_Y - 800.0
+const WALKER_REGION_MAX_Y := GROUND_Y - 300.0
+
 # Enemy
 const ENEMY_SPEED := 150.0
 const ENEMY_HP := 4

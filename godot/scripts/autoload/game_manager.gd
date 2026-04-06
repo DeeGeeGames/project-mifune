@@ -19,6 +19,7 @@ signal runner_priority_changed(priority: RunnerPriority)
 signal placement_state_changed(state: PlacementState)
 signal runner_purchased
 signal region_spawn_requested(pos: Vector2, wave_number: int)
+signal walker_region_spawn_requested(pos: Vector2, wave_number: int)
 
 # --- State ---
 var currency: int = Constants.STARTING_CURRENCY

@@ -4,7 +4,9 @@ const RESOURCE_SCENE: PackedScene = preload("res://scenes/entities/resource_pick
 const RUNNER_SCENE: PackedScene = preload("res://scenes/entities/runner.tscn")
 const BULLET_SCENE: PackedScene = preload("res://scenes/entities/bullet.tscn")
 const ENEMY_SCENE: PackedScene = preload("res://scenes/entities/enemy.tscn")
+const WALKER_SCENE: PackedScene = preload("res://scenes/entities/walker.tscn")
 const SPAWN_REGION_SCENE: PackedScene = preload("res://scenes/entities/spawn_region.tscn")
+const WALKER_SPAWNER_SCENE: PackedScene = preload("res://scenes/entities/walker_spawner.tscn")
 
 @onready var resources_container: Node2D = $World/Resources
 @onready var runners_container: Node2D = $World/Runners
@@ -15,6 +17,7 @@ const SPAWN_REGION_SCENE: PackedScene = preload("res://scenes/entities/spawn_reg
 func _ready() -> void:
 	GameManager.runner_purchased.connect(_on_runner_purchased)
 	GameManager.region_spawn_requested.connect(_on_region_spawn_requested)
+	GameManager.walker_region_spawn_requested.connect(_on_walker_region_spawn_requested)
 	$PlacementManager.turret_placed.connect(_on_turret_placed)
 	$PlacementManager.block_placed.connect(_on_block_placed)
 
@@ -64,6 +67,19 @@ func _on_region_spawn_requested(pos: Vector2, wave_number: int) -> void:
 	region.initialize(wave_number)
 	region.enemy_requested.connect(_on_enemy_spawn_requested)
 	regions_container.add_child(region)
+
+func _on_walker_spawn_requested(pos: Vector2) -> void:
+	var walker: Walker = WALKER_SCENE.instantiate()
+	walker.initialize(pos)
+	walker.died.connect(_on_enemy_died)
+	enemies_container.add_child(walker)
+
+func _on_walker_region_spawn_requested(pos: Vector2, wave_number: int) -> void:
+	var spawner: WalkerSpawner = WALKER_SPAWNER_SCENE.instantiate()
+	spawner.position = pos
+	spawner.initialize(wave_number)
+	spawner.walker_requested.connect(_on_walker_spawn_requested)
+	regions_container.add_child(spawner)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("fire"):

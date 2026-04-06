@@ -7,10 +7,9 @@ func _ready() -> void:
 	GameManager.defense_damaged.connect(_on_defense_damaged)
 
 func _on_body_entered(body: Node2D) -> void:
-	if body is Enemy:
-		var enemy: Enemy = body as Enemy
-		GameManager.damage_defense(enemy.hp)
-		enemy.die(false)
+	if body.is_in_group("enemies") and body.has_method("die") and body.has_method("get_hp"):
+		GameManager.damage_defense(body.get_hp())
+		body.die(false)
 
 func _on_defense_damaged(_new_hp: int) -> void:
 	queue_redraw()

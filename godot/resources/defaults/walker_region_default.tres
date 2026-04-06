@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="WalkerRegionConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/walker_region_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+base_lifetime = 3.0
+lifetime_scaling = 1.0
+max_lifetime = 20.0
+base_hp = 24
+hp_scaling = 6
+base_radius = 60.0
+radius_scaling = 3.0
+max_radius = 120.0
+base_spawn_interval = 0.4
+spawn_interval_scaling = 0.04
+min_spawn_interval = 0.12
