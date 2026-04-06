@@ -58,26 +58,26 @@ export const PLACEMENT_MAX_X = WORLD_WIDTH - 80;
 export const TURRET_SPREAD = 0.08;
 
 // Coverage arc
-export const ARC_WIDTH_DEFAULT = Math.PI;           // 180 degrees
+export const ARC_WIDTH_DEFAULT = (2 * Math.PI) / 3; // 120 degrees
 export const ARC_WIDTH_MIN = Math.PI / 6;           // 30 degrees
 export const ARC_SCROLL_STEP = Math.PI / 18;        // 10 degrees per scroll tick
 export const TURRET_HOVER_RADIUS = TURRET_RADIUS * 3;
 
-// Per-turret valid arc range (ground turrets = upper semicircle)
+// Per-turret valid arc range (ground turrets = upper sector, 30° trimmed off each horizon)
 export const ARC_RANGE_CENTER = -Math.PI / 2;       // up
-export const ARC_RANGE_WIDTH = Math.PI;              // 180 degrees total valid zone
+export const ARC_RANGE_WIDTH = (2 * Math.PI) / 3;   // 120 degrees total valid zone
 export const GROUND_ARC_RANGE = { center: ARC_RANGE_CENTER, width: ARC_RANGE_WIDTH } as const;
 
 export const REGION_BURST_ARC_WIDTH = Math.PI / 4;          // 45° momentum cone per region
-export const REGION_BURST_VALID_RANGE = { center: ARC_RANGE_CENTER, width: ARC_RANGE_WIDTH } as const;
+export const REGION_BURST_VALID_RANGE = { center: ARC_RANGE_CENTER, width: Math.PI } as const;
 
 // Blocks
 export const BLOCK_SIZE = 36;
 export const BLOCK_HP = 20;
 export const BLOCK_COST = 10;
 export const BLOCK_FACE_CLICK_THRESHOLD = 24;
-export const RIGHT_FACE_ARC_RANGE = { center: 0, width: Math.PI } as const;
-export const LEFT_FACE_ARC_RANGE = { center: Math.PI, width: Math.PI } as const;
+export const RIGHT_FACE_ARC_RANGE = { center: 0, width: (2 * Math.PI) / 3 } as const;
+export const LEFT_FACE_ARC_RANGE = { center: Math.PI, width: (2 * Math.PI) / 3 } as const;
 
 // Economy
 export const TURRET_COST = 50;

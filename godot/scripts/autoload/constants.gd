@@ -80,21 +80,21 @@ const PLACEMENT_MIN_X := 80.0
 const PLACEMENT_MAX_X := WORLD_WIDTH - 80.0
 
 # Coverage arc
-const ARC_WIDTH_DEFAULT := PI  # 180 degrees
+const ARC_WIDTH_DEFAULT := 2.0 * PI / 3.0  # 120 degrees
 const ARC_WIDTH_MIN := PI / 6.0  # 30 degrees
 const ARC_SCROLL_STEP := PI / 18.0  # 10 degrees per scroll tick
 
-# Per-turret valid arc range (ground turrets = upper semicircle)
+# Per-turret valid arc range (ground turrets = upper sector, 30° trimmed off each horizon)
 const ARC_RANGE_CENTER := -PI / 2.0  # up
-const ARC_RANGE_WIDTH := PI  # 180 degrees total
+const ARC_RANGE_WIDTH := 2.0 * PI / 3.0  # 120 degrees total
 const GROUND_ARC_RANGE_CENTER: float = ARC_RANGE_CENTER
 const GROUND_ARC_RANGE_WIDTH: float = ARC_RANGE_WIDTH
 
 # Block face arc ranges
 const RIGHT_FACE_ARC_RANGE_CENTER: float = 0.0
-const RIGHT_FACE_ARC_RANGE_WIDTH: float = PI
+const RIGHT_FACE_ARC_RANGE_WIDTH: float = 2.0 * PI / 3.0
 const LEFT_FACE_ARC_RANGE_CENTER: float = PI
-const LEFT_FACE_ARC_RANGE_WIDTH: float = PI
+const LEFT_FACE_ARC_RANGE_WIDTH: float = 2.0 * PI / 3.0
 
 # Blocks
 const BLOCK_SIZE := 36.0
