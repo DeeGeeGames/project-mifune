@@ -5,6 +5,9 @@ import {
 	TARGET_X,
 	TARGET_Y,
 	REGION_SAFE_RADIUS,
+	REGION_X_EXCLUSION_RATIO,
+	REGION_X_EXCLUSION_SHRINK_PER_WAVE,
+	REGION_X_EXCLUSION_MIN_RATIO,
 	REGION_BASE_LIFETIME,
 	REGION_LIFETIME_SCALING,
 	REGION_MAX_LIFETIME,
@@ -34,15 +37,24 @@ function randomArcCenter(arcWidth: number, validRange: ArcRange): number {
 	return validRange.center + offset;
 }
 
-function randomRegionPosition(): { x: number; y: number } {
+function xExclusionHalf(waveNumber: number): number {
+	const ratio = Math.max(
+		REGION_X_EXCLUSION_RATIO - waveNumber * REGION_X_EXCLUSION_SHRINK_PER_WAVE,
+		REGION_X_EXCLUSION_MIN_RATIO,
+	);
+	return WORLD_WIDTH * ratio;
+}
+
+function randomRegionPosition(waveNumber: number): { x: number; y: number } {
+	const exclusionHalf = xExclusionHalf(waveNumber);
 	for (let i = 0; i < MAX_PLACEMENT_ATTEMPTS; i++) {
 		const x = MARGIN + Math.random() * (WORLD_WIDTH - MARGIN * 2);
 		const y = MARGIN + Math.random() * (GROUND_Y - MARGIN * 2);
 		const dx = x - TARGET_X;
 		const dy = y - TARGET_Y;
-		if (dx * dx + dy * dy > REGION_SAFE_RADIUS * REGION_SAFE_RADIUS) {
-			return { x, y };
-		}
+		if (dx * dx + dy * dy <= REGION_SAFE_RADIUS * REGION_SAFE_RADIUS) continue;
+		if (Math.abs(x - TARGET_X) < exclusionHalf) continue;
+		return { x, y };
 	}
 	return { x: MARGIN, y: MARGIN };
 }
@@ -60,7 +72,7 @@ function regionParamsForWave(waveNumber: number) {
 }
 
 function createRegion(waveNumber: number): SpawnRegion {
-	const position = randomRegionPosition();
+	const position = randomRegionPosition(waveNumber);
 	const params = regionParamsForWave(waveNumber);
 	return {
 		id: makeId(),

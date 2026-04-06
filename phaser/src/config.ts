@@ -48,6 +48,9 @@ export const WAVE_INTERMISSION = 4000;
 export const STARTING_WAVE = 1;
 
 export const REGION_SAFE_RADIUS = 400;
+export const REGION_X_EXCLUSION_RATIO = 0.25;
+export const REGION_X_EXCLUSION_SHRINK_PER_WAVE = 0.01;
+export const REGION_X_EXCLUSION_MIN_RATIO = 0.15;
 
 export const PLACEMENT_MIN_X = 80;
 export const PLACEMENT_MAX_X = WORLD_WIDTH - 80;

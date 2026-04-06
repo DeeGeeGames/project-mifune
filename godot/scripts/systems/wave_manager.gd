@@ -57,11 +57,22 @@ func _start_intermission() -> void:
 	await get_tree().create_timer(Constants.WAVE_INTERMISSION).timeout
 	_start_wave(GameManager.wave_number + 1)
 
+func _x_exclusion_half(wave_num: int) -> float:
+	var ratio: float = maxf(
+		Constants.REGION_X_EXCLUSION_RATIO - wave_num * Constants.REGION_X_EXCLUSION_SHRINK_PER_WAVE,
+		Constants.REGION_X_EXCLUSION_MIN_RATIO,
+	)
+	return Constants.WORLD_WIDTH * ratio
+
 func _random_region_position() -> Vector2:
+	var exclusion_half: float = _x_exclusion_half(GameManager.wave_number)
 	for i: int in Constants.REGION_MAX_PLACEMENT_ATTEMPTS:
 		var x: float = Constants.REGION_MARGIN + randf() * (Constants.WORLD_WIDTH - Constants.REGION_MARGIN * 2.0)
 		var y: float = Constants.REGION_MARGIN + randf() * (Constants.GROUND_Y - Constants.REGION_MARGIN * 2.0)
 		var offset: Vector2 = Vector2(x, y) - Constants.TARGET_POS
-		if offset.length_squared() > Constants.REGION_SAFE_RADIUS * Constants.REGION_SAFE_RADIUS:
-			return Vector2(x, y)
+		if offset.length_squared() <= Constants.REGION_SAFE_RADIUS * Constants.REGION_SAFE_RADIUS:
+			continue
+		if absf(x - Constants.TARGET_X) < exclusion_half:
+			continue
+		return Vector2(x, y)
 	return Vector2(Constants.REGION_MARGIN, Constants.REGION_MARGIN)
