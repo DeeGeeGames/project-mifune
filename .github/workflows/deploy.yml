@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-phaser:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -28,16 +28,66 @@ jobs:
       - run: bun run build
         working-directory: phaser
 
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
+          name: phaser-build
           path: phaser/dist
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: landing-page
+          path: index.html
+          if-no-files-found: error
+
+  build-godot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: chickensoft-games/setup-godot@v2
+        with:
+          version: 4.6.0
+          use-dotnet: false
+          include-templates: true
+
+      - name: Export web build
+        run: |
+          mkdir -p godot/build/web
+          cd godot
+          godot --headless --export-release "Web" build/web/index.html
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: godot-build
+          path: godot/build/web
+          if-no-files-found: error
 
   deploy:
-    needs: build
+    needs: [build-phaser, build-godot]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: landing-page
+          path: site
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: phaser-build
+          path: site/phaser
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: godot-build
+          path: site/godot
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
       - id: deployment
         uses: actions/deploy-pages@v5

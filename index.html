@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Horde Defense</title>
+	<style>
+		* { margin: 0; padding: 0; box-sizing: border-box; }
+		body {
+			font-family: monospace;
+			background: #1a1a2e;
+			color: #e0e0e0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 100vh;
+		}
+		main {
+			text-align: center;
+		}
+		h1 {
+			font-size: 2rem;
+			margin-bottom: 2rem;
+			color: #fff;
+		}
+		.choices {
+			display: flex;
+			gap: 2rem;
+			justify-content: center;
+		}
+		a {
+			display: block;
+			padding: 1.5rem 3rem;
+			background: #16213e;
+			border: 1px solid #0f3460;
+			color: #e94560;
+			text-decoration: none;
+			font-size: 1.25rem;
+			font-family: monospace;
+			transition: background 0.15s, border-color 0.15s;
+		}
+		a:hover {
+			background: #0f3460;
+			border-color: #e94560;
+		}
+	</style>
+</head>
+<body>
+	<main>
+		<h1>Horde Defense</h1>
+		<div class="choices">
+			<a href="./phaser/">Phaser</a>
+			<a href="./godot/">Godot</a>
+		</div>
+	</main>
+</body>
+</html>
