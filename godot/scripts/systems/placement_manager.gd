@@ -113,7 +113,7 @@ func _handle_block_placement_click(world_pos: Vector2) -> void:
 	if GameManager.currency < Constants.BLOCK_COST:
 		GameManager.set_placement_state(GameManagerClass.PlacementState.IDLE)
 
-func _soldier_arc_center(x: float) -> float:
+func _soldier_front_facing(x: float) -> float:
 	return 0.0 if x >= Constants.TARGET_X else PI
 
 func _can_place_soldier() -> bool:
@@ -128,7 +128,7 @@ func _handle_soldier_placement_click(world_pos: Vector2) -> void:
 	var ground_pos: Vector2 = Vector2(world_pos.x, Constants.GROUND_Y)
 
 	var soldier: Soldier = SOLDIER_SCENE.instantiate()
-	soldier.initialize(ground_pos, _soldier_arc_center(world_pos.x))
+	soldier.initialize(ground_pos, _soldier_front_facing(world_pos.x))
 	soldier_placed.emit(soldier)
 	GameManager.spend_currency(Constants.SOLDIER_COST)
 
@@ -278,10 +278,11 @@ func _draw_block_ghost() -> void:
 func _draw_soldier_ghost() -> void:
 	var world_pos: Vector2 = get_global_mouse_position()
 	var local_pos: Vector2 = to_local(Vector2(world_pos.x, Constants.GROUND_Y))
-	var arc_center: float = _soldier_arc_center(world_pos.x)
+	var front_facing: float = _soldier_front_facing(world_pos.x)
 	var ghost_color: Color = Color(0.6, 0.4, 0.2)
 
-	draw_circle(local_pos, Constants.SOLDIER_RADIUS, Color(ghost_color, 0.5))
-	DrawUtils.draw_arc_wedge(self, local_pos, Constants.SOLDIER_RANGE, arc_center, Constants.SOLDIER_ARC_WIDTH, Color(ghost_color, 0.1), 12)
-	var barrel_end: Vector2 = local_pos + Vector2(cos(arc_center), sin(arc_center)) * Constants.SOLDIER_BARREL_LENGTH
+	DrawUtils.draw_unit_body(self, local_pos, Constants.SOLDIER_RADIUS, Color(ghost_color, 0.5))
+	for offset: float in [0.0, PI]:
+		DrawUtils.draw_arc_wedge(self, local_pos, Constants.SOLDIER_RANGE, front_facing + offset, Constants.SOLDIER_ARC_WIDTH, Color(ghost_color, 0.1), 12)
+	var barrel_end: Vector2 = local_pos + Vector2(cos(front_facing), sin(front_facing)) * Constants.SOLDIER_BARREL_LENGTH
 	draw_line(local_pos, barrel_end, Color(ghost_color, 0.5), 3.0)

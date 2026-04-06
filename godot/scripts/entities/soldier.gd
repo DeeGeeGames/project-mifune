@@ -9,8 +9,8 @@ signal died(pos: Vector2)
 var hp: int = 0
 var ammo: int = 0
 var aim_angle: float = 0.0
-var arc_center: float = 0.0
 var arc_width: float = Constants.SOLDIER_ARC_WIDTH
+var default_facing: float = 0.0
 var can_fire: bool = true
 var enemies_in_range: Array[CharacterBody2D] = []
 var claimed_by_runner: Node2D = null
@@ -35,11 +35,11 @@ func _ready() -> void:
 	range_area.body_exited.connect(_on_range_body_exited)
 	hurt_area.body_entered.connect(_on_hurt_area_body_entered)
 
-func initialize(pos: Vector2, p_arc_center: float) -> void:
+func initialize(pos: Vector2, facing: float) -> void:
 	position = pos
-	arc_center = p_arc_center
-	aim_angle = p_arc_center
-	_prev_aim_angle = p_arc_center
+	default_facing = facing
+	aim_angle = facing
+	_prev_aim_angle = facing
 
 func needs_ammo() -> bool:
 	return ammo <= config.reload_threshold
@@ -100,39 +100,44 @@ func _process(delta: float) -> void:
 		queue_redraw()
 
 func _tick_autonomous(max_rotation: float) -> void:
-	var target_enemy: CharacterBody2D = _find_nearest_enemy_in_arc()
-
-	if target_enemy == null:
-		aim_angle = Targeting.rotate_toward(aim_angle, arc_center, max_rotation)
-		return
-
-	var enemy_vel: Vector2 = target_enemy.get_velocity_for_targeting() if target_enemy.has_method("get_velocity_for_targeting") else Vector2.ZERO
-	var lead_pos: Vector2 = Targeting.lead_target(
-		global_position,
-		target_enemy.global_position,
-		enemy_vel,
-		Constants.BULLET_SPEED,
-	)
-	var target_angle: float = Targeting.aim_angle(global_position, lead_pos)
-	target_angle = Targeting.clamp_angle_to_arc(target_angle, arc_center, arc_width)
-	aim_angle = Targeting.rotate_toward(aim_angle, target_angle, max_rotation)
-
-	_try_fire()
-
-func _find_nearest_enemy_in_arc() -> CharacterBody2D:
 	var nearest: CharacterBody2D = null
 	var nearest_dist: float = config.range
+	var nearest_arc_center: float = default_facing
 
 	for enemy: CharacterBody2D in enemies_in_range:
 		var angle: float = Targeting.aim_angle(global_position, enemy.global_position)
-		if not Targeting.is_angle_in_arc(angle, arc_center, arc_width):
+		var enemy_arc_center: float
+		if Targeting.is_angle_in_arc(angle, default_facing, arc_width):
+			enemy_arc_center = default_facing
+		elif Targeting.is_angle_in_arc(angle, default_facing + PI, arc_width):
+			enemy_arc_center = default_facing + PI
+		else:
 			continue
 		var dist: float = global_position.distance_to(enemy.global_position)
 		if dist < nearest_dist:
 			nearest_dist = dist
 			nearest = enemy
+			nearest_arc_center = enemy_arc_center
 
-	return nearest
+	if nearest == null:
+		aim_angle = Targeting.rotate_toward(aim_angle, default_facing, max_rotation)
+		return
+
+	var enemy_vel: Vector2 = nearest.get_velocity_for_targeting() if nearest.has_method("get_velocity_for_targeting") else Vector2.ZERO
+	var lead_pos: Vector2 = Targeting.lead_target(
+		global_position,
+		nearest.global_position,
+		enemy_vel,
+		Constants.BULLET_SPEED,
+	)
+	var target_angle: float = Targeting.aim_angle(global_position, lead_pos)
+	target_angle = Targeting.clamp_angle_to_arc(target_angle, nearest_arc_center, arc_width)
+	aim_angle = Targeting.rotate_toward(aim_angle, target_angle, max_rotation)
+
+	# Hold fire while slewing across the front/back boundary — aim_angle may
+	# briefly sit outside the active arc until rotate_toward catches up.
+	if Targeting.is_angle_in_arc(aim_angle, nearest_arc_center, arc_width):
+		_try_fire()
 
 func _try_fire() -> void:
 	if not can_fire or ammo <= 0:
@@ -150,7 +155,7 @@ func _try_fire() -> void:
 
 func _draw() -> void:
 	var body_color: Color = Color(0.6, 0.4, 0.2)
-	draw_circle(Vector2.ZERO, config.radius, body_color)
+	DrawUtils.draw_unit_body(self, Vector2.ZERO, config.radius, body_color)
 
 	var barrel_end: Vector2 = Vector2(cos(aim_angle), sin(aim_angle)) * config.barrel_length
 	draw_line(Vector2.ZERO, barrel_end, body_color, 3.0)

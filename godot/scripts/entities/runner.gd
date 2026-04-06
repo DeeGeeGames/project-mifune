@@ -163,5 +163,4 @@ func _draw() -> void:
 		State.RESUPPLYING:
 			color = Color(1.0, 0.6, 0.0)
 
-	var rect: Rect2 = Rect2(-config.size / 2.0, -config.size, config.size, config.size * 2.0)
-	draw_rect(rect, color)
+	DrawUtils.draw_unit_body(self, Vector2.ZERO, config.size, color)
