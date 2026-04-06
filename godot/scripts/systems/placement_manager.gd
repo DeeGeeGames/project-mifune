@@ -8,6 +8,10 @@ const BLOCK_SCENE: PackedScene = preload("res://scenes/entities/block.tscn")
 
 func _ready() -> void:
 	z_index = 10
+	GameManager.placement_state_changed.connect(_on_placement_state_changed)
+
+func _on_placement_state_changed(_state: GameManagerClass.PlacementState) -> void:
+	queue_redraw()
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("fire"):
