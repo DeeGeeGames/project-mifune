@@ -3,11 +3,13 @@ extends VBoxContainer
 @onready var turret_button: Button = $TurretButton
 @onready var block_button: Button = $BlockButton
 @onready var runner_button: Button = $RunnerButton
+@onready var soldier_button: Button = $SoldierButton
 
 func _ready() -> void:
 	turret_button.pressed.connect(_on_turret_pressed)
 	block_button.pressed.connect(_on_block_pressed)
 	runner_button.pressed.connect(_on_runner_pressed)
+	soldier_button.pressed.connect(_on_soldier_pressed)
 	GameManager.currency_changed.connect(func(_v: int) -> void: _update_button_states())
 	GameManager.control_mode_changed.connect(func(_v: GameManagerClass.ControlMode) -> void: _update_button_states())
 	GameManager.placement_state_changed.connect(func(_v: GameManagerClass.PlacementState) -> void: _update_button_states())
@@ -45,6 +47,17 @@ func _update_button_states() -> void:
 	runner_button.disabled = not runner_enabled
 	runner_button.text = "Runner  $%d" % Constants.RUNNER_COST
 
+	# Soldier button
+	var soldier_count: int = get_tree().get_nodes_in_group("soldiers").size()
+	var soldier_enabled: bool = GameManager.currency >= Constants.SOLDIER_COST and cm == GameManagerClass.ControlMode.NONE and soldier_count < Constants.MAX_SOLDIERS
+	var soldier_active: bool = ps == GameManagerClass.PlacementState.PLACING_SOLDIER
+	soldier_button.disabled = not soldier_enabled and not soldier_active
+	soldier_button.text = "Soldier  $%d" % Constants.SOLDIER_COST
+	if soldier_active:
+		soldier_button.add_theme_color_override("font_color", Color(0.0, 1.0, 1.0))
+	else:
+		soldier_button.remove_theme_color_override("font_color")
+
 func _on_turret_pressed() -> void:
 	if GameManager.control_mode != GameManagerClass.ControlMode.NONE:
 		return
@@ -69,3 +82,14 @@ func _on_block_pressed() -> void:
 
 func _on_runner_pressed() -> void:
 	GameManager.try_buy_runner()
+
+func _on_soldier_pressed() -> void:
+	if GameManager.control_mode != GameManagerClass.ControlMode.NONE:
+		return
+	if GameManager.currency < Constants.SOLDIER_COST:
+		return
+	var ps: GameManagerClass.PlacementState = GameManager.placement_state
+	if ps == GameManagerClass.PlacementState.PLACING_SOLDIER:
+		GameManager.set_placement_state(GameManagerClass.PlacementState.IDLE)
+	else:
+		GameManager.set_placement_state(GameManagerClass.PlacementState.PLACING_SOLDIER)

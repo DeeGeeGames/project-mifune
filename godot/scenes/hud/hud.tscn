@@ -41,7 +41,7 @@ anchor_right = 1.0
 offset_left = -150.0
 offset_top = 10.0
 offset_right = -10.0
-offset_bottom = 160.0
+offset_bottom = 214.0
 grow_horizontal = 0
 script = ExtResource("2")
 
@@ -56,6 +56,10 @@ text = "Block  $10"
 [node name="RunnerButton" type="Button" parent="BuildMenu"]
 custom_minimum_size = Vector2(0, 48)
 text = "Runner  $30"
+
+[node name="SoldierButton" type="Button" parent="BuildMenu"]
+custom_minimum_size = Vector2(0, 48)
+text = "Soldier  $40"
 
 [node name="InstructionLabel" type="Label" parent="."]
 anchors_preset = 7

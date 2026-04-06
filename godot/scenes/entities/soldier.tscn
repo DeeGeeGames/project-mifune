@@ -1,0 +1,40 @@
+[gd_scene format=3 uid="uid://soldier001"]
+
+[ext_resource type="Script" path="res://scripts/entities/soldier.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/defaults/soldier_default.tres" id="2"]
+
+[sub_resource type="CircleShape2D" id="body_shape"]
+radius = 14.0
+
+[sub_resource type="CircleShape2D" id="range_shape"]
+radius = 400.0
+
+[sub_resource type="CircleShape2D" id="hurt_shape"]
+radius = 22.0
+
+[node name="Soldier" type="CharacterBody2D"]
+collision_layer = 0
+collision_mask = 0
+script = ExtResource("1")
+config = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("body_shape")
+
+[node name="RangeArea" type="Area2D" parent="."]
+collision_layer = 128
+collision_mask = 8
+
+[node name="RangeShape" type="CollisionShape2D" parent="RangeArea"]
+shape = SubResource("range_shape")
+
+[node name="HurtArea" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 8
+monitorable = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HurtArea"]
+shape = SubResource("hurt_shape")
+
+[node name="FireTimer" type="Timer" parent="."]
+one_shot = true

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SoldierConfig" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/soldier_config.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+hp = 8
+range = 400.0
+fire_rate = 4.0
+radius = 14.0
+barrel_length = 20.0
+turn_speed = 3.1415927
+spread = 0.1
+max_ammo = 500
+reload_threshold = 250

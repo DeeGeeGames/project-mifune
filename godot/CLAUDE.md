@@ -10,7 +10,7 @@ Distributed mutable state across scene tree nodes. Global state lives in `GameMa
 
 - `scripts/autoload/game_manager.gd` — Global state, signal bus, wave sequencing, input routing
 - `scripts/autoload/constants.gd` — Shared constants
-- `scripts/entities/` — Per-entity scripts (enemy, turret, bullet, spawn_region, block, runner, resource_pickup, base)
+- `scripts/entities/` — Per-entity scripts (enemy, turret, bullet, spawn_region, block, runner, soldier, resource_pickup, base)
 - `scripts/systems/` — Shared utilities (targeting, wave_manager, placement_manager, draw_utils)
 - `scripts/hud/` — HUD scripts (hud, build_menu, game_over_overlay)
 - `scripts/resources/` — Custom Resource types for entity configuration (*_config.gd)

@@ -25,8 +25,8 @@ func die() -> void:
 func _release_claims() -> void:
 	if target_node == null or not is_instance_valid(target_node):
 		return
-	if current_state == State.RESUPPLYING and target_node is Turret:
-		(target_node as Turret).unclaim()
+	if current_state == State.RESUPPLYING and target_node.has_method("unclaim"):
+		target_node.unclaim()
 	elif current_state == State.COLLECTING and target_node is ResourcePickup:
 		(target_node as ResourcePickup).claimed_by = null
 
@@ -76,27 +76,25 @@ func _try_find_resource_task() -> bool:
 	return true
 
 func _try_find_ammo_task() -> bool:
-	# Can only resupply if near base
 	if global_position.distance_to(Constants.TARGET_POS) > config.base_arrive_distance:
 		return false
 
-	var nearest: Turret = null
+	var candidates: Array[Node] = []
+	candidates.append_array(get_tree().get_nodes_in_group("turrets"))
+	candidates.append_array(get_tree().get_nodes_in_group("soldiers"))
+
+	var nearest: Node2D = null
 	var nearest_dist: float = INF
 
-	for turret: Node in get_tree().get_nodes_in_group("turrets"):
-		if not is_instance_valid(turret):
+	for unit: Node in candidates:
+		if not is_instance_valid(unit) or not unit.has_method("needs_ammo"):
 			continue
-		if not turret is Turret:
+		if not unit.needs_ammo() or unit.is_claimed():
 			continue
-		var t: Turret = turret as Turret
-		if not t.needs_ammo():
-			continue
-		if t.is_claimed():
-			continue
-		var dist: float = global_position.distance_to(t.global_position)
+		var dist: float = global_position.distance_to(unit.global_position)
 		if dist < nearest_dist:
 			nearest_dist = dist
-			nearest = t
+			nearest = unit as Node2D
 
 	if nearest == null:
 		return false
@@ -139,10 +137,9 @@ func _tick_resupplying(_delta: float) -> void:
 		return
 
 	if global_position.distance_to(target_node.global_position) < config.base_arrive_distance:
-		if target_node is Turret:
-			var t: Turret = target_node as Turret
-			t.reload(config.reload_amount)
-			t.unclaim()
+		if target_node.has_method("reload"):
+			target_node.reload(config.reload_amount)
+			target_node.unclaim()
 		target_node = null
 		current_state = State.IDLE
 		return

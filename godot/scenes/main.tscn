@@ -33,6 +33,8 @@ script = ExtResource("6")
 
 [node name="Runners" type="Node2D" parent="World"]
 
+[node name="Soldiers" type="Node2D" parent="World"]
+
 [node name="WaveManager" type="Node" parent="."]
 script = ExtResource("7")
 

@@ -13,6 +13,7 @@ const WALKER_SPAWNER_SCENE: PackedScene = preload("res://scenes/entities/walker_
 @onready var bullets_container: Node2D = $World/Bullets
 @onready var enemies_container: Node2D = $World/Enemies
 @onready var regions_container: Node2D = $World/SpawnRegions
+@onready var soldiers_container: Node2D = $World/Soldiers
 
 func _ready() -> void:
 	GameManager.runner_purchased.connect(_on_runner_purchased)
@@ -20,6 +21,7 @@ func _ready() -> void:
 	GameManager.walker_region_spawn_requested.connect(_on_walker_region_spawn_requested)
 	$PlacementManager.turret_placed.connect(_on_turret_placed)
 	$PlacementManager.block_placed.connect(_on_block_placed)
+	$PlacementManager.soldier_placed.connect(_on_soldier_placed)
 
 	for i: int in Constants.STARTING_RUNNERS:
 		_spawn_runner()
@@ -54,6 +56,11 @@ func _on_turret_placed(turret: Turret) -> void:
 func _on_block_placed(block: Block) -> void:
 	block.destroyed.connect(_on_block_destroyed)
 	$World/Blocks.add_child(block)
+
+func _on_soldier_placed(soldier: Soldier) -> void:
+	soldier.fired.connect(_on_bullet_spawn_requested)
+	soldier.died.connect(_on_enemy_died)
+	soldiers_container.add_child(soldier)
 
 func _on_enemy_spawn_requested(pos: Vector2, momentum: Vector2) -> void:
 	var enemy: Enemy = ENEMY_SCENE.instantiate()

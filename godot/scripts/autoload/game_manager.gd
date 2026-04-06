@@ -5,7 +5,7 @@ extends Node
 class_name GameManagerClass
 
 enum ControlMode { NONE, ALL, SINGLE }
-enum PlacementState { IDLE, PLACING_TURRET, AIMING, PLACING_BLOCK }
+enum PlacementState { IDLE, PLACING_TURRET, AIMING, PLACING_BLOCK, PLACING_SOLDIER }
 enum RunnerPriority { RESOURCES, AMMO }
 
 # --- Signals ---
