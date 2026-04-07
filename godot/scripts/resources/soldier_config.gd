@@ -2,7 +2,7 @@ extends Resource
 class_name SoldierConfig
 
 @export var hp: int = 8
-@export var range: float = 400.0
+@export var attack_range: float = 400.0
 @export var fire_rate: float = 4.0
 @export var radius: float = 14.0
 @export var barrel_length: float = 20.0

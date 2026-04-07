@@ -95,18 +95,18 @@ func _handle_block_placement_click(world_pos: Vector2) -> void:
 	if GameManager.currency < Constants.BLOCK_COST:
 		return
 
-	var snapped: Vector2 = _snap_to_block_grid(world_pos)
+	var snap_pos: Vector2 = _snap_to_block_grid(world_pos)
 	var half: float = Constants.BLOCK_HALF
 
 	# Check cursor is near snapped position
-	if absf(snapped.x - world_pos.x) > half or absf(snapped.y - world_pos.y) > half:
+	if absf(snap_pos.x - world_pos.x) > half or absf(snap_pos.y - world_pos.y) > half:
 		return
 
-	if not _is_valid_block_placement(snapped):
+	if not _is_valid_block_placement(snap_pos):
 		return
 
 	var block: Block = BLOCK_SCENE.instantiate()
-	block.initialize(snapped)
+	block.initialize(snap_pos)
 	block_placed.emit(block)
 	GameManager.spend_currency(Constants.BLOCK_COST)
 
@@ -166,20 +166,27 @@ func _has_block_at(pos: Vector2, blocks: Array[Node]) -> bool:
 			return true
 	return false
 
-func _is_valid_block_placement(snapped: Vector2) -> bool:
-	if snapped.x < Constants.PLACEMENT_MIN_X or snapped.x > Constants.PLACEMENT_MAX_X:
+func _is_valid_block_placement(snap_pos: Vector2) -> bool:
+	if snap_pos.x < Constants.PLACEMENT_MIN_X or snap_pos.x > Constants.PLACEMENT_MAX_X:
 		return false
-	if snapped.y < 0.0:
+	if snap_pos.y < 0.0:
 		return false
-	return not _has_block_at(snapped, get_tree().get_nodes_in_group("blocks"))
+	return not _has_block_at(snap_pos, get_tree().get_nodes_in_group("blocks"))
 
 # --- Ground turret placement validation ---
 func _is_valid_ground_placement(world_pos: Vector2) -> bool:
 	if world_pos.x < Constants.PLACEMENT_MIN_X or world_pos.x > Constants.PLACEMENT_MAX_X:
 		return false
-	var snapped: Vector2 = Vector2(world_pos.x, Constants.GROUND_Y)
-	for turret: Node in get_tree().get_nodes_in_group("turrets"):
-		if turret.global_position.distance_to(snapped) <= Constants.TURRET_RADIUS * 2.5:
+	var snap_pos: Vector2 = Vector2(world_pos.x, Constants.GROUND_Y)
+	# Reject if the snapped position falls inside any existing turret's footprint.
+	# Source the spacing from each turret's own config radius rather than a magic
+	# multiplier, so editor-tunable turret sizes stay consistent with placement.
+	for node: Node in get_tree().get_nodes_in_group("turrets"):
+		var turret: Turret = node as Turret
+		if turret == null:
+			continue
+		var min_spacing: float = turret.config.radius * 2.0
+		if turret.global_position.distance_to(snap_pos) <= min_spacing:
 			return false
 	return true
 
@@ -263,15 +270,15 @@ func _draw_aiming_preview() -> void:
 
 	# Ghost turret
 	draw_circle(local_pos, Constants.TURRET_RADIUS, Color(0.0, 1.0, 1.0, 0.5))
-	var barrel_end: Vector2 = local_pos + Vector2(cos(arc_center), sin(arc_center)) * Constants.TURRET_BARREL_LENGTH
+	var barrel_end: Vector2 = local_pos + Vector2.from_angle(arc_center) * Constants.TURRET_BARREL_LENGTH
 	draw_line(local_pos, barrel_end, Color(0.0, 1.0, 1.0, 0.5), 3.0)
 
 func _draw_block_ghost() -> void:
 	var world_pos: Vector2 = get_global_mouse_position()
-	var snapped: Vector2 = _snap_to_block_grid(world_pos)
-	var local_pos: Vector2 = to_local(snapped)
+	var snap_pos: Vector2 = _snap_to_block_grid(world_pos)
+	var local_pos: Vector2 = to_local(snap_pos)
 	var half: float = Constants.BLOCK_HALF
-	var valid: bool = _is_valid_block_placement(snapped)
+	var valid: bool = _is_valid_block_placement(snap_pos)
 	var color: Color = Color(0.0, 0.8, 0.0, 0.4) if valid else Color(1.0, 0.0, 0.0, 0.4)
 	draw_rect(Rect2(local_pos.x - half, local_pos.y - half, Constants.BLOCK_SIZE, Constants.BLOCK_SIZE), color)
 
@@ -284,5 +291,5 @@ func _draw_soldier_ghost() -> void:
 	DrawUtils.draw_unit_body(self, local_pos, Constants.SOLDIER_RADIUS, Color(ghost_color, 0.5))
 	for offset: float in [0.0, PI]:
 		DrawUtils.draw_arc_wedge(self, local_pos, Constants.SOLDIER_RANGE, front_facing + offset, Constants.SOLDIER_ARC_WIDTH, Color(ghost_color, 0.1), 12)
-	var barrel_end: Vector2 = local_pos + Vector2(cos(front_facing), sin(front_facing)) * Constants.SOLDIER_BARREL_LENGTH
+	var barrel_end: Vector2 = local_pos + Vector2.from_angle(front_facing) * Constants.SOLDIER_BARREL_LENGTH
 	draw_line(local_pos, barrel_end, Color(ghost_color, 0.5), 3.0)

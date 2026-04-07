@@ -14,11 +14,14 @@ const WALKER_SPAWNER_SCENE: PackedScene = preload("res://scenes/entities/walker_
 @onready var enemies_container: Node2D = $World/Enemies
 @onready var regions_container: Node2D = $World/SpawnRegions
 @onready var soldiers_container: Node2D = $World/Soldiers
+@onready var wave_manager: Node = $WaveManager
 
 func _ready() -> void:
 	GameManager.runner_purchased.connect(_on_runner_purchased)
 	GameManager.region_spawn_requested.connect(_on_region_spawn_requested)
 	GameManager.walker_region_spawn_requested.connect(_on_walker_region_spawn_requested)
+	GameManager.bullet_spawn_requested.connect(_on_bullet_spawn_requested)
+	GameManager.resource_drop_requested.connect(_on_resource_drop_requested)
 	$PlacementManager.turret_placed.connect(_on_turret_placed)
 	$PlacementManager.block_placed.connect(_on_block_placed)
 	$PlacementManager.soldier_placed.connect(_on_soldier_placed)
@@ -26,10 +29,13 @@ func _ready() -> void:
 	for i: int in Constants.STARTING_RUNNERS:
 		_spawn_runner()
 
-func _on_enemy_died(pos: Vector2) -> void:
+func _on_resource_drop_requested(pos: Vector2) -> void:
+	# Deferred so the Area2D's monitoring activates after the current physics
+	# flush — death is signaled from inside a collision callback chain, and
+	# adding an Area2D mid-flush trips area_set_shape_disabled.
 	var resource: ResourcePickup = RESOURCE_SCENE.instantiate()
 	resource.position = Vector2(pos.x, Constants.GROUND_Y)
-	resources_container.add_child(resource)
+	resources_container.add_child.call_deferred(resource)
 
 func _on_runner_purchased() -> void:
 	_spawn_runner()
@@ -50,7 +56,6 @@ func _on_bullet_spawn_requested(pos: Vector2, vel: Vector2) -> void:
 	bullets_container.add_child(bullet)
 
 func _on_turret_placed(turret: Turret) -> void:
-	turret.fired.connect(_on_bullet_spawn_requested)
 	$World/Turrets.add_child(turret)
 
 func _on_block_placed(block: Block) -> void:
@@ -58,47 +63,36 @@ func _on_block_placed(block: Block) -> void:
 	$World/Blocks.add_child(block)
 
 func _on_soldier_placed(soldier: Soldier) -> void:
-	soldier.fired.connect(_on_bullet_spawn_requested)
-	soldier.died.connect(_on_enemy_died)
 	soldiers_container.add_child(soldier)
 
 func _on_enemy_spawn_requested(pos: Vector2, momentum: Vector2) -> void:
 	var enemy: Enemy = ENEMY_SCENE.instantiate()
 	enemy.initialize(pos, momentum)
-	enemy.died.connect(_on_enemy_died)
+	enemy.tree_exiting.connect(wave_manager.on_enemy_despawned)
 	enemies_container.add_child(enemy)
+	wave_manager.on_enemy_spawned()
 
 func _on_region_spawn_requested(pos: Vector2, wave_number: int) -> void:
 	var region: SpawnRegion = SPAWN_REGION_SCENE.instantiate()
 	region.position = pos
 	region.initialize(wave_number)
 	region.enemy_requested.connect(_on_enemy_spawn_requested)
+	region.tree_exiting.connect(wave_manager.on_region_despawned)
 	regions_container.add_child(region)
+	wave_manager.on_region_spawned()
 
 func _on_walker_spawn_requested(pos: Vector2) -> void:
 	var walker: Walker = WALKER_SCENE.instantiate()
 	walker.initialize(pos)
-	walker.died.connect(_on_enemy_died)
+	walker.tree_exiting.connect(wave_manager.on_enemy_despawned)
 	enemies_container.add_child(walker)
+	wave_manager.on_enemy_spawned()
 
 func _on_walker_region_spawn_requested(pos: Vector2, wave_number: int) -> void:
 	var spawner: WalkerSpawner = WALKER_SPAWNER_SCENE.instantiate()
 	spawner.position = pos
 	spawner.initialize(wave_number)
 	spawner.walker_requested.connect(_on_walker_spawn_requested)
+	spawner.tree_exiting.connect(wave_manager.on_region_despawned)
 	regions_container.add_child(spawner)
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("fire"):
-		if GameManager.control_mode == GameManagerClass.ControlMode.NONE and GameManager.placement_state == GameManagerClass.PlacementState.IDLE:
-			var world_pos: Vector2 = get_global_mouse_position()
-			var clicked_turret: Node2D = _find_clicked_turret(world_pos)
-			if clicked_turret != null:
-				GameManager.set_control_mode(GameManagerClass.ControlMode.SINGLE, clicked_turret.get_instance_id())
-				get_viewport().set_input_as_handled()
-
-func _find_clicked_turret(world_pos: Vector2) -> Node2D:
-	for turret: Node in get_tree().get_nodes_in_group("turrets"):
-		if turret is Turret and world_pos.distance_to(turret.global_position) <= (turret as Turret).config.radius * 1.5:
-			return turret
-	return null
+	wave_manager.on_region_spawned()

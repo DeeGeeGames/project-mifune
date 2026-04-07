@@ -33,6 +33,5 @@ func _draw() -> void:
 	draw_rect(rect, color)
 	draw_rect(rect, Color(0.7, 0.5, 0.25), false, 2.0)
 
-	# HP bar
 	if hp < max_hp:
 		DrawUtils.draw_bar(self, 0.0, -half - 6.0, config.size, 3.0, hp_ratio, Color(0.0, 0.8, 0.0))

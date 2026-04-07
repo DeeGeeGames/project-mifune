@@ -14,6 +14,6 @@ static func draw_arc_wedge(canvas: CanvasItem, center: Vector2, radius: float, a
 	points.append(center)
 	for i: int in steps + 1:
 		var a: float = start_angle + (end_angle - start_angle) * float(i) / float(steps)
-		points.append(center + Vector2(cos(a), sin(a)) * radius)
+		points.append(center + Vector2.from_angle(a) * radius)
 	points.append(center)
 	canvas.draw_colored_polygon(points, color)

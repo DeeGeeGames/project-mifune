@@ -4,45 +4,64 @@ var regions_to_spawn: int = 0
 var walker_regions_to_spawn: int = 0
 var between_waves: bool = false
 
-var region_spawn_timer: Timer
+# Live counters maintained via signal-driven spawn/despawn callbacks from
+# main.gd. Replaces per-frame `get_nodes_in_group("regions")` polling.
+var active_regions: int = 0
+var active_enemies: int = 0
+
+@onready var region_spawn_timer: Timer = $RegionSpawnTimer
 
 func _ready() -> void:
-	region_spawn_timer = Timer.new()
 	region_spawn_timer.one_shot = true
 	region_spawn_timer.timeout.connect(_on_region_spawn_timeout)
-	add_child(region_spawn_timer)
-
 	_start_wave(Constants.STARTING_WAVE)
 
 func _start_wave(wave_num: int) -> void:
-	GameManager.wave_number = wave_num
+	GameManager.set_wave_number(wave_num)
 	var total_regions: int = Constants.WAVE_REGIONS_BASE + wave_num
-	walker_regions_to_spawn = maxi(1, total_regions / 3)
+	# Truncating int division is intentional — ~1/3 of regions become walkers.
+	@warning_ignore("integer_division")
+	var walker_share: int = total_regions / 3
+	walker_regions_to_spawn = maxi(1, walker_share)
 	regions_to_spawn = total_regions - walker_regions_to_spawn
 	between_waves = false
 	region_spawn_timer.stop()
-	GameManager.wave_started.emit(wave_num)
-
-func _process(_delta: float) -> void:
-	if between_waves:
-		return
 	_check_wave_state()
 
+# --- Spawn/despawn counters (called from main.gd) ---
+func on_region_spawned() -> void:
+	active_regions += 1
+
+func on_region_despawned() -> void:
+	active_regions -= 1
+	# On scene shutdown, enemies' tree_exiting can fire after WaveManager has
+	# already left the tree — skip work in that case.
+	if is_inside_tree():
+		_check_wave_state()
+
+func on_enemy_spawned() -> void:
+	active_enemies += 1
+
+func on_enemy_despawned() -> void:
+	active_enemies -= 1
+	if is_inside_tree():
+		_check_wave_state()
+
+# --- State machine ---
 func _check_wave_state() -> void:
+	if between_waves:
+		return
+
 	if regions_to_spawn > 0 or walker_regions_to_spawn > 0:
 		_try_spawn_next_region()
 		return
 
-	var active_regions: int = get_tree().get_nodes_in_group("regions").size()
-	var active_enemies: int = get_tree().get_nodes_in_group("enemies").size()
-
 	if active_regions == 0 and active_enemies == 0:
 		between_waves = true
-		GameManager.wave_cleared.emit()
+		GameManager.emit_wave_cleared()
 		_start_intermission()
 
 func _try_spawn_next_region() -> void:
-	var active_regions: int = get_tree().get_nodes_in_group("regions").size()
 	if active_regions >= Constants.WAVE_MAX_CONCURRENT_REGIONS:
 		return
 	if not region_spawn_timer.is_stopped():
@@ -63,12 +82,16 @@ func _on_region_spawn_timeout() -> void:
 
 	if spawn_walker:
 		var pos: Vector2 = _random_position_in_range(Constants.WALKER_REGION_MIN_Y, Constants.WALKER_REGION_MAX_Y)
-		GameManager.walker_region_spawn_requested.emit(pos, GameManager.wave_number)
+		GameManager.request_walker_region_spawn(pos, GameManager.wave_number)
 		walker_regions_to_spawn -= 1
 	else:
 		var pos: Vector2 = _random_position_in_range(Constants.REGION_MARGIN, Constants.GROUND_Y - Constants.REGION_MARGIN * 2.0)
-		GameManager.region_spawn_requested.emit(pos, GameManager.wave_number)
+		GameManager.request_region_spawn(pos, GameManager.wave_number)
 		regions_to_spawn -= 1
+
+	# Try queueing the next one immediately — _check_wave_state respects the
+	# concurrent cap and the timer's cooldown.
+	_check_wave_state()
 
 func _start_intermission() -> void:
 	await get_tree().create_timer(Constants.WAVE_INTERMISSION).timeout

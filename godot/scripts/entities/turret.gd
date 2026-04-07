@@ -1,38 +1,39 @@
-extends Node2D
+extends Defender
 class_name Turret
-
-signal fired(pos: Vector2, vel: Vector2)
 
 @export var config: TurretConfig = preload("res://resources/defaults/turret_default.tres")
 
 var aim_angle: float = -PI / 2.0
-var ammo: int = 0
 var arc_center: float = Constants.ARC_RANGE_CENTER
 var arc_width: float = Constants.ARC_WIDTH_DEFAULT
 var arc_range_center: float = Constants.GROUND_ARC_RANGE_CENTER
 var arc_range_width: float = Constants.GROUND_ARC_RANGE_WIDTH
 var parent_block_id: int = -1
-var can_fire: bool = true
 var is_controlled_cache: bool = false
-var enemies_in_range: Array[CharacterBody2D] = []
-var claimed_by_runner: Node2D = null
 var _prev_aim_angle: float = -PI / 2.0
 var _prev_controlled: bool = false
-var _prev_ammo: int = 0
 
-@onready var range_area: Area2D = $RangeArea
-@onready var fire_timer: Timer = $FireTimer
+@onready var click_area: Area2D = $ClickArea
+
+func _max_ammo() -> int:
+	return config.max_ammo
+
+func _reload_threshold() -> int:
+	return config.reload_threshold
+
+func _fire_rate() -> float:
+	return config.fire_rate
+
+func _barrel_length() -> float:
+	return config.barrel_length
+
+func _spread() -> float:
+	return config.spread
 
 func _ready() -> void:
-	ammo = config.max_ammo
-	_prev_ammo = ammo
+	super._ready()
 	add_to_group("turrets")
-	fire_timer.wait_time = 1.0 / config.fire_rate
-	fire_timer.one_shot = true
-	fire_timer.timeout.connect(_on_fire_timer_timeout)
-
-	range_area.body_entered.connect(_on_range_body_entered)
-	range_area.body_exited.connect(_on_range_body_exited)
+	click_area.input_event.connect(_on_click_area_input)
 
 func initialize(pos: Vector2, p_arc_center: float, p_arc_width: float, p_arc_range_center: float, p_arc_range_width: float, p_parent_block_id: int = -1) -> void:
 	position = pos
@@ -43,39 +44,20 @@ func initialize(pos: Vector2, p_arc_center: float, p_arc_width: float, p_arc_ran
 	aim_angle = p_arc_center
 	parent_block_id = p_parent_block_id
 
-func get_parent_block_id() -> int:
-	return parent_block_id
-
-func reload(amount: int) -> void:
-	ammo = mini(config.max_ammo, ammo + amount)
-
-func needs_ammo() -> bool:
-	return ammo <= config.reload_threshold
-
-func claim(runner: Node2D) -> void:
-	claimed_by_runner = runner
-
-func unclaim() -> void:
-	claimed_by_runner = null
-
-func is_claimed() -> bool:
-	return claimed_by_runner != null
-
-func _on_range_body_entered(body: Node2D) -> void:
-	if body is CharacterBody2D:
-		enemies_in_range.append(body)
-
-func _on_range_body_exited(body: Node2D) -> void:
-	enemies_in_range.erase(body)
-
-func _on_fire_timer_timeout() -> void:
-	can_fire = true
+func _on_click_area_input(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	if not (event is InputEventMouseButton):
+		return
+	var mb: InputEventMouseButton = event as InputEventMouseButton
+	if not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
+		return
+	if GameManager.placement_state != GameManagerClass.PlacementState.IDLE:
+		return
+	if GameManager.control_mode != GameManagerClass.ControlMode.NONE:
+		return
+	GameManager.set_control_mode(GameManagerClass.ControlMode.SINGLE, get_instance_id())
+	get_viewport().set_input_as_handled()
 
 func _process(delta: float) -> void:
-	enemies_in_range = enemies_in_range.filter(func(e: CharacterBody2D) -> bool: return is_instance_valid(e))
-	if claimed_by_runner != null and not is_instance_valid(claimed_by_runner):
-		claimed_by_runner = null
-
 	var max_rotation: float = config.turn_speed * delta
 	is_controlled_cache = _is_controlled()
 
@@ -100,39 +82,36 @@ func _is_controlled() -> bool:
 	return Targeting.is_angle_in_arc(mouse_angle, arc_range_center, arc_range_width)
 
 func _tick_controlled(max_rotation: float) -> void:
-	var mouse_pos: Vector2 = get_global_mouse_position()
-	var target_angle: float = Targeting.aim_angle(global_position, mouse_pos)
+	var target_angle: float = Targeting.aim_angle(global_position, get_global_mouse_position())
 	aim_angle = Targeting.rotate_toward(aim_angle, target_angle, max_rotation)
 
 	if Input.is_action_pressed("fire"):
-		_try_fire()
+		_try_fire(aim_angle)
 
 func _tick_autonomous(max_rotation: float) -> void:
-	var target_enemy: CharacterBody2D = _find_nearest_enemy_in_arc()
+	var target_enemy: EnemyBase = _find_nearest_enemy_in_arc()
 
 	if target_enemy == null:
-		# Drift back to arc center
 		aim_angle = Targeting.rotate_toward(aim_angle, arc_center, max_rotation)
 		return
 
-	var enemy_vel: Vector2 = target_enemy.get_velocity_for_targeting() if target_enemy.has_method("get_velocity_for_targeting") else Vector2.ZERO
 	var lead_pos: Vector2 = Targeting.lead_target(
 		global_position,
 		target_enemy.global_position,
-		enemy_vel,
+		target_enemy.get_velocity_for_targeting(),
 		Constants.BULLET_SPEED,
 	)
 	var target_angle: float = Targeting.aim_angle(global_position, lead_pos)
 	target_angle = Targeting.clamp_angle_to_arc(target_angle, arc_center, arc_width)
 	aim_angle = Targeting.rotate_toward(aim_angle, target_angle, max_rotation)
 
-	_try_fire()
+	_try_fire(aim_angle)
 
-func _find_nearest_enemy_in_arc() -> CharacterBody2D:
-	var nearest: CharacterBody2D = null
+func _find_nearest_enemy_in_arc() -> EnemyBase:
+	var nearest: EnemyBase = null
 	var nearest_dist: float = config.turret_range
 
-	for enemy: CharacterBody2D in enemies_in_range:
+	for enemy: EnemyBase in enemies_in_range:
 		var angle: float = Targeting.aim_angle(global_position, enemy.global_position)
 		if not Targeting.is_angle_in_arc(angle, arc_center, arc_width):
 			continue
@@ -143,43 +122,17 @@ func _find_nearest_enemy_in_arc() -> CharacterBody2D:
 
 	return nearest
 
-func _try_fire() -> void:
-	if not can_fire or ammo <= 0:
-		return
-
-	ammo -= 1
-	can_fire = false
-	fire_timer.start()
-
-	var barrel_tip: Vector2 = global_position + Vector2(cos(aim_angle), sin(aim_angle)) * config.barrel_length
-	var spread_angle: float = aim_angle + (randf() - 0.5) * config.spread * 2.0
-	var bullet_vel: Vector2 = Vector2(cos(spread_angle), sin(spread_angle)) * Constants.BULLET_SPEED
-
-	fired.emit(barrel_tip, bullet_vel)
-
 func _draw() -> void:
 	var body_color: Color = Color(0.0, 1.0, 1.0) if is_controlled_cache else Color(0.0, 0.8, 0.0)
-
-	# Body circle
 	draw_circle(Vector2.ZERO, config.radius, body_color)
 
-	# Barrel
-	var barrel_end: Vector2 = Vector2(cos(aim_angle), sin(aim_angle)) * config.barrel_length
+	var barrel_end: Vector2 = Vector2.from_angle(aim_angle) * config.barrel_length
 	draw_line(Vector2.ZERO, barrel_end, body_color, 3.0)
 
-	# Ammo bar
 	var ratio: float = float(ammo) / float(config.max_ammo)
 	var ammo_color: Color = Color(0.0, 1.0, 0.0) if ratio > 0.5 else (Color(1.0, 1.0, 0.0) if ratio > 0.25 else Color(1.0, 0.0, 0.0))
 	DrawUtils.draw_bar(self, 0.0, config.radius + 4.0, config.radius * 2.0, 3.0, ratio, ammo_color)
 
-	# Range ring when controlled
 	if is_controlled_cache:
 		draw_arc(Vector2.ZERO, config.turret_range, 0, TAU, 64, Color(0.0, 1.0, 1.0, 0.15), 1.0)
-
-	# Arc visualization
-	_draw_arc_wedge()
-
-func _draw_arc_wedge() -> void:
-	if not is_controlled_cache:
-		return
-	DrawUtils.draw_arc_wedge(self, Vector2.ZERO, config.turret_range, arc_center, arc_width, Color(0.0, 1.0, 1.0, 0.1), 16)
+		DrawUtils.draw_arc_wedge(self, Vector2.ZERO, config.turret_range, arc_center, arc_width, Color(0.0, 1.0, 1.0, 0.1), 16)

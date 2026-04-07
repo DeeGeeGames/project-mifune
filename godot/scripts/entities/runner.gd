@@ -25,10 +25,10 @@ func die() -> void:
 func _release_claims() -> void:
 	if target_node == null or not is_instance_valid(target_node):
 		return
-	if current_state == State.RESUPPLYING and target_node.has_method("unclaim"):
-		target_node.unclaim()
+	if current_state == State.RESUPPLYING and target_node is Defender:
+		(target_node as Defender).unclaim()
 	elif current_state == State.COLLECTING and target_node is ResourcePickup:
-		(target_node as ResourcePickup).claimed_by = null
+		(target_node as ResourcePickup).unclaim()
 
 func _physics_process(delta: float) -> void:
 	match current_state:
@@ -47,60 +47,29 @@ func _physics_process(delta: float) -> void:
 
 func _tick_idle() -> void:
 	if GameManager.runner_priority == GameManagerClass.RunnerPriority.AMMO:
-		if not _try_find_ammo_task():
-			_try_find_resource_task()
+		if not _try_take_ammo_job():
+			_try_take_resource_job()
 	else:
-		if not _try_find_resource_task():
-			_try_find_ammo_task()
+		if not _try_take_resource_job():
+			_try_take_ammo_job()
 
-func _try_find_resource_task() -> bool:
-	var nearest: Area2D = null
-	var nearest_dist: float = INF
-
-	for resource: Node in get_tree().get_nodes_in_group("resources"):
-		if not is_instance_valid(resource):
-			continue
-		if resource.claimed_by != null and resource.claimed_by != self:
-			continue
-		var dist: float = global_position.distance_to(resource.global_position)
-		if dist < nearest_dist:
-			nearest_dist = dist
-			nearest = resource
-
-	if nearest == null:
+func _try_take_resource_job() -> bool:
+	var picked: Node2D = JobBoard.take_nearest_resource(global_position, self)
+	if picked == null:
 		return false
-
-	nearest.claimed_by = self
-	target_node = nearest
+	target_node = picked
 	current_state = State.COLLECTING
 	return true
 
-func _try_find_ammo_task() -> bool:
+func _try_take_ammo_job() -> bool:
+	# Runners only resupply while at the base — preserves the original
+	# "drop loot, then ferry ammo" loop instead of letting them roam.
 	if global_position.distance_to(Constants.TARGET_POS) > config.base_arrive_distance:
 		return false
-
-	var candidates: Array[Node] = []
-	candidates.append_array(get_tree().get_nodes_in_group("turrets"))
-	candidates.append_array(get_tree().get_nodes_in_group("soldiers"))
-
-	var nearest: Node2D = null
-	var nearest_dist: float = INF
-
-	for unit: Node in candidates:
-		if not is_instance_valid(unit) or not unit.has_method("needs_ammo"):
-			continue
-		if not unit.needs_ammo() or unit.is_claimed():
-			continue
-		var dist: float = global_position.distance_to(unit.global_position)
-		if dist < nearest_dist:
-			nearest_dist = dist
-			nearest = unit as Node2D
-
-	if nearest == null:
+	var picked: Node2D = JobBoard.take_nearest_ammo_job(global_position, self)
+	if picked == null:
 		return false
-
-	nearest.claim(self)
-	target_node = nearest
+	target_node = picked
 	current_state = State.RESUPPLYING
 	return true
 
@@ -111,7 +80,7 @@ func _tick_collecting(_delta: float) -> void:
 		return
 
 	if global_position.distance_to(target_node.global_position) < config.pickup_distance:
-		carrying = target_node.collect()
+		carrying = (target_node as ResourcePickup).collect()
 		target_node = null
 		current_state = State.RETURNING
 		return
@@ -137,9 +106,9 @@ func _tick_resupplying(_delta: float) -> void:
 		return
 
 	if global_position.distance_to(target_node.global_position) < config.base_arrive_distance:
-		if target_node.has_method("reload"):
-			target_node.reload(config.reload_amount)
-			target_node.unclaim()
+		var defender: Defender = target_node as Defender
+		defender.reload(config.reload_amount)
+		defender.unclaim()
 		target_node = null
 		current_state = State.IDLE
 		return

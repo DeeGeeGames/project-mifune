@@ -20,6 +20,8 @@ signal placement_state_changed(state: PlacementState)
 signal runner_purchased
 signal region_spawn_requested(pos: Vector2, wave_number: int)
 signal walker_region_spawn_requested(pos: Vector2, wave_number: int)
+signal bullet_spawn_requested(pos: Vector2, vel: Vector2)
+signal resource_drop_requested(pos: Vector2)
 
 # --- State ---
 var currency: int = Constants.STARTING_CURRENCY
@@ -43,6 +45,25 @@ var aiming_arc_range_width: float = 0.0
 var aiming_parent_block_id: int = -1
 
 # --- Currency ---
+func set_wave_number(n: int) -> void:
+	wave_number = n
+	wave_started.emit(n)
+
+func emit_wave_cleared() -> void:
+	wave_cleared.emit()
+
+func request_region_spawn(pos: Vector2, wave_num: int) -> void:
+	region_spawn_requested.emit(pos, wave_num)
+
+func request_walker_region_spawn(pos: Vector2, wave_num: int) -> void:
+	walker_region_spawn_requested.emit(pos, wave_num)
+
+func request_bullet_spawn(pos: Vector2, vel: Vector2) -> void:
+	bullet_spawn_requested.emit(pos, vel)
+
+func request_resource_drop(pos: Vector2) -> void:
+	resource_drop_requested.emit(pos)
+
 func add_currency(amount: int) -> void:
 	currency += amount
 	currency_changed.emit(currency)
