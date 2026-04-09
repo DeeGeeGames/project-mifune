@@ -8,13 +8,9 @@ var spawn_momentum: Vector2 = Vector2.ZERO
 var momentum_factor: float = 1.0
 var base_velocity: Vector2 = Vector2.ZERO
 
-func _max_hp() -> int:
-	return config.hp
-
-func _aggro_range() -> float:
-	return config.aggro_range
-
 func _ready() -> void:
+	hp_max = config.hp
+	aggro_range = config.aggro_range
 	super._ready()
 	speed = config.speed
 

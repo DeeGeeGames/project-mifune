@@ -1,27 +1,25 @@
 extends CharacterBody2D
 # Shared base for hostile entities (Enemy, Walker). Owns hp, runner aggro
 # tracking, damage/death API, and the find-nearest-runner targeting helper.
-# Subclasses provide config-derived hp/aggro range and movement.
+# Subclasses set hp_max / aggro_range from their own config before calling
+# super._ready(), and override get_velocity_for_targeting() to report the
+# velocity turrets should lead against.
 class_name EnemyBase
 
 var hp: int = 0
+var hp_max: int = 0
+var aggro_range: float = 0.0
 var runners_in_range: Array[Runner] = []
 
 @onready var aggro_area: Area2D = $AggroArea
 
 # --- Subclass overrides ---
-func _max_hp() -> int:
-	return 0
-
-func _aggro_range() -> float:
-	return 0.0
-
 func get_velocity_for_targeting() -> Vector2:
 	return Vector2.ZERO
 
 # --- Lifecycle ---
 func _ready() -> void:
-	hp = _max_hp()
+	hp = hp_max
 	add_to_group("enemies")
 	aggro_area.body_entered.connect(_on_aggro_body_entered)
 	aggro_area.body_exited.connect(_on_aggro_body_exited)
@@ -56,7 +54,7 @@ func _on_tracked_runner_exiting(body: Runner) -> void:
 	runners_in_range.erase(body)
 
 func find_nearest_runner_or_base() -> Vector2:
-	var nearest_dist: float = _aggro_range()
+	var nearest_dist: float = aggro_range
 	var nearest_pos: Vector2 = Constants.TARGET_POS
 
 	for runner: Runner in runners_in_range:

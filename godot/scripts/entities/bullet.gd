@@ -32,9 +32,9 @@ func _on_body_entered(body: Node2D) -> void:
 func _on_area_entered(area: Area2D) -> void:
 	if has_hit:
 		return
-	if area is SpawnerBase:
+	if area is Spawner:
 		has_hit = true
-		(area as SpawnerBase).take_damage(damage)
+		(area as Spawner).take_damage(damage)
 		queue_free()
 
 func _draw() -> void:

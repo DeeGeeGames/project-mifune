@@ -15,22 +15,12 @@ var _prev_controlled: bool = false
 
 @onready var click_area: Area2D = $ClickArea
 
-func _max_ammo() -> int:
-	return config.max_ammo
-
-func _reload_threshold() -> int:
-	return config.reload_threshold
-
-func _fire_rate() -> float:
-	return config.fire_rate
-
-func _barrel_length() -> float:
-	return config.barrel_length
-
-func _spread() -> float:
-	return config.spread
-
 func _ready() -> void:
+	max_ammo = config.max_ammo
+	reload_threshold = config.reload_threshold
+	fire_rate = config.fire_rate
+	barrel_length = config.barrel_length
+	spread = config.spread
 	super._ready()
 	add_to_group("turrets")
 	click_area.input_event.connect(_on_click_area_input)

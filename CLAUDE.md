@@ -9,6 +9,8 @@ Monorepo with parallel implementations of a 2D horde defense game. See `docs/des
 
 Each directory has its own `CLAUDE.md` with implementation-specific guidance.
 
+Unless otherwise stated, assume changes are referring to `godot/` project
+
 ## CLAUDE.md Maintenance
 
 When modifying the project, update the relevant `CLAUDE.md` file if the change affects:

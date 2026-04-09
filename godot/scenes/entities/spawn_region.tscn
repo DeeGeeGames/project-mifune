@@ -1,6 +1,6 @@
 [gd_scene load_steps=4 format=3 uid="uid://region001"]
 
-[ext_resource type="Script" path="res://scripts/entities/spawn_region.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/entities/spawner_base.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/defaults/region_default.tres" id="2"]
 
 [sub_resource type="CircleShape2D" id="region_shape"]

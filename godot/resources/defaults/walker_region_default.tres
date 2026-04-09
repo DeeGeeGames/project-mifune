@@ -1,6 +1,6 @@
-[gd_resource type="Resource" script_class="WalkerRegionConfig" load_steps=2 format=3]
+[gd_resource type="Resource" script_class="SpawnerConfig" load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/resources/walker_region_config.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/spawner_config.gd" id="1"]
 
 [resource]
 script = ExtResource("1")
@@ -15,3 +15,5 @@ max_radius = 120.0
 base_spawn_interval = 0.4
 spawn_interval_scaling = 0.04
 min_spawn_interval = 0.12
+fill_color = Color(0.6, 0.2, 0.8, 1.0)
+stroke_color = Color(0.8, 0.3, 1.0, 1.0)

@@ -6,13 +6,9 @@ class_name Walker
 var speed: float = 0.0
 var _on_ground: bool = false
 
-func _max_hp() -> int:
-	return config.hp
-
-func _aggro_range() -> float:
-	return config.aggro_range
-
 func _ready() -> void:
+	hp_max = config.hp
+	aggro_range = config.aggro_range
 	super._ready()
 	speed = config.speed
 

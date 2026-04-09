@@ -73,15 +73,15 @@ func _on_enemy_spawn_requested(pos: Vector2, momentum: Vector2) -> void:
 	wave_manager.on_enemy_spawned()
 
 func _on_region_spawn_requested(pos: Vector2, wave_number: int) -> void:
-	var region: SpawnRegion = SPAWN_REGION_SCENE.instantiate()
+	var region: Spawner = SPAWN_REGION_SCENE.instantiate()
 	region.position = pos
 	region.initialize(wave_number)
-	region.enemy_requested.connect(_on_enemy_spawn_requested)
+	region.spawn_requested.connect(_on_enemy_spawn_requested)
 	region.tree_exiting.connect(wave_manager.on_region_despawned)
 	regions_container.add_child(region)
 	wave_manager.on_region_spawned()
 
-func _on_walker_spawn_requested(pos: Vector2) -> void:
+func _on_walker_spawn_requested(pos: Vector2, _momentum: Vector2) -> void:
 	var walker: Walker = WALKER_SCENE.instantiate()
 	walker.initialize(pos)
 	walker.tree_exiting.connect(wave_manager.on_enemy_despawned)
@@ -89,10 +89,10 @@ func _on_walker_spawn_requested(pos: Vector2) -> void:
 	wave_manager.on_enemy_spawned()
 
 func _on_walker_region_spawn_requested(pos: Vector2, wave_number: int) -> void:
-	var spawner: WalkerSpawner = WALKER_SPAWNER_SCENE.instantiate()
+	var spawner: Spawner = WALKER_SPAWNER_SCENE.instantiate()
 	spawner.position = pos
 	spawner.initialize(wave_number)
-	spawner.walker_requested.connect(_on_walker_spawn_requested)
+	spawner.spawn_requested.connect(_on_walker_spawn_requested)
 	spawner.tree_exiting.connect(wave_manager.on_region_despawned)
 	regions_container.add_child(spawner)
 	wave_manager.on_region_spawned()
