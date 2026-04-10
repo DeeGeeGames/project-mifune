@@ -13,8 +13,9 @@ func _ready() -> void:
 	GameManager.currency_changed.connect(func(_v: int) -> void: _update_button_states())
 	GameManager.control_mode_changed.connect(func(_v: GameManagerClass.ControlMode) -> void: _update_button_states())
 	GameManager.placement_state_changed.connect(func(_v: GameManagerClass.PlacementState) -> void: _update_button_states())
-	get_tree().node_added.connect(func(_n: Node) -> void: _update_button_states.call_deferred())
-	get_tree().node_removed.connect(func(_n: Node) -> void: _update_button_states.call_deferred())
+	GameManager.turret_count_changed.connect(func() -> void: _update_button_states.call_deferred())
+	GameManager.runner_count_changed.connect(func() -> void: _update_button_states.call_deferred())
+	GameManager.soldier_count_changed.connect(func() -> void: _update_button_states.call_deferred())
 	_update_button_states()
 
 func _update_button_states() -> void:

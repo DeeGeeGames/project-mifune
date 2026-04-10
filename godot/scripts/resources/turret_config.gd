@@ -1,7 +1,7 @@
 extends Resource
 class_name TurretConfig
 
-@export var turret_range: float = 1200.0
+@export var attack_range: float = 1200.0
 @export var fire_rate: float = 12.0
 @export var radius: float = 18.0
 @export var barrel_length: float = 28.0

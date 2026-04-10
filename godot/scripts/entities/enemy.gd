@@ -10,9 +10,10 @@ var base_velocity: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
 	hp_max = config.hp
-	aggro_range = config.aggro_range
 	super._ready()
 	speed = config.speed
+	($CollisionShape2D.shape as CircleShape2D).radius = config.radius
+	aggro_area.tracking_range = config.aggro_range
 
 func initialize(pos: Vector2, momentum: Vector2) -> void:
 	position = pos

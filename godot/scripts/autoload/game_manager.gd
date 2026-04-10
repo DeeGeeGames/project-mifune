@@ -22,6 +22,9 @@ signal region_spawn_requested(pos: Vector2, wave_number: int)
 signal walker_region_spawn_requested(pos: Vector2, wave_number: int)
 signal bullet_spawn_requested(pos: Vector2, vel: Vector2)
 signal resource_drop_requested(pos: Vector2)
+signal turret_count_changed
+signal runner_count_changed
+signal soldier_count_changed
 
 # --- State ---
 var currency: int = Constants.STARTING_CURRENCY

@@ -17,6 +17,8 @@ func _ready() -> void:
 	speed = config.speed
 	add_to_group("runners")
 	hurt_area.body_entered.connect(_on_hurt_area_body_entered)
+	tree_exiting.connect(GameManager.runner_count_changed.emit)
+	GameManager.runner_count_changed.emit()
 
 func die() -> void:
 	_release_claims()

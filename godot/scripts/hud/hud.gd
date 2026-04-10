@@ -21,8 +21,8 @@ func _ready() -> void:
 	GameManager.control_mode_changed.connect(_on_control_mode_changed)
 	GameManager.placement_state_changed.connect(_on_placement_state_changed)
 	GameManager.runner_priority_changed.connect(_on_runner_priority_changed)
-	get_tree().node_added.connect(_on_tree_changed)
-	get_tree().node_removed.connect(_on_tree_changed)
+	GameManager.turret_count_changed.connect(_on_turret_count_changed)
+	GameManager.runner_count_changed.connect(_on_runner_count_changed)
 
 	game_over_overlay.visible = false
 	_update_all()
@@ -56,8 +56,10 @@ func _on_placement_state_changed(_state: GameManagerClass.PlacementState) -> voi
 func _on_runner_priority_changed(_priority: GameManagerClass.RunnerPriority) -> void:
 	_update_priority_label()
 
-func _on_tree_changed(_node: Node) -> void:
+func _on_turret_count_changed() -> void:
 	_update_turret_count.call_deferred()
+
+func _on_runner_count_changed() -> void:
 	_update_runner_count.call_deferred()
 
 func _update_defense_label() -> void:

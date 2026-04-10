@@ -23,7 +23,11 @@ func _ready() -> void:
 	spread = config.spread
 	super._ready()
 	add_to_group("turrets")
+	range_area.tracking_range = config.attack_range
+	($ClickArea/ClickShape.shape as CircleShape2D).radius = config.radius
 	click_area.input_event.connect(_on_click_area_input)
+	tree_exiting.connect(GameManager.turret_count_changed.emit)
+	GameManager.turret_count_changed.emit()
 
 func initialize(pos: Vector2, p_arc_center: float, p_arc_width: float, p_arc_range_center: float, p_arc_range_width: float, p_parent_block_id: int = -1) -> void:
 	position = pos
@@ -99,9 +103,9 @@ func _tick_autonomous(max_rotation: float) -> void:
 
 func _find_nearest_enemy_in_arc() -> EnemyBase:
 	var nearest: EnemyBase = null
-	var nearest_dist: float = config.turret_range
+	var nearest_dist: float = config.attack_range
 
-	for enemy: EnemyBase in enemies_in_range:
+	for enemy: EnemyBase in range_area.bodies_in_range:
 		var angle: float = Targeting.aim_angle(global_position, enemy.global_position)
 		if not Targeting.is_angle_in_arc(angle, arc_center, arc_width):
 			continue
@@ -124,5 +128,5 @@ func _draw() -> void:
 	DrawUtils.draw_bar(self, 0.0, config.radius + 4.0, config.radius * 2.0, 3.0, ratio, ammo_color)
 
 	if is_controlled_cache:
-		draw_arc(Vector2.ZERO, config.turret_range, 0, TAU, 64, Color(0.0, 1.0, 1.0, 0.15), 1.0)
-		DrawUtils.draw_arc_wedge(self, Vector2.ZERO, config.turret_range, arc_center, arc_width, Color(0.0, 1.0, 1.0, 0.1), 16)
+		draw_arc(Vector2.ZERO, config.attack_range, 0, TAU, 64, Color(0.0, 1.0, 1.0, 0.15), 1.0)
+		DrawUtils.draw_arc_wedge(self, Vector2.ZERO, config.attack_range, arc_center, arc_width, Color(0.0, 1.0, 1.0, 0.1), 16)

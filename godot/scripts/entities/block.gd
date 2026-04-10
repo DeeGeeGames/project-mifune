@@ -14,6 +14,7 @@ func _ready() -> void:
 	max_hp = config.hp
 	add_to_group("blocks")
 	block_id = get_instance_id()
+	($CollisionShape2D.shape as RectangleShape2D).size = Vector2(config.size, config.size)
 
 func initialize(pos: Vector2) -> void:
 	position = pos

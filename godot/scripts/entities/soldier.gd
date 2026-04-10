@@ -22,7 +22,10 @@ func _ready() -> void:
 	hp = config.hp
 	_prev_hp = hp
 	add_to_group("soldiers")
+	range_area.tracking_range = config.attack_range
 	hurt_area.body_entered.connect(_on_hurt_area_body_entered)
+	tree_exiting.connect(GameManager.soldier_count_changed.emit)
+	GameManager.soldier_count_changed.emit()
 
 func initialize(pos: Vector2, facing: float) -> void:
 	position = pos
@@ -64,7 +67,7 @@ func _tick_autonomous(max_rotation: float) -> void:
 	var nearest_dist: float = config.attack_range
 	var nearest_arc_center: float = default_facing
 
-	for enemy: EnemyBase in enemies_in_range:
+	for enemy: EnemyBase in range_area.bodies_in_range:
 		var angle: float = Targeting.aim_angle(global_position, enemy.global_position)
 		var enemy_arc_center: float
 		if Targeting.is_angle_in_arc(angle, default_facing, arc_width):

@@ -4,6 +4,7 @@
 [ext_resource type="Resource" path="res://resources/defaults/block_default.tres" id="2"]
 
 [sub_resource type="RectangleShape2D" id="block_shape"]
+resource_local_to_scene = true
 size = Vector2(36, 36)
 
 [node name="Block" type="StaticBody2D"]
