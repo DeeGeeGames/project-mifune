@@ -7,8 +7,8 @@ var speed: float = 0.0
 var _on_ground: bool = false
 
 func _ready() -> void:
-	hp_max = config.hp
 	super._ready()
+	health.initialize(config.hp)
 	speed = config.speed
 	($CollisionShape2D.shape as CircleShape2D).radius = config.radius
 	aggro_area.tracking_range = config.aggro_range
@@ -43,13 +43,12 @@ func _tick_walking(_delta: float) -> void:
 	for i: int in get_slide_collision_count():
 		var collider: Object = get_slide_collision(i).get_collider()
 		if collider is Block:
-			(collider as Block).take_damage(hp)
+			(collider as Block).take_damage(health.hp)
 			die(true)
 			return
 
 func _draw() -> void:
 	var half: float = config.radius
 	draw_rect(Rect2(-half, -half, half * 2.0, half * 2.0), Color(0.6, 0.2, 0.8))
-	if hp < config.hp:
-		var ratio: float = float(hp) / float(config.hp)
-		DrawUtils.draw_bar(self, 0.0, -config.radius - 6.0, config.radius * 2.0, 3.0, ratio, Color(1.0, 0.0, 0.0))
+	if health.hp < health.hp_max:
+		DrawUtils.draw_bar(self, 0.0, -config.radius - 6.0, config.radius * 2.0, 3.0, health.get_ratio(), Color(1.0, 0.0, 0.0))

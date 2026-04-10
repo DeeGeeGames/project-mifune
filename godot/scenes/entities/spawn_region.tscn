@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://scripts/entities/spawner_base.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/defaults/region_default.tres" id="2"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="3"]
 
 [sub_resource type="CircleShape2D" id="region_shape"]
 resource_local_to_scene = true
@@ -15,5 +16,8 @@ config = ExtResource("2")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("region_shape")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("3")
 
 [node name="SpawnTimer" type="Timer" parent="."]

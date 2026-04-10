@@ -9,8 +9,8 @@ var momentum_factor: float = 1.0
 var base_velocity: Vector2 = Vector2.ZERO
 
 func _ready() -> void:
-	hp_max = config.hp
 	super._ready()
+	health.initialize(config.hp)
 	speed = config.speed
 	($CollisionShape2D.shape as CircleShape2D).radius = config.radius
 	aggro_area.tracking_range = config.aggro_range
@@ -35,12 +35,11 @@ func _physics_process(delta: float) -> void:
 	for i: int in get_slide_collision_count():
 		var collider: Object = get_slide_collision(i).get_collider()
 		if collider is Block:
-			(collider as Block).take_damage(hp)
+			(collider as Block).take_damage(health.hp)
 			die(true)
 			return
 
 func _draw() -> void:
 	draw_circle(Vector2.ZERO, config.radius, Color(1.0, 0.27, 0.13))
-	if hp < config.hp:
-		var ratio: float = float(hp) / float(config.hp)
-		DrawUtils.draw_bar(self, 0.0, -config.radius - 6.0, config.radius * 2.0, 3.0, ratio, Color(1.0, 0.0, 0.0))
+	if health.hp < health.hp_max:
+		DrawUtils.draw_bar(self, 0.0, -config.radius - 6.0, config.radius * 2.0, 3.0, health.get_ratio(), Color(1.0, 0.0, 0.0))

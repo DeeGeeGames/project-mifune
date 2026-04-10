@@ -14,7 +14,8 @@ Prefer composition over inheritance: use child nodes (e.g. `TrackingArea`), Reso
 - `scripts/autoload/constants.gd` — Shared constants
 - `scripts/systems/job_board.gd` — Autoload. Resource & ammo job registry consumed by runners
 - `scripts/components/tracking_area.gd` — `TrackingArea` reusable Area2D component for safe body enter/exit tracking with `tree_exiting` fallback. Used by enemies (aggro) and defenders (range).
-- `scripts/entities/enemy_base.gd` — `EnemyBase` shared parent for Enemy/Walker (hp, damage/death, targeting helper). Runner proximity via TrackingArea child.
+- `scripts/components/health_component.gd` — `HealthComponent` reusable Node component for HP state, damage, and death signals. Used by EnemyBase, Spawner, Soldier, and Block.
+- `scripts/entities/enemy_base.gd` — `EnemyBase` shared parent for Enemy/Walker (targeting helper, damage/death API). HP via HealthComponent child, runner proximity via TrackingArea child.
 - `scripts/entities/defender.gd` — `Defender` shared parent for Turret/Soldier (ammo, fire timer + routine, runner-claim API, JobBoard hooks). Enemy proximity via TrackingArea child.
 - `scripts/entities/spawner_base.gd` — `Spawner` Area2D for enemy-producing regions; behavior driven entirely by a `SpawnerConfig` resource (hp, lifetime, cadence, draw colors, optional burst momentum). Both `spawn_region.tscn` and `walker_spawner.tscn` use this same script with different configs.
 - `scripts/entities/` — Per-entity scripts (enemy, walker, turret, soldier, bullet, spawner_base, block, runner, resource_pickup, base)

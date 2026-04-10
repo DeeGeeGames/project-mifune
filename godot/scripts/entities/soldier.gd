@@ -3,13 +3,13 @@ class_name Soldier
 
 @export var config: SoldierConfig = preload("res://resources/defaults/soldier_default.tres")
 
-var hp: int = 0
 var aim_angle: float = 0.0
 var arc_width: float = Constants.SOLDIER_ARC_WIDTH
 var default_facing: float = 0.0
 var _prev_aim_angle: float = 0.0
 var _prev_hp: int = 0
 
+@onready var health: HealthComponent = $HealthComponent
 @onready var hurt_area: Area2D = $HurtArea
 
 func _ready() -> void:
@@ -19,11 +19,12 @@ func _ready() -> void:
 	barrel_length = config.barrel_length
 	spread = config.spread
 	super._ready()
-	hp = config.hp
-	_prev_hp = hp
+	health.initialize(config.hp)
+	_prev_hp = health.hp
 	add_to_group("soldiers")
 	range_area.tracking_range = config.attack_range
 	hurt_area.body_entered.connect(_on_hurt_area_body_entered)
+	health.died.connect(_on_died)
 	tree_exiting.connect(GameManager.soldier_count_changed.emit)
 	GameManager.soldier_count_changed.emit()
 
@@ -34,13 +35,9 @@ func initialize(pos: Vector2, facing: float) -> void:
 	_prev_aim_angle = facing
 
 func take_damage(amount: int) -> void:
-	hp -= amount
-	if hp <= 0:
-		_die()
-		return
-	queue_redraw()
+	health.take_damage(amount)
 
-func _die() -> void:
+func _on_died() -> void:
 	GameManager.request_resource_drop(global_position)
 	queue_free()
 
@@ -55,10 +52,10 @@ func _process(delta: float) -> void:
 	var max_rotation: float = config.turn_speed * delta
 	_tick_autonomous(max_rotation)
 
-	var needs_redraw: bool = not is_equal_approx(aim_angle, _prev_aim_angle) or ammo != _prev_ammo or hp != _prev_hp
+	var needs_redraw: bool = not is_equal_approx(aim_angle, _prev_aim_angle) or ammo != _prev_ammo or health.hp != _prev_hp
 	_prev_aim_angle = aim_angle
 	_prev_ammo = ammo
-	_prev_hp = hp
+	_prev_hp = health.hp
 	if needs_redraw:
 		queue_redraw()
 
@@ -108,7 +105,7 @@ func _draw() -> void:
 	var barrel_end: Vector2 = Vector2.from_angle(aim_angle) * config.barrel_length
 	draw_line(Vector2.ZERO, barrel_end, body_color, 3.0)
 
-	var hp_ratio: float = float(hp) / float(config.hp)
+	var hp_ratio: float = health.get_ratio()
 	var hp_color: Color = Color(0.0, 1.0, 0.0) if hp_ratio > 0.5 else (Color(1.0, 1.0, 0.0) if hp_ratio > 0.25 else Color(1.0, 0.0, 0.0))
 	DrawUtils.draw_bar(self, 0.0, -config.radius - 8.0, config.radius * 2.0, 3.0, hp_ratio, hp_color)
 

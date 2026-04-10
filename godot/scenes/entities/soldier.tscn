@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/entities/soldier.gd" id="1"]
 [ext_resource type="Resource" path="res://resources/defaults/soldier_default.tres" id="2"]
 [ext_resource type="Script" path="res://scripts/components/tracking_area.gd" id="3"]
+[ext_resource type="Script" path="res://scripts/components/health_component.gd" id="4"]
 
 [sub_resource type="CircleShape2D" id="range_shape"]
 resource_local_to_scene = true
@@ -14,6 +15,9 @@ radius = 22.0
 [node name="Soldier" type="Node2D"]
 script = ExtResource("1")
 config = ExtResource("2")
+
+[node name="HealthComponent" type="Node" parent="."]
+script = ExtResource("4")
 
 [node name="RangeArea" type="Area2D" parent="."]
 collision_layer = 128
