@@ -41,6 +41,7 @@ game.addResource('playerState', {
 	selectedSummon: 'frigate',
 	overrideAimAngle: 0,
 	pendingHeading: 0,
+	headingPreviewActive: false,
 });
 
 game.addResource('hudRefs', {

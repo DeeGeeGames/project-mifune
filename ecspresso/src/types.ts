@@ -127,6 +127,7 @@ export interface PlayerState {
 	selectedSummon: ShipClass;
 	overrideAimAngle: number;
 	pendingHeading: number;
+	headingPreviewActive: boolean;
 }
 
 export interface WaveState {

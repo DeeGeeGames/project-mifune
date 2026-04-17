@@ -37,12 +37,17 @@ export const createControlPlugin = () => definePlugin({
 
 				const gateHeld = input.actions.isActive('aimGate');
 				const gateReleased = input.actions.justDeactivated('aimGate');
+				const lockPressed = input.actions.justActivated('aimGate');
 
 				for (const { components: { ship, localTransform3D } } of queries.commandVessel) {
-					if (gateReleased) {
+					const stickActive = hasGamepad && isStickActive(gp, GP_AXIS_LS_X, GP_AXIS_LS_Y);
+					const shouldTrack = hasGamepad ? stickActive : gateHeld;
+					const shouldCommit = hasGamepad ? lockPressed : gateReleased;
+
+					if (shouldCommit) {
 						ship.headingTarget = playerState.pendingHeading;
 					}
-					playerState.pendingHeading = gateHeld
+					playerState.pendingHeading = shouldTrack
 						? computePendingHeading(
 							playerState.pendingHeading,
 							localTransform3D.x,
@@ -52,6 +57,7 @@ export const createControlPlugin = () => definePlugin({
 							gp,
 						)
 						: ship.headingTarget;
+					playerState.headingPreviewActive = shouldTrack;
 					ship.throttle = updateThrust(ship.throttle, input, gp, hasGamepad, dt);
 				}
 
@@ -98,6 +104,17 @@ function stepSummon(current: ShipClass, direction: 1 | -1): ShipClass {
 	const idx = SUMMON_ORDER.indexOf(current);
 	const next = (idx + direction + SUMMON_ORDER.length) % SUMMON_ORDER.length;
 	return SUMMON_ORDER[next] ?? 'corvette';
+}
+
+function isStickActive(
+	gp: { axis(i: number): number } | undefined,
+	axisX: number,
+	axisY: number,
+): boolean {
+	if (!gp) return false;
+	const x = gp.axis(axisX);
+	const y = gp.axis(axisY);
+	return Math.sqrt(x * x + y * y) > STICK_ACTIVE_THRESHOLD;
 }
 
 function computePendingHeading(

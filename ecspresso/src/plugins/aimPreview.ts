@@ -79,12 +79,12 @@ export const createAimPreviewPlugin = () => definePlugin({
 			.addQuery('commandVessel', {
 				with: ['ship', 'commandVessel', 'localTransform3D'],
 			})
-			.withResources(['inputState', 'playerState'])
-			.setProcess(({ queries, resources: { inputState, playerState } }) => {
-				const gateHeld = inputState.actions.isActive('aimGate');
-				line.visible = gateHeld;
-				fill.visible = gateHeld;
-				if (!gateHeld) return;
+			.withResources(['playerState'])
+			.setProcess(({ queries, resources: { playerState } }) => {
+				const preview = playerState.headingPreviewActive;
+				line.visible = preview;
+				fill.visible = preview;
+				if (!preview) return;
 
 				const vessel = queries.commandVessel[0];
 				if (!vessel) return;
