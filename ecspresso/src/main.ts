@@ -48,6 +48,7 @@ game.addResource('hudRefs', {
 	rosterEl: requireEl('hud-roster'),
 	menuEl: requireEl('hud-menu'),
 	modeEl: requireEl('hud-mode'),
+	thrustBarFillEl: requireEl('hud-thrust-fill'),
 });
 
 await game.initialize();

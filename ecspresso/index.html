@@ -29,6 +29,31 @@
 		#hud-roster { top: 60px; left: 12px; min-width: 140px; }
 		#hud-menu { bottom: 12px; left: 12px; }
 		#hud-help { bottom: 12px; right: 12px; color: #98a7be; }
+		#hud-thrust { top: 48px; right: 12px; min-width: 160px; }
+		.thrust-label { font-size: 10px; letter-spacing: 0.1em; color: #98a7be; margin-bottom: 5px; text-align: center; }
+		.thrust-track {
+			position: relative;
+			width: 160px;
+			height: 8px;
+			background: rgba(150, 180, 220, 0.12);
+			border-radius: 4px;
+			overflow: hidden;
+		}
+		.thrust-center {
+			position: absolute;
+			left: 50%;
+			top: 0;
+			width: 1px;
+			height: 100%;
+			background: rgba(150, 180, 220, 0.4);
+		}
+		.thrust-fill {
+			position: absolute;
+			top: 0;
+			height: 100%;
+			border-radius: 2px;
+			transition: left 0.05s, width 0.05s;
+		}
 	</style>
 </head>
 <body>
@@ -37,6 +62,13 @@
 	<div id="hud-mode" class="hud-panel autonomous">AUTO</div>
 	<div id="hud-roster" class="hud-panel"></div>
 	<div id="hud-menu" class="hud-panel"></div>
+	<div id="hud-thrust" class="hud-panel">
+		<div class="thrust-label">THRUST</div>
+		<div class="thrust-track">
+			<div class="thrust-center"></div>
+			<div id="hud-thrust-fill" class="thrust-fill"></div>
+		</div>
+	</div>
 	<div id="hud-help" class="hud-panel">Gamepad: LS heading • RT/LT thrust • RB override • Y cycle • A summon
 Keyboard: mouse heading • W/S thrust • RMB override • Tab cycle • 1-4 summon • Wheel/Q/E zoom</div>
 	<script type="module" src="/src/main.ts"></script>

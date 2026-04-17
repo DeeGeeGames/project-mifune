@@ -10,8 +10,9 @@ import {
 	ISO_AZIMUTH,
 	STICK_ACTIVE_THRESHOLD,
 	TRIGGER_DEADZONE,
+	THRUST_RATE,
 } from '../constants';
-import { bearingXZ, stickToWorldAngle } from '../math';
+import { bearingXZ, stickToWorldAngle, clamp } from '../math';
 
 const SUMMON_BY_ACTION: Record<'summon1' | 'summon2' | 'summon3' | 'summon4', ShipClass> = {
 	summon1: 'corvette',
@@ -30,7 +31,7 @@ export const createControlPlugin = () => definePlugin({
 				with: ['ship', 'commandVessel', 'localTransform3D'],
 			})
 			.withResources(['inputState', 'cursorState', 'playerState'])
-			.setProcess(({ queries, resources: { inputState: input, cursorState, playerState }, ecs }) => {
+			.setProcess(({ queries, resources: { inputState: input, cursorState, playerState }, ecs, dt }) => {
 				const gp = input.gamepads[0];
 				const hasGamepad = gp?.connected ?? false;
 
@@ -51,7 +52,7 @@ export const createControlPlugin = () => definePlugin({
 							gp,
 						)
 						: ship.headingTarget;
-					ship.throttle = computeThrottle(input, gp, hasGamepad);
+					ship.throttle = updateThrust(ship.throttle, input, gp, hasGamepad, dt);
 				}
 
 				const overrideHeld = input.actions.isActive('overrideAim');
@@ -114,21 +115,29 @@ function computePendingHeading(
 	return cursor.valid ? bearingXZ(shipX, shipZ, cursor.x, cursor.z) : current;
 }
 
-function computeThrottle(
+function applyThrustDelta(current: number, forward: number, reverse: number, dt: number): number {
+	if (forward > 0 && reverse > 0) return 0;
+	return clamp(current + (forward - reverse) * THRUST_RATE * dt, -1, 1);
+}
+
+function updateThrust(
+	current: number,
 	input: { actions: { isActive(a: 'fwd' | 'rev'): boolean } },
 	gp: { buttonValue(b: number): number; connected: boolean } | undefined,
 	hasGamepad: boolean,
+	dt: number,
 ): number {
 	if (hasGamepad && gp) {
 		const rt = gp.buttonValue(GP_BUTTON_RT);
 		const lt = gp.buttonValue(GP_BUTTON_LT);
-		const forward = rt > TRIGGER_DEADZONE ? rt : 0;
-		const reverse = lt > TRIGGER_DEADZONE ? lt : 0;
-		if (forward > 0 || reverse > 0) return forward - reverse;
+		return applyThrustDelta(current, rt > TRIGGER_DEADZONE ? rt : 0, lt > TRIGGER_DEADZONE ? lt : 0, dt);
 	}
-	const kbForward = input.actions.isActive('fwd') ? 1 : 0;
-	const kbReverse = input.actions.isActive('rev') ? 1 : 0;
-	return kbForward - kbReverse;
+	return applyThrustDelta(
+		current,
+		input.actions.isActive('fwd') ? 1 : 0,
+		input.actions.isActive('rev') ? 1 : 0,
+		dt,
+	);
 }
 
 function computeOverrideAim(

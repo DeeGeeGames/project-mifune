@@ -30,6 +30,19 @@ export const createHudPlugin = () => definePlugin({
 					return `${selected} [${idx + 1}] ${cls} — ${spec.cost}${suffix}`;
 				});
 				hudRefs.menuEl.textContent = menuLines.join('\n');
+
+				const commandVessel = queries.ships.find((e) => e.id === playerState.commandVesselId);
+				const throttle = commandVessel?.components.ship.throttle ?? 0;
+				const fill = hudRefs.thrustBarFillEl;
+				if (throttle >= 0) {
+					fill.style.left = '50%';
+					fill.style.width = `${throttle * 50}%`;
+					fill.style.background = '#7fb2ff';
+				} else {
+					fill.style.left = `${50 + throttle * 50}%`;
+					fill.style.width = `${Math.abs(throttle) * 50}%`;
+					fill.style.background = '#ff6a6a';
+				}
 			});
 	},
 });

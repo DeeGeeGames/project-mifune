@@ -32,6 +32,7 @@ export const GP_AXIS_RS_X = 2;
 export const GP_AXIS_RS_Y = 3;
 
 export const SHIP_DRAG = 0.6;
+export const THRUST_RATE = 1.0;
 
 export const TURRET_CONE_HALF = Math.PI / 6;
 export const TURRET_TURN_RATE = Math.PI / 2;

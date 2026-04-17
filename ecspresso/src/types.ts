@@ -146,6 +146,7 @@ export interface HudRefs {
 	rosterEl: HTMLElement;
 	menuEl: HTMLElement;
 	modeEl: HTMLElement;
+	thrustBarFillEl: HTMLElement;
 }
 
 export interface ShipSummonedEvent {

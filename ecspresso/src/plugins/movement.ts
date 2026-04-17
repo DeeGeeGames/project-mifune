@@ -24,8 +24,10 @@ export const createMovementPlugin = () => definePlugin({
 					ship.vz *= damping;
 
 					const speed = Math.sqrt(ship.vx * ship.vx + ship.vz * ship.vz);
-					if (speed > ship.maxSpeed) {
-						const s = ship.maxSpeed / speed;
+					const forwardSpeed = ship.vx * fwd.x + ship.vz * fwd.z;
+					const maxAllowedSpeed = forwardSpeed >= 0 ? ship.maxSpeed : ship.maxSpeed * 0.5;
+					if (speed > maxAllowedSpeed) {
+						const s = maxAllowedSpeed / speed;
 						ship.vx *= s;
 						ship.vz *= s;
 					}
