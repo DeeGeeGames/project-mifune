@@ -83,6 +83,8 @@ const corvette = game.spawn({
 		vx: 0,
 		vz: 0,
 		turnRate: spec.turnRate,
+		turnSpeed: 0,
+		turnAccel: spec.turnAccel,
 		accel: spec.accel,
 		maxSpeed: spec.maxSpeed,
 		drag: spec.drag,

@@ -72,6 +72,8 @@ export interface ShipComponent {
 	vx: number;
 	vz: number;
 	turnRate: number;
+	turnSpeed: number;
+	turnAccel: number;
 	accel: number;
 	maxSpeed: number;
 	drag: number;

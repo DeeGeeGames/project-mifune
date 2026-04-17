@@ -1,5 +1,5 @@
 import { definePlugin } from '../types';
-import { stepAngle, forwardXZ } from '../math';
+import { normalizeAngle, forwardXZ, clamp } from '../math';
 
 export const createMovementPlugin = () => definePlugin({
 	id: 'movement',
@@ -13,7 +13,12 @@ export const createMovementPlugin = () => definePlugin({
 			})
 			.setProcess(({ queries, dt, ecs }) => {
 				for (const { id, components: { ship, localTransform3D } } of queries.ships) {
-					ship.heading = stepAngle(ship.heading, ship.headingTarget, ship.turnRate * dt);
+					const diff = normalizeAngle(ship.headingTarget - ship.heading);
+					const brakingSpeed = Math.sqrt(2 * ship.turnAccel * Math.abs(diff));
+					const desiredTurnSpeed = Math.sign(diff) * Math.min(ship.turnRate, brakingSpeed);
+					const turnDelta = desiredTurnSpeed - ship.turnSpeed;
+					ship.turnSpeed += clamp(turnDelta, -ship.turnAccel * dt, ship.turnAccel * dt);
+					ship.heading = normalizeAngle(ship.heading + ship.turnSpeed * dt);
 
 					const fwd = forwardXZ(ship.heading);
 					ship.vx += fwd.x * ship.accel * ship.throttle * dt;

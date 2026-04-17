@@ -21,6 +21,7 @@ export interface ShipSpec {
 	readonly hullHeight: number;
 	readonly color: number;
 	readonly turnRate: number;
+	readonly turnAccel: number;
 	readonly accel: number;
 	readonly maxSpeed: number;
 	readonly drag: number;
@@ -39,8 +40,9 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hullWidth: 0.9,
 		hullHeight: 0.45,
 		color: 0x33ccee,
-		turnRate: 1.2,
-		accel: 6,
+		turnRate: 0.6,
+		turnAccel: 0.8,
+		accel: 3,
 		maxSpeed: 8,
 		drag: 0.6,
 		hp: 10,
@@ -54,8 +56,9 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hullWidth: 1.1,
 		hullHeight: 0.5,
 		color: 0x55cc55,
-		turnRate: 0.9,
-		accel: 5,
+		turnRate: 0.45,
+		turnAccel: 0.5,
+		accel: 2.5,
 		maxSpeed: 7,
 		drag: 0.6,
 		hp: 20,
@@ -70,8 +73,9 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hullWidth: 1.3,
 		hullHeight: 0.55,
 		color: 0xff9933,
-		turnRate: 0.7,
-		accel: 4,
+		turnRate: 0.35,
+		turnAccel: 0.3,
+		accel: 2,
 		maxSpeed: 6,
 		drag: 0.6,
 		hp: 35,
@@ -87,8 +91,9 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hullWidth: 1.6,
 		hullHeight: 0.7,
 		color: 0xdd3344,
-		turnRate: 0.5,
-		accel: 3,
+		turnRate: 0.25,
+		turnAccel: 0.2,
+		accel: 1.5,
 		maxSpeed: 5,
 		drag: 0.6,
 		hp: 60,
