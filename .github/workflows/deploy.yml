@@ -40,6 +40,25 @@ jobs:
           path: index.html
           if-no-files-found: error
 
+  build-ecspresso:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+
+      - run: bun install --frozen-lockfile
+        working-directory: ecspresso
+
+      - run: bun run build
+        working-directory: ecspresso
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ecspresso-build
+          path: ecspresso/dist
+          if-no-files-found: error
+
   build-godot:
     runs-on: ubuntu-latest
     steps:
@@ -64,7 +83,7 @@ jobs:
           if-no-files-found: error
 
   deploy:
-    needs: [build-phaser, build-godot]
+    needs: [build-phaser, build-ecspresso, build-godot]
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -79,6 +98,11 @@ jobs:
         with:
           name: phaser-build
           path: site/phaser
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: ecspresso-build
+          path: site/ecspresso
 
       - uses: actions/download-artifact@v8
         with:
