@@ -1,0 +1,19 @@
+{
+	"name": "horde-defense-ecspresso",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "vite build",
+		"check:types": "tsc --noEmit"
+	},
+	"dependencies": {
+		"ecspresso": "file:../../ecspresso",
+		"three": "^0.184.0"
+	},
+	"devDependencies": {
+		"@types/three": "^0.184.0",
+		"typescript": "^6.0.3",
+		"vite": "^8.0.8"
+	}
+}

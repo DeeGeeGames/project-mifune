@@ -1,0 +1,61 @@
+# ECSpresso Implementation
+
+Isometric ship-fleet horde defense prototype. ECSpresso + three.js (via renderer3D) + Vite + Bun.
+
+Dependency: `file:../../ecspresso`. Pinned to `three@0.184.0` / `@types/three@0.184.0` to match the upstream ecspresso's resolved versions — mismatched patch versions produce duplicate-module type errors.
+
+## Validation
+
+```sh
+bun run check:types
+bun run dev
+```
+
+## Architecture
+
+Plugin-factory pattern. All game-wide component / event / resource types are declared on the builder chain in `src/types.ts`. Feature plugins are created via `builder.pluginFactory()` (re-exported as `definePlugin`) and consume the plain object form: `definePlugin({ id, install })`.
+
+Ships / enemies / projectiles are kinematic — movement is integrated manually inside feature plugins. We do **not** use `createPhysics3DPlugin`; collisions for bullets-vs-enemies are simple O(n·m) XZ circle checks in `combat.ts`.
+
+Coordinate conventions:
+- Ground plane is XZ, +Y is up.
+- `ship.heading = 0` points in +Z (bow forward). `heading` is written into `localTransform3D.ry` each frame.
+- Forward vector: `{ x: sin(heading), z: cos(heading) }`.
+
+## File Map
+
+- `src/types.ts` — builder chain, `GameAction` union, action map, all component/event/resource types, `definePlugin`, `World`
+- `src/constants.ts` — all tunable numbers (ship specs, camera, turret, wave, summon costs, gamepad button indices)
+- `src/math.ts` — pure helpers (`normalizeAngle`, `stepAngle`, `rotateY`, `bearingXZ`, `forwardXZ`, `leadTarget`)
+- `src/ships.ts` — `SHIP_SPECS` table per class + `createShipGroup` / `enemyMesh` / `projectileMesh` / `pickupMesh` factories
+- `src/main.ts` — install plugins, spawn initial corvette, add ground + lights, attach camera follow
+- `src/plugins/` — feature plugins:
+  - `cursor.ts` — mouse → ground-plane raycast; wheel → ortho zoom (TODO-noted shim until camera3D gains wheel-zoom for ortho)
+  - `control.ts` — gamepad + keyboard/mouse → command-vessel `headingTarget` / `throttle`, override mode, summon/cycle events
+  - `movement.ts` — per-ship rotation + thrust + drag + position integration
+  - `formation.ts` — non-flagship ships arrive-steer toward their circular slot
+  - `turret.ts` — aim (nearest in cone with lead-targeting, or player override) + fire (cooldown, spawn projectile)
+  - `combat.ts` — projectile integration, hit tests, enemy death → pickup spawn
+  - `enemy.ts` — homing toward the command vessel at fixed speed
+  - `waves.ts` — interval-driven enemy spawns on a ring outside view, rate ramps over time
+  - `pickups.ts` — magnet toward command vessel; collect on contact
+  - `summon.ts` — listen for `summon:request`, deduct cost, spawn ship off-screen with `summonAnim`
+  - `commandSwap.ts` — cycle `commandVessel` marker + formation slots; retarget camera follow
+  - `hud.ts` — DOM overlay updates each render phase
+  - `aimPreview.ts` — aim-gate arc preview (see Controls)
+
+## Key Patterns
+
+- Export `builder` (pre-`.build()`) from `types.ts` so feature plugins use `definePlugin({id, install})`.
+- Plugin creators are `createXPlugin() => definePlugin({...})` — called from `main.ts`.
+- Ship turrets are separate entities with a `turret` component referencing their `ownerShipId`; `turret.mount` holds the three.js `Group` child so the aim system can rotate it in ship-local space.
+- Heading is stored on `ship.heading` (world radians) and mirrored into `localTransform3D.ry`.
+- Velocity lives on `ship.vx`/`vz` for ships and on `projectile.vx`/`vz` for bullets — no physics3D.
+
+## Controls
+
+Heading is gated: the ship only turns when the aim-gate is held. While held, stick/cursor drives `playerState.pendingHeading` (visualized as a dashed arc); release commits it to `ship.headingTarget`.
+
+**Gamepad (primary):** LB held = aim gate (LS sets pending heading) · RT = forward · LT = reverse · RB held = override fire (RS aims) · A = summon selected · Y = cycle vessel · D-pad ◀▶ = cycle summon selection.
+
+**Keyboard / mouse:** Space held = aim gate (mouse sets pending heading) · W/S = thrust · Right-mouse held = override fire · 1-4 = summon by class · Tab = cycle vessel · Mouse wheel / Q-E = zoom.

@@ -6,10 +6,11 @@ Monorepo with parallel implementations of a 2D horde defense game. See `docs/des
 
 - `phaser/` — Phaser 3 + TypeScript + Vite + Bun
 - `godot/` — Godot 4 + GDScript
+- `ecspresso/` — ECSpresso ECS + PixiJS + TypeScript + Vite + Bun
 
 Each directory has its own `CLAUDE.md` with implementation-specific guidance.
 
-Unless otherwise stated, assume changes are referring to `godot/` project
+Unless otherwise stated, assume changes are referring to `ecspresso/` project
 
 ## CLAUDE.md Maintenance
 
