@@ -195,6 +195,7 @@ export const builder = ECSpresso.create()
 		maxDistance: CAMERA_DISTANCE,
 		target: { x: 0, y: 0, z: 0 },
 		follow: { smoothing: CAMERA_FOLLOW_SMOOTHING },
+		enableOrbit: false,
 	}))
 	.withComponentTypes<
 		Renderer3DComponentTypes &
