@@ -1,14 +1,14 @@
 # ECSpresso Implementation
 
-Isometric ship-fleet horde defense prototype. ECSpresso + three.js (via renderer3D) + Vite + Bun.
+Isometric ship-fleet horde defense prototype. ECSpresso + three.js (via renderer3D) + Vite + Node.
 
 Dependency: `file:../../ecspresso`. Pinned to `three@0.184.0` / `@types/three@0.184.0` to match the upstream ecspresso's resolved versions — mismatched patch versions produce duplicate-module type errors.
 
 ## Validation
 
 ```sh
-bun run check:types
-bun run dev
+npm run check:types
+npm run dev
 ```
 
 ## Architecture

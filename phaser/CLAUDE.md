@@ -1,11 +1,11 @@
 # Phaser Implementation
 
-Phaser 3 + TypeScript + Vite + Bun.
+Phaser 3 + TypeScript + Vite + Node.
 
 ## Validation
 
 ```sh
-bun run check        # or check:types
+npm run check        # or check:types
 ```
 
 ## Architecture

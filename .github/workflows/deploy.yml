@@ -20,12 +20,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v6
 
-      - run: bun install --frozen-lockfile
+      - run: npm ci
         working-directory: phaser
 
-      - run: bun run build
+      - run: npm run build
         working-directory: phaser
 
       - uses: actions/upload-artifact@v7
@@ -45,12 +45,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v6
 
-      - run: bun install --frozen-lockfile
+      - run: npm ci
         working-directory: ecspresso
 
-      - run: bun run build
+      - run: npm run build
         working-directory: ecspresso
 
       - uses: actions/upload-artifact@v7
@@ -109,7 +109,7 @@ jobs:
           name: godot-build
           path: site/godot
 
-      - uses: actions/upload-pages-artifact@v4
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
 
