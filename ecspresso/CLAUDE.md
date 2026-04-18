@@ -28,7 +28,8 @@ Coordinate conventions:
 - `src/constants.ts` — all tunable numbers (ship specs, camera, turret, wave, summon costs, gamepad button indices)
 - `src/math.ts` — pure helpers (`normalizeAngle`, `stepAngle`, `rotateY`, `bearingXZ`, `forwardXZ`, `leadTarget`)
 - `src/kinematic.ts` — shared `integrateKinematicXZ(state, transform, dt)` used by both `movement.ts` (ships) and `enemy.ts` (enemies)
-- `src/ships.ts` — `SHIP_SPECS` table per class + `createShipGroup` / `enemyShipGroup` / `projectileMesh` / `pickupMesh` factories
+- `src/ships.ts` — `SHIP_SPECS` table per class + `createShipGroup` / `enemyShipGroup(kind)` / `projectileMesh` / `pickupMesh` factories
+- `src/enemies.ts` — `EnemyKind` union (`pursuer | interceptor | flanker | orbiter`), `EnemyBehavior` discriminated union, `ENEMY_SPECS` stat/color table, `makeBehavior(kind)` factory
 - `src/formation.ts` — pure helpers: `slotLocalXZ(slotIndex)` maps flat slot indices to a V formation (row 0 = front tip, row 1 = command row, each next row +2 slots); `reassignFormationSlots` repacks slots from `ownedShipIds` order.
 - `src/main.ts` — install plugins, spawn initial corvette, add ground + lights, attach camera follow
 - `src/plugins/` — feature plugins:
@@ -38,7 +39,7 @@ Coordinate conventions:
   - `formation.ts` — non-flagship ships arrive-steer toward their V-formation slot (from `slotLocalXZ`)
   - `turret.ts` — aim (nearest in cone with lead-targeting, or player override) + fire (cooldown, spawn projectile)
   - `combat.ts` — projectile integration, hit tests, enemy death → pickup spawn
-  - `enemy.ts` — ship-like kinematics (shared integrator); AI sets `headingTarget` toward flagship + full throttle to ram
+  - `enemy.ts` — ship-like kinematics (shared integrator); per-`kind` AI dispatch (pursuer = tail-chase, interceptor = lead via `leadTarget`, flanker = lead + perpendicular offset, orbiter = ring-hold with periodic strikes)
   - `waves.ts` — interval-driven enemy spawns on a ring outside view, rate ramps over time
   - `pickups.ts` — magnet toward command vessel; collect on contact
   - `summon.ts` — listen for `summon:request`, deduct cost, spawn ship off-screen with `summonAnim`

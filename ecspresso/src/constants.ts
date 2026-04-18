@@ -43,19 +43,18 @@ export const BULLET_SPEED = 30;
 export const BULLET_LIFE_SEC = 1.5;
 export const BULLET_DAMAGE = 1;
 
-export const ENEMY_HP = 2;
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;
-
-export const ENEMY_TURN_RATE = 0.45;
-export const ENEMY_TURN_ACCEL = 0.6;
-export const ENEMY_ACCEL = 1.2;
-export const ENEMY_MAX_SPEED = 3.5;
-export const ENEMY_DRAG = 0.6;
 
 export const ENEMY_HULL_LENGTH = 1.3;
 export const ENEMY_HULL_WIDTH = 0.5;
 export const ENEMY_HULL_HEIGHT = 0.3;
+
+export const FLANK_OFFSET = 4;
+export const ORBIT_RADIUS = 12;
+export const ORBIT_BAND = 1.5;
+export const ORBIT_STRIKE_INTERVAL_SEC = 4;
+export const ORBIT_STRIKE_DURATION_SEC = 1.2;
 
 export const PROJECTILE_RADIUS = 0.25;
 

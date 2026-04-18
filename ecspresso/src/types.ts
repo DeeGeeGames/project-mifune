@@ -27,6 +27,7 @@ import {
 import type { ShipClass } from './ships';
 import type { Group } from 'three';
 import type { KinematicState } from './kinematic';
+import type { EnemyBehavior } from './enemies';
 
 export type GameAction =
 	| 'fwd'
@@ -90,6 +91,7 @@ export interface ProjectileComponent {
 
 export interface EnemyComponent extends KinematicState {
 	hp: number;
+	behavior: EnemyBehavior;
 }
 
 export interface PickupComponent {

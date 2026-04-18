@@ -2,19 +2,16 @@ import { definePlugin } from '../types';
 import { enemyShipGroup } from '../ships';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { bearingXZ } from '../math';
+import { ENEMY_KINDS, ENEMY_SPECS, makeBehavior } from '../enemies';
 import {
-	ENEMY_HP,
-	ENEMY_TURN_RATE,
-	ENEMY_TURN_ACCEL,
-	ENEMY_ACCEL,
-	ENEMY_MAX_SPEED,
-	ENEMY_DRAG,
 	ENEMY_SPAWN_RING_PAD,
 	CAMERA_VIEW_SIZE,
 	WAVE_MIN_INTERVAL_MS,
 	WAVE_RAMP_SEC,
 	WAVE_START_INTERVAL_MS,
 } from '../constants';
+
+const pickKind = () => ENEMY_KINDS[Math.floor(Math.random() * ENEMY_KINDS.length)] ?? 'pursuer';
 
 export const createWavesPlugin = () => definePlugin({
 	id: 'waves',
@@ -51,25 +48,29 @@ export const createWavesPlugin = () => definePlugin({
 				const spawnZ = ft.z + Math.cos(angle) * radius;
 				const spawnHeading = bearingXZ(spawnX, spawnZ, ft.x, ft.z);
 
+				const kind = pickKind();
+				const spec = ENEMY_SPECS[kind];
+
 				ecs.spawn({
 					...createGroupComponents(
-						enemyShipGroup(),
+						enemyShipGroup(kind),
 						{ x: spawnX, y: 0, z: spawnZ },
 						{ rotation: { y: spawnHeading } },
 					),
 					enemy: {
-						hp: ENEMY_HP,
+						hp: spec.hp,
 						heading: spawnHeading,
 						headingTarget: spawnHeading,
 						throttle: 0,
 						vx: 0,
 						vz: 0,
-						turnRate: ENEMY_TURN_RATE,
+						turnRate: spec.turnRate,
 						turnSpeed: 0,
-						turnAccel: ENEMY_TURN_ACCEL,
-						accel: ENEMY_ACCEL,
-						maxSpeed: ENEMY_MAX_SPEED,
-						drag: ENEMY_DRAG,
+						turnAccel: spec.turnAccel,
+						accel: spec.accel,
+						maxSpeed: spec.maxSpeed,
+						drag: spec.drag,
+						behavior: makeBehavior(kind),
 					},
 				});
 			});
