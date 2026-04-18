@@ -61,4 +61,4 @@ Heading is gated: the ship only turns when the aim-gate is held. While held, sti
 
 **Gamepad (primary):** LB held = aim gate (LS sets pending heading) · RT = forward · LT = reverse · RB held = override fire (RS aims) · A = summon selected · Y = cycle vessel · D-pad ◀▶ = cycle summon selection.
 
-**Keyboard / mouse:** Space held = aim gate (mouse sets pending heading) · W/S = thrust · Right-mouse held = override fire · 1-4 = summon by class · Tab = cycle vessel · Mouse wheel / Q-E = zoom.
+**Keyboard / mouse:** Left-mouse held = aim gate (mouse sets pending heading) · W/S = thrust · Right-mouse held = override fire · 1-4 = summon by class · Tab = cycle vessel · Mouse wheel / Q-E = zoom.

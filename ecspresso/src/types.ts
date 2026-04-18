@@ -57,7 +57,7 @@ const actions: ActionMap<GameAction> = {
 	summon4:       { keys: ['4'] },
 	confirmSummon: { gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
 	overrideAim:   { pointerButtons: [2], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_RB) },
-	aimGate:       { keys: [' '],         gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_LB) },
+	aimGate:       { pointerButtons: [0], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_LB) },
 	zoomIn:        { keys: ['e'] },
 	zoomOut:       { keys: ['q'] },
 	menuUp:        { keys: ['ArrowUp'],    gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_UP) },

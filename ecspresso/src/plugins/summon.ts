@@ -1,8 +1,8 @@
 import { definePlugin } from '../types';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { SHIP_SPECS, createShipGroup, turretFromMount } from '../ships';
-import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING } from '../constants';
-import { bearingXZ, rotateY } from '../math';
+import { SUMMON_ANIM_SEC } from '../constants';
+import { rotateY } from '../math';
 import { slotLocalXZ } from '../formation';
 
 export const createSummonPlugin = () => definePlugin({
@@ -16,23 +16,26 @@ export const createSummonPlugin = () => definePlugin({
 					if (playerState.resources < spec.cost) return;
 
 					const flagshipTransform = ecs.getComponent(playerState.commandVesselId, 'localTransform3D');
-					if (!flagshipTransform) return;
+					const flagshipShip = ecs.getComponent(playerState.commandVesselId, 'ship');
+					if (!flagshipTransform || !flagshipShip) return;
 
 					playerState.resources -= spec.cost;
 
 					const slotIndex = playerState.ownedShipIds.length - 1;
-					const angleFromFlagship = Math.random() * Math.PI * 2;
-					const originX = flagshipTransform.x + Math.sin(angleFromFlagship) * SUMMON_OFFSCREEN_RING;
-					const originZ = flagshipTransform.z + Math.cos(angleFromFlagship) * SUMMON_OFFSCREEN_RING;
+					const slotLocal = slotLocalXZ(slotIndex);
+					const slotWorld = rotateY(slotLocal, -flagshipShip.heading);
+					const originX = flagshipTransform.x + slotWorld.x;
+					const originZ = flagshipTransform.z + slotWorld.z;
+					const initialHeading = flagshipShip.heading;
 
 					const { group, turretMounts } = createShipGroup(shipClass);
 
 					const entity = ecs.spawn({
-						...createGroupComponents(group, { x: originX, y: 0, z: originZ }, { rotation: { y: 0 } }),
+						...createGroupComponents(group, { x: originX, y: 0, z: originZ }, { rotation: { y: initialHeading } }),
 						ship: {
 							class: shipClass,
-							heading: 0,
-							headingTarget: 0,
+							heading: initialHeading,
+							headingTarget: initialHeading,
 							throttle: 0,
 							vx: 0,
 							vz: 0,
@@ -85,7 +88,7 @@ export const createSummonPlugin = () => definePlugin({
 					const t = easeOutCubic(summonAnim.progress);
 					localTransform3D.x = summonAnim.originX + (targetX - summonAnim.originX) * t;
 					localTransform3D.z = summonAnim.originZ + (targetZ - summonAnim.originZ) * t;
-					ship.heading = bearingXZ(localTransform3D.x, localTransform3D.z, targetX, targetZ);
+					ship.heading = flagshipShip.heading;
 					ship.headingTarget = ship.heading;
 					localTransform3D.ry = ship.heading;
 					ecs.markChanged(id, 'localTransform3D');
