@@ -1,6 +1,6 @@
 import { definePlugin } from '../types';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
-import { SHIP_SPECS, createShipGroup } from '../ships';
+import { SHIP_SPECS, createShipGroup, turretFromMount } from '../ships';
 import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING } from '../constants';
 import { bearingXZ, rotateY } from '../math';
 import { slotLocalXZ } from '../formation';
@@ -53,18 +53,7 @@ export const createSummonPlugin = () => definePlugin({
 					spec.turrets.forEach((mountSpec, idx) => {
 						const mount = turretMounts[idx];
 						if (!mount) return;
-						ecs.spawn({
-							turret: {
-								ownerShipId: entity.id,
-								mountX: mountSpec.x,
-								mountZ: mountSpec.z,
-								baseAngle: mountSpec.baseAngle,
-								aimAngle: mountSpec.baseAngle,
-								lastFiredAt: 0,
-								hasTarget: false,
-								mount,
-							},
-						});
+						ecs.spawn({ turret: turretFromMount(entity.id, mountSpec, mount) });
 					});
 
 					ecs.eventBus.publish('ship:summoned', { entityId: entity.id, shipClass });

@@ -1,7 +1,7 @@
 import { AmbientLight, DirectionalLight, Mesh, PlaneGeometry, MeshStandardMaterial, GridHelper } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder } from './types';
-import { SHIP_SPECS, createShipGroup } from './ships';
+import { SHIP_SPECS, createShipGroup, turretFromMount } from './ships';
 import { GROUND_SIZE } from './constants';
 import { createCursorPlugin } from './plugins/cursor';
 import { createControlPlugin } from './plugins/control';
@@ -96,18 +96,7 @@ const corvette = game.spawn({
 spec.turrets.forEach((mountSpec, idx) => {
 	const mount = turretMounts[idx];
 	if (!mount) return;
-	game.spawn({
-		turret: {
-			ownerShipId: corvette.id,
-			mountX: mountSpec.x,
-			mountZ: mountSpec.z,
-			baseAngle: mountSpec.baseAngle,
-			aimAngle: mountSpec.baseAngle,
-			lastFiredAt: 0,
-			hasTarget: false,
-			mount,
-		},
-	});
+	game.spawn({ turret: turretFromMount(corvette.id, mountSpec, mount) });
 });
 
 const playerState = game.getResource('playerState');

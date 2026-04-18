@@ -77,6 +77,9 @@ export interface TurretComponent {
 	mountZ: number;
 	baseAngle: number;
 	aimAngle: number;
+	coneHalf: number;
+	fireIntervalMs: number;
+	damage: number;
 	lastFiredAt: number;
 	hasTarget: boolean;
 	mount: Group;

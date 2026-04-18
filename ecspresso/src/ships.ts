@@ -6,7 +6,7 @@ import {
 	CylinderGeometry,
 	MeshStandardMaterial,
 } from 'three';
-import { ENEMY_HULL_LENGTH, ENEMY_HULL_WIDTH, ENEMY_HULL_HEIGHT } from './constants';
+import { ENEMY_HULL_LENGTH, ENEMY_HULL_WIDTH, ENEMY_HULL_HEIGHT, TURRET_CONE_HALF, TURRET_FIRE_INTERVAL_MS, BULLET_DAMAGE } from './constants';
 import { ENEMY_SPECS, type EnemyKind } from './enemies';
 
 export type ShipClass = 'corvette' | 'frigate' | 'destroyer' | 'dreadnought';
@@ -15,6 +15,9 @@ export interface TurretMount {
 	readonly x: number;
 	readonly z: number;
 	readonly baseAngle: number;
+	readonly coneHalf?: number;
+	readonly fireIntervalMs?: number;
+	readonly damage?: number;
 }
 
 export interface ShipSpec {
@@ -35,6 +38,8 @@ export interface ShipSpec {
 const FRONT = 0;
 const PORT = -Math.PI / 2;
 const STARBOARD = Math.PI / 2;
+const PORT_FORE = -Math.PI / 4;
+const STARBOARD_FORE = Math.PI / 4;
 
 export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 	corvette: {
@@ -50,7 +55,8 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hp: 10,
 		cost: 0,
 		turrets: [
-			{ x: 0, z: 0.7, baseAngle: FRONT },
+			{ x: -0.35, z: -0.65, baseAngle: PORT_FORE, coneHalf: Math.PI / 4, fireIntervalMs: 1000 / 6, damage: 2 },
+			{ x: 0.35, z: -0.65, baseAngle: STARBOARD_FORE, coneHalf: Math.PI / 4, fireIntervalMs: 1000 / 6, damage: 2 },
 		],
 	},
 	frigate: {
@@ -289,6 +295,22 @@ const SHIP_DETAILS: Record<ShipClass, ShipDetailBuilder> = {
 	destroyer: addDestroyerDetails,
 	dreadnought: addDreadnoughtDetails,
 };
+
+export function turretFromMount(ownerShipId: number, mountSpec: TurretMount, mount: Group) {
+	return {
+		ownerShipId,
+		mountX: mountSpec.x,
+		mountZ: mountSpec.z,
+		baseAngle: mountSpec.baseAngle,
+		aimAngle: mountSpec.baseAngle,
+		coneHalf: mountSpec.coneHalf ?? TURRET_CONE_HALF,
+		fireIntervalMs: mountSpec.fireIntervalMs ?? TURRET_FIRE_INTERVAL_MS,
+		damage: mountSpec.damage ?? BULLET_DAMAGE,
+		lastFiredAt: 0,
+		hasTarget: false,
+		mount,
+	};
+}
 
 export function createShipGroup(shipClass: ShipClass): BuiltShip {
 	const spec = SHIP_SPECS[shipClass];

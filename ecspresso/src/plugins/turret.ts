@@ -5,9 +5,6 @@ import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import {
 	BULLET_LIFE_SEC,
 	BULLET_SPEED,
-	BULLET_DAMAGE,
-	TURRET_CONE_HALF,
-	TURRET_FIRE_INTERVAL_MS,
 	TURRET_RANGE,
 	TURRET_TURN_RATE,
 } from '../constants';
@@ -56,7 +53,7 @@ export const createTurretPlugin = () => definePlugin({
 							const d = distanceXZ(mountWorldX, mountWorldZ, et.x, et.z);
 							if (d > TURRET_RANGE) continue;
 							const ang = bearingXZ(mountWorldX, mountWorldZ, et.x, et.z);
-							if (Math.abs(angleDiff(ang, baseWorld)) > TURRET_CONE_HALF) continue;
+							if (Math.abs(angleDiff(ang, baseWorld)) > turret.coneHalf) continue;
 							if (d >= nearestDist) continue;
 							nearestDist = d;
 							nearestX = et.x;
@@ -81,7 +78,7 @@ export const createTurretPlugin = () => definePlugin({
 					}
 
 					const diff = angleDiff(targetAngle, baseWorld);
-					const clampedDiff = clamp(diff, -TURRET_CONE_HALF, TURRET_CONE_HALF);
+					const clampedDiff = clamp(diff, -turret.coneHalf, turret.coneHalf);
 					const clampedTarget = normalizeAngle(baseWorld + clampedDiff);
 					turret.aimAngle = stepAngle(turret.aimAngle, clampedTarget, TURRET_TURN_RATE * dt);
 					turret.mount.rotation.y = normalizeAngle(turret.aimAngle - ship.heading);
@@ -103,7 +100,7 @@ export const createTurretPlugin = () => definePlugin({
 					const overrideActive = playerState.controlMode === 'override' && isFlagship;
 					const shouldFire = overrideActive || turret.hasTarget;
 					if (!shouldFire) continue;
-					if (now - turret.lastFiredAt < TURRET_FIRE_INTERVAL_MS) continue;
+					if (now - turret.lastFiredAt < turret.fireIntervalMs) continue;
 
 					const ship = ecs.getComponent(turret.ownerShipId, 'ship');
 					const shipTransform = ecs.getComponent(turret.ownerShipId, 'localTransform3D');
@@ -124,7 +121,7 @@ export const createTurretPlugin = () => definePlugin({
 							vx: fwd.x * BULLET_SPEED,
 							vz: fwd.z * BULLET_SPEED,
 							life: BULLET_LIFE_SEC,
-							damage: BULLET_DAMAGE,
+							damage: turret.damage,
 						},
 					});
 
