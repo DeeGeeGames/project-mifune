@@ -34,7 +34,7 @@ const game = builder
 	.build();
 
 game.addResource('playerState', {
-	resources: 0,
+	resources: 500,
 	ownedShipIds: [],
 	commandVesselId: -1,
 	controlMode: 'autonomous',
