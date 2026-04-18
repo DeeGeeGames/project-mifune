@@ -22,7 +22,7 @@ export const ENEMY_KINDS = ['pursuer', 'interceptor', 'flanker', 'orbiter'] as c
 
 export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 	pursuer: {
-		hp: 2,
+		hp: 1,
 		color: 0xcc3344,
 		turnRate: 0.45,
 		turnAccel: 0.6,
@@ -40,7 +40,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		drag: 0.6,
 	},
 	flanker: {
-		hp: 2,
+		hp: 3,
 		color: 0xaacc33,
 		turnRate: 0.7,
 		turnAccel: 0.9,
@@ -49,7 +49,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		drag: 0.6,
 	},
 	orbiter: {
-		hp: 3,
+		hp: 5,
 		color: 0x33cccc,
 		turnRate: 0.9,
 		turnAccel: 1.0,
