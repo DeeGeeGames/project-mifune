@@ -43,8 +43,8 @@ const STARBOARD_FORE = Math.PI / 4;
 
 export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 	corvette: {
-		hullLength: 2.2,
-		hullWidth: 0.9,
+		hullLength: 6.2,
+		hullWidth: 1.45,
 		hullHeight: 0.45,
 		color: 0x33ccee,
 		turnRate: 0.3,
@@ -55,13 +55,13 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hp: 10,
 		cost: 0,
 		turrets: [
-			{ x: -0.35, z: -0.65, baseAngle: PORT_FORE, coneHalf: Math.PI / 4, fireIntervalMs: 1000 / 3, damage: 2 },
-			{ x: 0.35, z: -0.65, baseAngle: STARBOARD_FORE, coneHalf: Math.PI / 4, fireIntervalMs: 1000 / 3, damage: 2 },
+			{ x: -0.57, z: -1.83, baseAngle: PORT_FORE, coneHalf: Math.PI / 4, fireIntervalMs: 1000 / 3, damage: 2 },
+			{ x: 0.57, z: -1.83, baseAngle: STARBOARD_FORE, coneHalf: Math.PI / 4, fireIntervalMs: 1000 / 3, damage: 2 },
 		],
 	},
 	frigate: {
-		hullLength: 2.8,
-		hullWidth: 1.1,
+		hullLength: 6.8,
+		hullWidth: 1.55,
 		hullHeight: 0.5,
 		color: 0x55cc55,
 		turnRate: 0.225,
@@ -72,13 +72,13 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hp: 20,
 		cost: 100,
 		turrets: [
-			{ x: -0.55, z: 0.1, baseAngle: PORT },
-			{ x: 0.55, z: 0.1, baseAngle: STARBOARD },
+			{ x: -0.78, z: 0.24, baseAngle: PORT },
+			{ x: 0.78, z: 0.24, baseAngle: STARBOARD },
 		],
 	},
 	destroyer: {
-		hullLength: 3.4,
-		hullWidth: 1.3,
+		hullLength: 7.4,
+		hullWidth: 1.65,
 		hullHeight: 0.55,
 		color: 0xff9933,
 		turnRate: 0.175,
@@ -89,14 +89,14 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hp: 35,
 		cost: 250,
 		turrets: [
-			{ x: 0, z: 1.2, baseAngle: FRONT },
-			{ x: -0.65, z: -0.3, baseAngle: PORT },
-			{ x: 0.65, z: -0.3, baseAngle: STARBOARD },
+			{ x: 0, z: 2.61, baseAngle: FRONT },
+			{ x: -0.83, z: -0.65, baseAngle: PORT },
+			{ x: 0.83, z: -0.65, baseAngle: STARBOARD },
 		],
 	},
 	dreadnought: {
-		hullLength: 4.4,
-		hullWidth: 1.6,
+		hullLength: 8.4,
+		hullWidth: 1.8,
 		hullHeight: 0.7,
 		color: 0xdd3344,
 		turnRate: 0.125,
@@ -107,11 +107,11 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hp: 60,
 		cost: 500,
 		turrets: [
-			{ x: 0, z: 1.7, baseAngle: FRONT },
-			{ x: -0.8, z: 0.4, baseAngle: PORT },
-			{ x: 0.8, z: 0.4, baseAngle: STARBOARD },
-			{ x: -0.8, z: -0.8, baseAngle: PORT },
-			{ x: 0.8, z: -0.8, baseAngle: STARBOARD },
+			{ x: 0, z: 3.25, baseAngle: FRONT },
+			{ x: -0.90, z: 0.76, baseAngle: PORT },
+			{ x: 0.90, z: 0.76, baseAngle: STARBOARD },
+			{ x: -0.90, z: -1.53, baseAngle: PORT },
+			{ x: 0.90, z: -1.53, baseAngle: STARBOARD },
 		],
 	},
 };

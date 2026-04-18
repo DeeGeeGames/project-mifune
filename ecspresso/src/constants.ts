@@ -47,7 +47,7 @@ export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;
 
 export const ENEMY_HULL_LENGTH = 1.3;
-export const ENEMY_HULL_WIDTH = 0.5;
+export const ENEMY_HULL_WIDTH = 0.25;
 export const ENEMY_HULL_HEIGHT = 0.3;
 
 export const FLANK_OFFSET = 4;
