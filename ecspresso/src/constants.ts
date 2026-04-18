@@ -36,7 +36,7 @@ export const THRUST_RATE = 1.0;
 
 export const TURRET_CONE_HALF = Math.PI / 6;
 export const TURRET_TURN_RATE = Math.PI / 2;
-export const TURRET_FIRE_INTERVAL_MS = 1000 / 3;
+export const TURRET_FIRE_INTERVAL_MS = 1000 / 12;
 export const TURRET_RANGE = 40;
 
 export const BULLET_SPEED = 30;

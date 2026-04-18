@@ -42,8 +42,8 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		color: 0x33ccee,
 		turnRate: 0.6,
 		turnAccel: 0.8,
-		accel: 3,
-		maxSpeed: 8,
+		accel: 1.5,
+		maxSpeed: 4,
 		drag: 0.6,
 		hp: 10,
 		cost: 0,
@@ -58,8 +58,8 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		color: 0x55cc55,
 		turnRate: 0.45,
 		turnAccel: 0.5,
-		accel: 2.5,
-		maxSpeed: 7,
+		accel: 1.25,
+		maxSpeed: 3.5,
 		drag: 0.6,
 		hp: 20,
 		cost: 100,
@@ -75,8 +75,8 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		color: 0xff9933,
 		turnRate: 0.35,
 		turnAccel: 0.3,
-		accel: 2,
-		maxSpeed: 6,
+		accel: 1,
+		maxSpeed: 3,
 		drag: 0.6,
 		hp: 35,
 		cost: 250,
@@ -93,8 +93,8 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		color: 0xdd3344,
 		turnRate: 0.25,
 		turnAccel: 0.2,
-		accel: 1.5,
-		maxSpeed: 5,
+		accel: 0.75,
+		maxSpeed: 2.5,
 		drag: 0.6,
 		hp: 60,
 		cost: 500,
@@ -180,10 +180,9 @@ export function enemyMesh(): Mesh {
 
 export function projectileMesh(): Mesh {
 	const geo = new CylinderGeometry(0.08, 0.08, 0.5, 6);
+	geo.rotateX(Math.PI / 2);
 	const mat = new MeshStandardMaterial({ color: 0xffee88, emissive: 0xffaa33, emissiveIntensity: 1.2, roughness: 0.3 });
-	const mesh = new Mesh(geo, mat);
-	mesh.rotation.x = Math.PI / 2;
-	return mesh;
+	return new Mesh(geo, mat);
 }
 
 export function pickupMesh(): Mesh {
