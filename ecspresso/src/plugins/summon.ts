@@ -1,8 +1,8 @@
 import { definePlugin } from '../types';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { SHIP_SPECS, createShipGroup, turretFromMount } from '../ships';
-import { SUMMON_ANIM_SEC } from '../constants';
-import { rotateY } from '../math';
+import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING } from '../constants';
+import { forwardXZ, rotateY } from '../math';
 import { slotLocalXZ } from '../formation';
 
 export const createSummonPlugin = () => definePlugin({
@@ -24,8 +24,11 @@ export const createSummonPlugin = () => definePlugin({
 					const slotIndex = playerState.ownedShipIds.length - 1;
 					const slotLocal = slotLocalXZ(slotIndex);
 					const slotWorld = rotateY(slotLocal, -flagshipShip.heading);
-					const originX = flagshipTransform.x + slotWorld.x;
-					const originZ = flagshipTransform.z + slotWorld.z;
+					const slotX = flagshipTransform.x + slotWorld.x;
+					const slotZ = flagshipTransform.z + slotWorld.z;
+					const forward = forwardXZ(flagshipShip.heading);
+					const originX = slotX - forward.x * SUMMON_OFFSCREEN_RING;
+					const originZ = slotZ - forward.z * SUMMON_OFFSCREEN_RING;
 					const initialHeading = flagshipShip.heading;
 
 					const { group, turretMounts } = createShipGroup(shipClass);
