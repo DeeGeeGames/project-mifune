@@ -1,8 +1,17 @@
-import { definePlugin } from '../types';
+import { definePlugin, type World } from '../types';
 import { distanceXZ } from '../math';
 import { ENEMY_RADIUS, PROJECTILE_RADIUS, PICKUP_VALUE } from '../constants';
 import { pickupMesh } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
+
+export function killEnemyAndDrop(ecs: World, enemyId: number, x: number, z: number): void {
+	ecs.eventBus.publish('enemy:killed', { entityId: enemyId, x, z });
+	ecs.spawn({
+		...createMeshComponents(pickupMesh(), { x, y: 0.25, z }),
+		pickup: { value: PICKUP_VALUE, magnetized: false },
+	});
+	ecs.removeEntity(enemyId);
+}
 
 export const createCombatPlugin = () => definePlugin({
 	id: 'combat',
@@ -39,14 +48,7 @@ export const createCombatPlugin = () => definePlugin({
 						enemy.hp -= projectile.damage;
 						ecs.removeEntity(projId);
 
-						if (enemy.hp <= 0) {
-							ecs.eventBus.publish('enemy:killed', { entityId: enemyId, x: et.x, z: et.z });
-							ecs.spawn({
-								...createMeshComponents(pickupMesh(), { x: et.x, y: 0.25, z: et.z }),
-								pickup: { value: PICKUP_VALUE, magnetized: false },
-							});
-							ecs.removeEntity(enemyId);
-						}
+						if (enemy.hp <= 0) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
 						break;
 					}
 				}

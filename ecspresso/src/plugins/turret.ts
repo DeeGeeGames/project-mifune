@@ -1,10 +1,11 @@
 import { definePlugin } from '../types';
-import { angleDiff, bearingXZ, clamp, distanceXZ, forwardXZ, leadTarget, normalizeAngle, stepAngle } from '../math';
+import { angleDiff, bearingXZ, clamp, distanceXZ, forwardXZ, leadTarget, mountToWorld, normalizeAngle, stepAngle } from '../math';
 import { projectileMesh } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import {
 	BULLET_LIFE_SEC,
 	BULLET_SPEED,
+	MUZZLE_OFFSET,
 	TURRET_RANGE,
 	TURRET_TURN_RATE,
 } from '../constants';
@@ -26,11 +27,9 @@ export const createTurretPlugin = () => definePlugin({
 						continue;
 					}
 
-					const mountLocal = { x: turret.mountX, z: turret.mountZ };
-					const c = Math.cos(ship.heading);
-					const s = Math.sin(ship.heading);
-					const mountWorldX = shipTransform.x + mountLocal.x * c - mountLocal.z * s;
-					const mountWorldZ = shipTransform.z + mountLocal.x * s + mountLocal.z * c;
+					const { x: mountWorldX, z: mountWorldZ } = mountToWorld(
+						shipTransform.x, shipTransform.z, ship.heading, turret.mountX, turret.mountZ,
+					);
 					const baseWorld = normalizeAngle(ship.heading + turret.baseAngle);
 
 					let targetAngle: number | null = null;
@@ -89,14 +88,13 @@ export const createTurretPlugin = () => definePlugin({
 					const shipTransform = ecs.getComponent(turret.ownerShipId, 'localTransform3D');
 					if (!ship || !shipTransform) continue;
 
-					const c = Math.cos(ship.heading);
-					const s = Math.sin(ship.heading);
-					const mountWorldX = shipTransform.x + turret.mountX * c - turret.mountZ * s;
-					const mountWorldZ = shipTransform.z + turret.mountX * s + turret.mountZ * c;
+					const { x: mountWorldX, z: mountWorldZ } = mountToWorld(
+						shipTransform.x, shipTransform.z, ship.heading, turret.mountX, turret.mountZ,
+					);
 
 					const fwd = forwardXZ(turret.aimAngle);
-					const muzzleX = mountWorldX + fwd.x * 0.9;
-					const muzzleZ = mountWorldZ + fwd.z * 0.9;
+					const muzzleX = mountWorldX + fwd.x * MUZZLE_OFFSET;
+					const muzzleZ = mountWorldZ + fwd.z * MUZZLE_OFFSET;
 
 					ecs.spawn({
 						...createMeshComponents(projectileMesh(), { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: turret.aimAngle } }),

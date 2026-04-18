@@ -86,6 +86,29 @@ export interface ProjectileComponent {
 	damage: number;
 }
 
+export interface MissileTurretComponent {
+	ownerShipId: number;
+	mountX: number;
+	mountZ: number;
+	baseAngle: number;
+	fireAngle: number;
+	coneHalf: number;
+	range: number;
+	fireIntervalMs: number;
+	damage: number;
+	lastFiredAt: number;
+	mount: Group;
+}
+
+export interface MissileComponent {
+	heading: number;
+	speed: number;
+	life: number;
+	unguidedTime: number;
+	damage: number;
+	targetId: number | null;
+}
+
 export interface EnemyComponent extends KinematicState {
 	hp: number;
 	behavior: EnemyBehavior;
@@ -188,7 +211,9 @@ export const builder = ECSpresso.create()
 			commandVessel: true;
 			formationSlot: FormationSlotComponent;
 			turret: TurretComponent;
+			missileTurret: MissileTurretComponent;
 			projectile: ProjectileComponent;
+			missile: MissileComponent;
 			enemy: EnemyComponent;
 			pickup: PickupComponent;
 			summonAnim: SummonAnimComponent;

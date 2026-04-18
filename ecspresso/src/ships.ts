@@ -6,7 +6,18 @@ import {
 	CylinderGeometry,
 	MeshStandardMaterial,
 } from 'three';
-import { ENEMY_HULL_LENGTH, ENEMY_HULL_WIDTH, ENEMY_HULL_HEIGHT, TURRET_CONE_HALF, TURRET_FIRE_INTERVAL_MS, BULLET_DAMAGE } from './constants';
+import {
+	ENEMY_HULL_LENGTH,
+	ENEMY_HULL_WIDTH,
+	ENEMY_HULL_HEIGHT,
+	TURRET_CONE_HALF,
+	TURRET_FIRE_INTERVAL_MS,
+	BULLET_DAMAGE,
+	MISSILE_TURRET_CONE_HALF,
+	MISSILE_TURRET_FIRE_INTERVAL_MS,
+	MISSILE_TURRET_RANGE,
+	MISSILE_DAMAGE,
+} from './constants';
 import { ENEMY_SPECS, type EnemyKind } from './enemies';
 
 export type ShipClass = 'carrier' | 'corvette' | 'frigate' | 'destroyer' | 'dreadnought';
@@ -16,6 +27,17 @@ export interface TurretMount {
 	readonly z: number;
 	readonly baseAngle: number;
 	readonly coneHalf?: number;
+	readonly fireIntervalMs?: number;
+	readonly damage?: number;
+}
+
+export interface MissileTurretMount {
+	readonly x: number;
+	readonly z: number;
+	readonly baseAngle: number;
+	readonly fireAngle: number;
+	readonly coneHalf?: number;
+	readonly range?: number;
 	readonly fireIntervalMs?: number;
 	readonly damage?: number;
 }
@@ -33,6 +55,7 @@ export interface ShipSpec {
 	readonly hp: number;
 	readonly cost: number;
 	readonly turrets: readonly TurretMount[];
+	readonly missileTurrets?: readonly MissileTurretMount[];
 	readonly flatBow?: true;
 }
 
@@ -56,6 +79,10 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hp: 100,
 		cost: 0,
 		turrets: [],
+		missileTurrets: [
+			{ x: -1.0, z: 0, baseAngle: FRONT, fireAngle: PORT },
+			{ x: 1.0, z: 0, baseAngle: FRONT, fireAngle: STARBOARD },
+		],
 		flatBow: true,
 	},
 	corvette: {
@@ -137,9 +164,18 @@ const BARREL_RADIUS = 0.08;
 const TURRET_BASE_RADIUS = 0.25;
 const TURRET_BASE_HEIGHT = 0.25;
 
+const LAUNCHER_BODY_W = 0.5;
+const LAUNCHER_BODY_H = 0.2;
+const LAUNCHER_BODY_L = 0.7;
+const LAUNCHER_TIP_W = 0.35;
+const LAUNCHER_TIP_H = 0.16;
+const LAUNCHER_TIP_L = 0.18;
+const LAUNCHER_TIP_Z = 0.42;
+
 export interface BuiltShip {
 	readonly group: Group;
 	readonly turretMounts: readonly Group[];
+	readonly missileTurretMounts: readonly Group[];
 }
 
 interface ShipMaterials {
@@ -375,6 +411,22 @@ export function turretFromMount(ownerShipId: number, mountSpec: TurretMount, mou
 	};
 }
 
+export function missileTurretFromMount(ownerShipId: number, mountSpec: MissileTurretMount, mount: Group) {
+	return {
+		ownerShipId,
+		mountX: mountSpec.x,
+		mountZ: mountSpec.z,
+		baseAngle: mountSpec.baseAngle,
+		fireAngle: mountSpec.fireAngle,
+		coneHalf: mountSpec.coneHalf ?? MISSILE_TURRET_CONE_HALF,
+		range: mountSpec.range ?? MISSILE_TURRET_RANGE,
+		fireIntervalMs: mountSpec.fireIntervalMs ?? MISSILE_TURRET_FIRE_INTERVAL_MS,
+		damage: mountSpec.damage ?? MISSILE_DAMAGE,
+		lastFiredAt: 0,
+		mount,
+	};
+}
+
 export function createShipGroup(shipClass: ShipClass): BuiltShip {
 	const spec = SHIP_SPECS[shipClass];
 	const group = new Group();
@@ -429,7 +481,30 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		return turretGroup;
 	});
 
-	return { group, turretMounts };
+	const missileTurretMounts: Group[] = (spec.missileTurrets ?? []).map((mount) => {
+		const launcherGroup = new Group();
+		launcherGroup.position.set(mount.x, spec.hullHeight, mount.z);
+		launcherGroup.rotation.y = mount.fireAngle;
+
+		const body = new Mesh(
+			new BoxGeometry(LAUNCHER_BODY_W, LAUNCHER_BODY_H, LAUNCHER_BODY_L),
+			mats.accent,
+		);
+		body.position.set(0, LAUNCHER_BODY_H / 2, 0);
+		launcherGroup.add(body);
+
+		const tip = new Mesh(
+			new BoxGeometry(LAUNCHER_TIP_W, LAUNCHER_TIP_H, LAUNCHER_TIP_L),
+			barrelMat,
+		);
+		tip.position.set(0, LAUNCHER_BODY_H / 2, LAUNCHER_TIP_Z);
+		launcherGroup.add(tip);
+
+		group.add(launcherGroup);
+		return launcherGroup;
+	});
+
+	return { group, turretMounts, missileTurretMounts };
 }
 
 const ENEMY_HULL_GEO = new BoxGeometry(ENEMY_HULL_WIDTH, ENEMY_HULL_HEIGHT, ENEMY_HULL_LENGTH);
@@ -528,6 +603,17 @@ export function projectileMesh(): Mesh {
 	geo.rotateX(Math.PI / 2);
 	const mat = new MeshStandardMaterial({ color: 0xffee88, emissive: 0xffaa33, emissiveIntensity: 1.2, roughness: 0.3 });
 	return new Mesh(geo, mat);
+}
+
+const MISSILE_GEO = (() => {
+	const g = new CylinderGeometry(0.1, 0.1, 0.8, 8);
+	g.rotateX(Math.PI / 2);
+	return g;
+})();
+const MISSILE_MAT = new MeshStandardMaterial({ color: 0xff5533, emissive: 0xaa2200, emissiveIntensity: 0.9, roughness: 0.4 });
+
+export function missileMesh(): Mesh {
+	return new Mesh(MISSILE_GEO, MISSILE_MAT);
 }
 
 export function pickupMesh(): Mesh {

@@ -68,6 +68,17 @@ export function forwardXZ(heading: number): Vec2 {
 	return { x: Math.sin(heading), z: Math.cos(heading) };
 }
 
+export function mountToWorld(
+	shipX: number,
+	shipZ: number,
+	shipHeading: number,
+	mountX: number,
+	mountZ: number,
+): Vec2 {
+	const rotated = rotateY({ x: mountX, z: mountZ }, shipHeading);
+	return { x: shipX + rotated.x, z: shipZ + rotated.z };
+}
+
 export function stickToWorldAngle(
 	sx: number,
 	sy: number,

@@ -38,10 +38,22 @@ export const TURRET_CONE_HALF = Math.PI / 6;
 export const TURRET_TURN_RATE = Math.PI / 2;
 export const TURRET_FIRE_INTERVAL_MS = 1000 / 12;
 export const TURRET_RANGE = 40;
+export const MUZZLE_OFFSET = 0.9;
 
 export const BULLET_SPEED = 30;
 export const BULLET_LIFE_SEC = 1.5;
 export const BULLET_DAMAGE = 1;
+
+export const MISSILE_SPEED = 18;
+export const MISSILE_LAUNCH_SPEED = 4.5;
+export const MISSILE_LIFE_SEC = 3;
+export const MISSILE_UNGUIDED_SEC = 0.5;
+export const MISSILE_TURN_RATE = Math.PI;
+export const MISSILE_DAMAGE = 4;
+export const MISSILE_RADIUS = 0.3;
+export const MISSILE_TURRET_FIRE_INTERVAL_MS = 2000;
+export const MISSILE_TURRET_CONE_HALF = Math.PI / 4;
+export const MISSILE_TURRET_RANGE = 40;
 
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;

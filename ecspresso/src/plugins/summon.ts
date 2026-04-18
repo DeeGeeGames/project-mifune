@@ -1,6 +1,6 @@
 import { definePlugin } from '../types';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
-import { SHIP_SPECS, createShipGroup, turretFromMount } from '../ships';
+import { SHIP_SPECS, createShipGroup, turretFromMount, missileTurretFromMount } from '../ships';
 import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING } from '../constants';
 import { forwardXZ, rotateY } from '../math';
 import { slotLocalXZ } from '../formation';
@@ -31,7 +31,7 @@ export const createSummonPlugin = () => definePlugin({
 					const originZ = slotZ - forward.z * SUMMON_OFFSCREEN_RING;
 					const initialHeading = flagshipShip.heading;
 
-					const { group, turretMounts } = createShipGroup(shipClass);
+					const { group, turretMounts, missileTurretMounts } = createShipGroup(shipClass);
 
 					const entity = ecs.spawn({
 						...createGroupComponents(group, { x: originX, y: 0, z: originZ }, { rotation: { y: initialHeading } }),
@@ -60,6 +60,12 @@ export const createSummonPlugin = () => definePlugin({
 						const mount = turretMounts[idx];
 						if (!mount) return;
 						ecs.spawn({ turret: turretFromMount(entity.id, mountSpec, mount) });
+					});
+
+					(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
+						const mount = missileTurretMounts[idx];
+						if (!mount) return;
+						ecs.spawn({ missileTurret: missileTurretFromMount(entity.id, mountSpec, mount) });
 					});
 
 					ecs.eventBus.publish('ship:summoned', { entityId: entity.id, shipClass });

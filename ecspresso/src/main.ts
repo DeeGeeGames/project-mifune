@@ -1,13 +1,14 @@
 import { AmbientLight, DirectionalLight, Mesh, PlaneGeometry, MeshStandardMaterial, GridHelper } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder } from './types';
-import { SHIP_SPECS, createShipGroup, turretFromMount } from './ships';
+import { SHIP_SPECS, createShipGroup, turretFromMount, missileTurretFromMount } from './ships';
 import { GROUND_SIZE } from './constants';
 import { createCursorPlugin } from './plugins/cursor';
 import { createControlPlugin } from './plugins/control';
 import { createMovementPlugin } from './plugins/movement';
 import { createFormationPlugin } from './plugins/formation';
 import { createTurretPlugin } from './plugins/turret';
+import { createMissilePlugin } from './plugins/missile';
 import { createCombatPlugin } from './plugins/combat';
 import { createEnemyPlugin } from './plugins/enemy';
 import { createWavesPlugin } from './plugins/waves';
@@ -22,6 +23,7 @@ const game = builder
 	.withPlugin(createMovementPlugin())
 	.withPlugin(createFormationPlugin())
 	.withPlugin(createTurretPlugin())
+	.withPlugin(createMissilePlugin())
 	.withPlugin(createCombatPlugin())
 	.withPlugin(createEnemyPlugin())
 	.withPlugin(createWavesPlugin())
@@ -67,7 +69,7 @@ grid.position.y = 0.01;
 scene.add(grid);
 
 const spec = SHIP_SPECS.carrier;
-const { group: carrierGroup, turretMounts } = createShipGroup('carrier');
+const { group: carrierGroup, turretMounts, missileTurretMounts } = createShipGroup('carrier');
 const carrier = game.spawn({
 	...createGroupComponents(carrierGroup, { x: 0, y: 0, z: 0 }),
 	ship: {
@@ -92,6 +94,12 @@ spec.turrets.forEach((mountSpec, idx) => {
 	const mount = turretMounts[idx];
 	if (!mount) return;
 	game.spawn({ turret: turretFromMount(carrier.id, mountSpec, mount) });
+});
+
+(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
+	const mount = missileTurretMounts[idx];
+	if (!mount) return;
+	game.spawn({ missileTurret: missileTurretFromMount(carrier.id, mountSpec, mount) });
 });
 
 const playerState = game.getResource('playerState');
