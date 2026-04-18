@@ -1,7 +1,7 @@
 import { AmbientLight, DirectionalLight, Mesh, PlaneGeometry, MeshStandardMaterial, GridHelper } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder } from './types';
-import { SHIP_SPECS, createShipGroup, turretFromMount, missileTurretFromMount } from './ships';
+import { SHIP_SPECS, createShipGroup, spawnShipTurrets } from './ships';
 import { GROUND_SIZE } from './constants';
 import { createCursorPlugin } from './plugins/cursor';
 import { createControlPlugin } from './plugins/control';
@@ -11,6 +11,7 @@ import { createTurretPlugin } from './plugins/turret';
 import { createMissilePlugin } from './plugins/missile';
 import { createCombatPlugin } from './plugins/combat';
 import { createEnemyPlugin } from './plugins/enemy';
+import { createThreatPlugin } from './plugins/threat';
 import { createWavesPlugin } from './plugins/waves';
 import { createPickupsPlugin } from './plugins/pickups';
 import { createSummonPlugin } from './plugins/summon';
@@ -25,6 +26,7 @@ const game = builder
 	.withPlugin(createTurretPlugin())
 	.withPlugin(createMissilePlugin())
 	.withPlugin(createCombatPlugin())
+	.withPlugin(createThreatPlugin())
 	.withPlugin(createEnemyPlugin())
 	.withPlugin(createWavesPlugin())
 	.withPlugin(createPickupsPlugin())
@@ -90,17 +92,7 @@ const carrier = game.spawn({
 	commandVessel: true,
 });
 
-spec.turrets.forEach((mountSpec, idx) => {
-	const mount = turretMounts[idx];
-	if (!mount) return;
-	game.spawn({ turret: turretFromMount(carrier.id, mountSpec, mount) });
-});
-
-(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
-	const mount = missileTurretMounts[idx];
-	if (!mount) return;
-	game.spawn({ missileTurret: missileTurretFromMount(carrier.id, mountSpec, mount) });
-});
+spawnShipTurrets(game, carrier.id, spec, { group: carrierGroup, turretMounts, missileTurretMounts });
 
 const playerState = game.getResource('playerState');
 playerState.ownedShipIds.push(carrier.id);

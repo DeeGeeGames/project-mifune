@@ -12,12 +12,14 @@ import {
 	ENEMY_HULL_HEIGHT,
 	TURRET_CONE_HALF,
 	TURRET_FIRE_INTERVAL_MS,
+	TURRET_RANGE,
 	BULLET_DAMAGE,
 	MISSILE_TURRET_CONE_HALF,
 	MISSILE_TURRET_FIRE_INTERVAL_MS,
 	MISSILE_TURRET_RANGE,
 	MISSILE_DAMAGE,
 } from './constants';
+import type { Faction, World } from './types';
 import { ENEMY_SPECS, type EnemyKind } from './enemies';
 
 export type ShipClass = 'carrier' | 'corvette' | 'frigate' | 'destroyer' | 'dreadnought';
@@ -27,6 +29,7 @@ export interface TurretMount {
 	readonly z: number;
 	readonly baseAngle: number;
 	readonly coneHalf?: number;
+	readonly range?: number;
 	readonly fireIntervalMs?: number;
 	readonly damage?: number;
 }
@@ -163,6 +166,35 @@ const BARREL_LENGTH = 0.9;
 const BARREL_RADIUS = 0.08;
 const TURRET_BASE_RADIUS = 0.25;
 const TURRET_BASE_HEIGHT = 0.25;
+
+const BARREL_MAT = new MeshStandardMaterial({ color: 0x111418, roughness: 0.45, metalness: 0.4 });
+
+function buildTurretMountGroup(
+	mountSpec: TurretMount,
+	hullHeight: number,
+	accentMat: MeshStandardMaterial,
+): Group {
+	const turretGroup = new Group();
+	turretGroup.position.set(mountSpec.x, hullHeight, mountSpec.z);
+	turretGroup.rotation.y = mountSpec.baseAngle;
+
+	const base = new Mesh(
+		new CylinderGeometry(TURRET_BASE_RADIUS, TURRET_BASE_RADIUS, TURRET_BASE_HEIGHT, 10),
+		accentMat,
+	);
+	base.position.y = TURRET_BASE_HEIGHT / 2;
+	turretGroup.add(base);
+
+	const barrel = new Mesh(
+		new CylinderGeometry(BARREL_RADIUS, BARREL_RADIUS, BARREL_LENGTH, 8),
+		BARREL_MAT,
+	);
+	barrel.position.set(0, TURRET_BASE_HEIGHT + 0.02, BARREL_LENGTH / 2);
+	barrel.rotation.x = Math.PI / 2;
+	turretGroup.add(barrel);
+
+	return turretGroup;
+}
 
 const LAUNCHER_BODY_W = 0.5;
 const LAUNCHER_BODY_H = 0.2;
@@ -395,20 +427,35 @@ const SHIP_DETAILS: Record<ShipClass, ShipDetailBuilder> = {
 	dreadnought: addDreadnoughtDetails,
 };
 
-export function turretFromMount(ownerShipId: number, mountSpec: TurretMount, mount: Group) {
+export function turretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
 	return {
-		ownerShipId,
+		ownerId,
+		faction,
 		mountX: mountSpec.x,
 		mountZ: mountSpec.z,
 		baseAngle: mountSpec.baseAngle,
 		aimAngle: mountSpec.baseAngle,
 		coneHalf: mountSpec.coneHalf ?? TURRET_CONE_HALF,
+		range: mountSpec.range ?? TURRET_RANGE,
 		fireIntervalMs: mountSpec.fireIntervalMs ?? TURRET_FIRE_INTERVAL_MS,
 		damage: mountSpec.damage ?? BULLET_DAMAGE,
 		lastFiredAt: 0,
 		hasTarget: false,
 		mount,
 	};
+}
+
+export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, built: BuiltShip): void {
+	spec.turrets.forEach((mountSpec, idx) => {
+		const mount = built.turretMounts[idx];
+		if (!mount) return;
+		ecs.spawn({ turret: turretFromMount(ownerId, 'ally', mountSpec, mount) });
+	});
+	(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
+		const mount = built.missileTurretMounts[idx];
+		if (!mount) return;
+		ecs.spawn({ missileTurret: missileTurretFromMount(ownerId, mountSpec, mount) });
+	});
 }
 
 export function missileTurretFromMount(ownerShipId: number, mountSpec: MissileTurretMount, mount: Group) {
@@ -442,7 +489,6 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 			metalness: 0.4,
 		}),
 	};
-	const barrelMat = new MeshStandardMaterial({ color: 0x111418, roughness: 0.45, metalness: 0.4 });
 
 	const hull = new Mesh(new BoxGeometry(spec.hullWidth, spec.hullHeight, spec.hullLength), mats.hull);
 	hull.position.y = spec.hullHeight / 2;
@@ -458,25 +504,7 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 	SHIP_DETAILS[shipClass](group, spec, mats);
 
 	const turretMounts: Group[] = spec.turrets.map((mount) => {
-		const turretGroup = new Group();
-		turretGroup.position.set(mount.x, spec.hullHeight, mount.z);
-		turretGroup.rotation.y = mount.baseAngle;
-
-		const base = new Mesh(
-			new CylinderGeometry(TURRET_BASE_RADIUS, TURRET_BASE_RADIUS, TURRET_BASE_HEIGHT, 10),
-			mats.accent,
-		);
-		base.position.y = TURRET_BASE_HEIGHT / 2;
-		turretGroup.add(base);
-
-		const barrel = new Mesh(
-			new CylinderGeometry(BARREL_RADIUS, BARREL_RADIUS, BARREL_LENGTH, 8),
-			barrelMat,
-		);
-		barrel.position.set(0, TURRET_BASE_HEIGHT + 0.02, BARREL_LENGTH / 2);
-		barrel.rotation.x = Math.PI / 2;
-		turretGroup.add(barrel);
-
+		const turretGroup = buildTurretMountGroup(mount, spec.hullHeight, mats.accent);
 		group.add(turretGroup);
 		return turretGroup;
 	});
@@ -495,7 +523,7 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 
 		const tip = new Mesh(
 			new BoxGeometry(LAUNCHER_TIP_W, LAUNCHER_TIP_H, LAUNCHER_TIP_L),
-			barrelMat,
+			BARREL_MAT,
 		);
 		tip.position.set(0, LAUNCHER_BODY_H / 2, LAUNCHER_TIP_Z);
 		launcherGroup.add(tip);
@@ -507,9 +535,6 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 	return { group, turretMounts, missileTurretMounts };
 }
 
-const ENEMY_HULL_GEO = new BoxGeometry(ENEMY_HULL_WIDTH, ENEMY_HULL_HEIGHT, ENEMY_HULL_LENGTH);
-const ENEMY_BOW_GEO = new ConeGeometry(ENEMY_HULL_WIDTH * 0.6, ENEMY_HULL_LENGTH * 0.55, 8);
-const ENEMY_TAIL_GEO = new BoxGeometry(ENEMY_HULL_WIDTH * 0.25, ENEMY_HULL_HEIGHT * 1.1, ENEMY_HULL_LENGTH * 0.3);
 const ENEMY_ACCENT_MAT = new MeshStandardMaterial({ color: 0x2a1418, roughness: 0.6, metalness: 0.2 });
 
 const enemyHullMat = (kind: EnemyKind): MeshStandardMaterial => new MeshStandardMaterial({
@@ -525,6 +550,7 @@ const ENEMY_HULL_MATS: Record<EnemyKind, MeshStandardMaterial> = {
 	interceptor: enemyHullMat('interceptor'),
 	flanker: enemyHullMat('flanker'),
 	orbiter: enemyHullMat('orbiter'),
+	gunship: enemyHullMat('gunship'),
 };
 
 type EnemyDetailBuilder = (group: Group, hullMat: MeshStandardMaterial) => void;
@@ -569,33 +595,56 @@ const addOrbiterDetails: EnemyDetailBuilder = (group, hullMat) => {
 	group.add(dorsalFin);
 };
 
+const addGunshipDetails: EnemyDetailBuilder = () => {};
+
 const ENEMY_DETAILS: Record<EnemyKind, EnemyDetailBuilder> = {
 	pursuer: addPursuerDetails,
 	interceptor: addInterceptorDetails,
 	flanker: addFlankerDetails,
 	orbiter: addOrbiterDetails,
+	gunship: addGunshipDetails,
 };
 
-export function enemyShipGroup(kind: EnemyKind): Group {
+export interface BuiltEnemy {
+	readonly group: Group;
+	readonly turretMount: Group | null;
+}
+
+export function enemyShipGroup(kind: EnemyKind): BuiltEnemy {
+	const spec = ENEMY_SPECS[kind];
 	const group = new Group();
 	const hullMat = ENEMY_HULL_MATS[kind];
 
-	const hull = new Mesh(ENEMY_HULL_GEO, hullMat);
-	hull.position.y = ENEMY_HULL_HEIGHT / 2;
+	const hull = new Mesh(
+		new BoxGeometry(spec.hullWidth, spec.hullHeight, spec.hullLength),
+		hullMat,
+	);
+	hull.position.y = spec.hullHeight / 2;
 	group.add(hull);
 
-	const bow = new Mesh(ENEMY_BOW_GEO, hullMat);
-	bow.position.set(0, ENEMY_HULL_HEIGHT / 2, ENEMY_HULL_LENGTH / 2 + ENEMY_HULL_LENGTH * 0.27);
+	const bow = new Mesh(
+		new ConeGeometry(spec.hullWidth * 0.6, spec.hullLength * 0.55, 8),
+		hullMat,
+	);
+	bow.position.set(0, spec.hullHeight / 2, spec.hullLength / 2 + spec.hullLength * 0.27);
 	bow.rotation.x = Math.PI / 2;
 	group.add(bow);
 
-	const tailFin = new Mesh(ENEMY_TAIL_GEO, ENEMY_ACCENT_MAT);
-	tailFin.position.set(0, ENEMY_HULL_HEIGHT * 0.65, -ENEMY_HULL_LENGTH / 2 - ENEMY_HULL_LENGTH * 0.08);
+	const tailFin = new Mesh(
+		new BoxGeometry(spec.hullWidth * 0.25, spec.hullHeight * 1.1, spec.hullLength * 0.3),
+		ENEMY_ACCENT_MAT,
+	);
+	tailFin.position.set(0, spec.hullHeight * 0.65, -spec.hullLength / 2 - spec.hullLength * 0.08);
 	group.add(tailFin);
 
 	ENEMY_DETAILS[kind](group, hullMat);
 
-	return group;
+	const turretMount = spec.turretMount
+		? buildTurretMountGroup(spec.turretMount, spec.hullHeight, ENEMY_ACCENT_MAT)
+		: null;
+	if (turretMount) group.add(turretMount);
+
+	return { group, turretMount };
 }
 
 export function projectileMesh(): Mesh {

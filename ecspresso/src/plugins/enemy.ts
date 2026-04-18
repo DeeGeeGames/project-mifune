@@ -5,6 +5,7 @@ import { bearingXZ, leadTarget, distanceXZ, normalizeAngle } from '../math';
 import { integrateKinematicXZ } from '../kinematic';
 import {
 	FLANK_OFFSET,
+	HIT_ESCALATION_DECAY_RATE,
 	ORBIT_RADIUS,
 	ORBIT_BAND,
 	ORBIT_STRIKE_INTERVAL_SEC,
@@ -94,7 +95,9 @@ const orbiter = ({ enemy, ex, ez, flagship, dt }: AiContext): void => {
 	enemy.throttle = 0.7;
 };
 
-const AI_HANDLERS: Record<EnemyKind, (ctx: AiContext) => void> = {
+type KamikazeKind = Exclude<EnemyKind, 'gunship'>;
+
+const AI_HANDLERS: Record<KamikazeKind, (ctx: AiContext) => void> = {
 	pursuer,
 	interceptor,
 	flanker,
@@ -117,14 +120,19 @@ export const createEnemyPlugin = () => definePlugin({
 				const snapshot: FlagshipSnapshot = { x: ft.x, z: ft.z, vx: fs.vx, vz: fs.vz };
 
 				for (const { id, components: { localTransform3D, enemy } } of queries.enemies) {
-					const ctx: AiContext = {
-						enemy,
-						ex: localTransform3D.x,
-						ez: localTransform3D.z,
-						flagship: snapshot,
-						dt,
-					};
-					AI_HANDLERS[enemy.behavior.kind](ctx);
+					if (enemy.hitEscalation > 0) {
+						enemy.hitEscalation = Math.max(0, enemy.hitEscalation - HIT_ESCALATION_DECAY_RATE * dt);
+					}
+					if (enemy.behavior.kind !== 'gunship') {
+						const ctx: AiContext = {
+							enemy,
+							ex: localTransform3D.x,
+							ez: localTransform3D.z,
+							flagship: snapshot,
+							dt,
+						};
+						AI_HANDLERS[enemy.behavior.kind](ctx);
+					}
 					integrateKinematicXZ(enemy, localTransform3D, dt);
 					ecs.markChanged(id, 'localTransform3D');
 				}

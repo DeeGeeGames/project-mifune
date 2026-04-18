@@ -2,7 +2,7 @@ export const ISO_AZIMUTH = Math.PI / 4;
 export const ISO_ELEVATION = Math.atan(1 / Math.SQRT2);
 
 export const CAMERA_VIEW_SIZE = 20;
-export const CAMERA_ZOOM_MIN = 0.5;
+export const CAMERA_ZOOM_MIN = 0.25;
 export const CAMERA_ZOOM_MAX = 2.5;
 export const CAMERA_ZOOM_STEP = 1.1;
 export const CAMERA_FOLLOW_SMOOTHING = 6;
@@ -57,6 +57,7 @@ export const MISSILE_TURRET_RANGE = 40;
 
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;
+export const SHIP_HIT_RADIUS = 1.2;
 
 export const ENEMY_HULL_LENGTH = 1.3;
 export const ENEMY_HULL_WIDTH = 0.25;
@@ -67,6 +68,23 @@ export const ORBIT_RADIUS = 12;
 export const ORBIT_BAND = 1.5;
 export const ORBIT_STRIKE_INTERVAL_SEC = 4;
 export const ORBIT_STRIKE_DURATION_SEC = 1.2;
+
+export const GUNSHIP_PREFERRED_RANGE = 20;
+export const GUNSHIP_RANGE_TOLERANCE = 2;
+export const GUNSHIP_HOLD_THROTTLE = 0.15;
+export const GUNSHIP_THREAT_TOLERANCE = 8;
+export const GUNSHIP_EVADE_MAX_OFFSET = Math.PI / 7;
+export const GUNSHIP_EVADE_THROTTLE = 0.6;
+
+export const HIT_ESCALATION_DECAY_RATE = 1.0;
+
+export const ENEMY_SPAWN_WEIGHTS = {
+	pursuer: 25,
+	interceptor: 22,
+	flanker: 20,
+	orbiter: 18,
+	gunship: 15,
+} as const;
 
 export const PROJECTILE_RADIUS = 0.25;
 

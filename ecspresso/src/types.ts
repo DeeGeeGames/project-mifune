@@ -9,6 +9,11 @@ import { createCamera3DPlugin } from 'ecspresso/plugins/spatial/camera3D';
 import type { Camera3DResourceTypes } from 'ecspresso/plugins/spatial/camera3D';
 import { createInputPlugin, gamepadButtonsOn } from 'ecspresso/plugins/input/input';
 import type { InputResourceTypes, ActionMap } from 'ecspresso/plugins/input/input';
+import { createBehaviorTreePlugin } from 'ecspresso/plugins/ai/behavior-tree';
+import type {
+	BehaviorTreeComponentTypes,
+	BehaviorTreeEventTypes,
+} from 'ecspresso/plugins/ai/behavior-tree';
 import {
 	CAMERA_DISTANCE,
 	CAMERA_VIEW_SIZE,
@@ -65,13 +70,17 @@ export interface ShipComponent extends KinematicState {
 	hp: number;
 }
 
+export type Faction = 'ally' | 'enemy';
+
 export interface TurretComponent {
-	ownerShipId: number;
+	ownerId: number;
+	faction: Faction;
 	mountX: number;
 	mountZ: number;
 	baseAngle: number;
 	aimAngle: number;
 	coneHalf: number;
+	range: number;
 	fireIntervalMs: number;
 	damage: number;
 	lastFiredAt: number;
@@ -80,6 +89,7 @@ export interface TurretComponent {
 }
 
 export interface ProjectileComponent {
+	faction: Faction;
 	vx: number;
 	vz: number;
 	life: number;
@@ -111,7 +121,21 @@ export interface MissileComponent {
 
 export interface EnemyComponent extends KinematicState {
 	hp: number;
+	radius: number;
+	threatTolerance: number;
+	hitEscalation: number;
 	behavior: EnemyBehavior;
+}
+
+export interface EnemyThreatSummary {
+	staticDps: number;
+	dominantTurretId: number | null;
+	dominantTurretX: number;
+	dominantTurretZ: number;
+}
+
+export interface ThreatMap {
+	readonly byEnemyId: Map<number, EnemyThreatSummary>;
 }
 
 export interface PickupComponent {
@@ -177,6 +201,15 @@ export interface SummonRequestEvent {
 	shipClass: ShipClass;
 }
 
+export interface ShipDestroyedEvent {
+	entityId: number;
+	shipClass: ShipClass;
+}
+
+export interface CarrierDestroyedEvent {
+	entityId: number;
+}
+
 export const builder = ECSpresso.create()
 	.withPlugin(createRenderer3DPlugin({
 		container: '#game-container',
@@ -204,8 +237,10 @@ export const builder = ECSpresso.create()
 		follow: { smoothing: CAMERA_FOLLOW_SMOOTHING },
 		enableOrbit: false,
 	}))
+	.withPlugin(createBehaviorTreePlugin({ priority: 240 }))
 	.withComponentTypes<
 		Renderer3DComponentTypes &
+		BehaviorTreeComponentTypes &
 		{
 			ship: ShipComponent;
 			commandVessel: true;
@@ -221,8 +256,11 @@ export const builder = ECSpresso.create()
 	>()
 	.withEventTypes<
 		Renderer3DEventTypes &
+		BehaviorTreeEventTypes &
 		{
 			'ship:summoned': ShipSummonedEvent;
+			'ship:destroyed': ShipDestroyedEvent;
+			'carrier:destroyed': CarrierDestroyedEvent;
 			'enemy:killed': EnemyKilledEvent;
 			'pickup:collected': PickupCollectedEvent;
 			'summon:request': SummonRequestEvent;
@@ -237,6 +275,7 @@ export const builder = ECSpresso.create()
 			waveState: WaveState;
 			cursorState: CursorState;
 			hudRefs: HudRefs;
+			threatMap: ThreatMap;
 		}
 	>();
 

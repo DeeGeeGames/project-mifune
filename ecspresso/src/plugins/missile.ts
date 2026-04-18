@@ -4,7 +4,6 @@ import { missileMesh } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { killEnemyAndDrop } from './combat';
 import {
-	ENEMY_RADIUS,
 	MISSILE_LAUNCH_SPEED,
 	MISSILE_LIFE_SEC,
 	MISSILE_RADIUS,
@@ -111,13 +110,13 @@ export const createMissilePlugin = () => definePlugin({
 			.addQuery('missiles', { with: ['missile', 'localTransform3D'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.setProcess(({ queries, ecs }) => {
-				const hitRadius = ENEMY_RADIUS + MISSILE_RADIUS;
 				for (const { id: missileId, components: { missile, localTransform3D: mt } } of queries.missiles) {
 					for (const { id: enemyId, components: { enemy, localTransform3D: et } } of queries.enemies) {
 						const d = distanceXZ(mt.x, mt.z, et.x, et.z);
-						if (d > hitRadius) continue;
+						if (d > enemy.radius + MISSILE_RADIUS) continue;
 
 						enemy.hp -= missile.damage;
+						enemy.hitEscalation += missile.damage;
 						ecs.removeEntity(missileId);
 
 						if (enemy.hp <= 0) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
