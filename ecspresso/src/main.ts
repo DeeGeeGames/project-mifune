@@ -13,7 +13,6 @@ import { createEnemyPlugin } from './plugins/enemy';
 import { createWavesPlugin } from './plugins/waves';
 import { createPickupsPlugin } from './plugins/pickups';
 import { createSummonPlugin } from './plugins/summon';
-import { createCommandSwapPlugin } from './plugins/commandSwap';
 import { createHudPlugin } from './plugins/hud';
 import { createAimPreviewPlugin } from './plugins/aimPreview';
 
@@ -28,7 +27,6 @@ const game = builder
 	.withPlugin(createWavesPlugin())
 	.withPlugin(createPickupsPlugin())
 	.withPlugin(createSummonPlugin())
-	.withPlugin(createCommandSwapPlugin())
 	.withPlugin(createHudPlugin())
 	.withPlugin(createAimPreviewPlugin())
 	.build();
@@ -37,9 +35,7 @@ game.addResource('playerState', {
 	resources: 500,
 	ownedShipIds: [],
 	commandVesselId: -1,
-	controlMode: 'autonomous',
 	selectedSummon: 'frigate',
-	overrideAimAngle: 0,
 	pendingHeading: 0,
 	headingPreviewActive: false,
 });
@@ -48,7 +44,6 @@ game.addResource('hudRefs', {
 	resourcesEl: requireEl('hud-resources'),
 	rosterEl: requireEl('hud-roster'),
 	menuEl: requireEl('hud-menu'),
-	modeEl: requireEl('hud-mode'),
 	thrustBarFillEl: requireEl('hud-thrust-fill'),
 });
 
@@ -71,12 +66,12 @@ const grid = new GridHelper(GROUND_SIZE, 100, 0x2a3550, 0x1a2535);
 grid.position.y = 0.01;
 scene.add(grid);
 
-const spec = SHIP_SPECS.corvette;
-const { group: corvetteGroup, turretMounts } = createShipGroup('corvette');
-const corvette = game.spawn({
-	...createGroupComponents(corvetteGroup, { x: 0, y: 0, z: 0 }),
+const spec = SHIP_SPECS.carrier;
+const { group: carrierGroup, turretMounts } = createShipGroup('carrier');
+const carrier = game.spawn({
+	...createGroupComponents(carrierGroup, { x: 0, y: 0, z: 0 }),
 	ship: {
-		class: 'corvette',
+		class: 'carrier',
 		heading: 0,
 		headingTarget: 0,
 		throttle: 0,
@@ -96,14 +91,14 @@ const corvette = game.spawn({
 spec.turrets.forEach((mountSpec, idx) => {
 	const mount = turretMounts[idx];
 	if (!mount) return;
-	game.spawn({ turret: turretFromMount(corvette.id, mountSpec, mount) });
+	game.spawn({ turret: turretFromMount(carrier.id, mountSpec, mount) });
 });
 
 const playerState = game.getResource('playerState');
-playerState.ownedShipIds.push(corvette.id);
-playerState.commandVesselId = corvette.id;
+playerState.ownedShipIds.push(carrier.id);
+playerState.commandVesselId = carrier.id;
 
-game.getResource('camera3DState').follow(corvette);
+game.getResource('camera3DState').follow(carrier);
 
 function requireEl(id: string): HTMLElement {
 	const el = document.getElementById(id);

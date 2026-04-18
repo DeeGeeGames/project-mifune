@@ -17,8 +17,7 @@ export const createTurretPlugin = () => definePlugin({
 			.inPhase('update')
 			.addQuery('turrets', { with: ['turret'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
-			.withResources(['playerState'])
-			.setProcess(({ queries, dt, ecs, resources: { playerState } }) => {
+			.setProcess(({ queries, dt, ecs }) => {
 				for (const { components: { turret } } of queries.turrets) {
 					const ship = ecs.getComponent(turret.ownerShipId, 'ship');
 					const shipTransform = ecs.getComponent(turret.ownerShipId, 'localTransform3D');
@@ -34,40 +33,28 @@ export const createTurretPlugin = () => definePlugin({
 					const mountWorldZ = shipTransform.z + mountLocal.x * s + mountLocal.z * c;
 					const baseWorld = normalizeAngle(ship.heading + turret.baseAngle);
 
-					const isFlagship = ecs.getComponent(turret.ownerShipId, 'commandVessel');
-					const overrideActive = playerState.controlMode === 'override' && isFlagship;
-
 					let targetAngle: number | null = null;
+					let nearestDist = Infinity;
+					let nearestX = 0;
+					let nearestZ = 0;
+					let found = false;
 
-					if (overrideActive) {
-						targetAngle = playerState.overrideAimAngle;
-					} else {
-						let nearestDist = Infinity;
-						let nearestX = 0;
-						let nearestZ = 0;
-						let nearestVx = 0;
-						let nearestVz = 0;
-						let found = false;
+					for (const { components: { enemy: _enemy, localTransform3D: et } } of queries.enemies) {
+						const d = distanceXZ(mountWorldX, mountWorldZ, et.x, et.z);
+						if (d > TURRET_RANGE) continue;
+						const ang = bearingXZ(mountWorldX, mountWorldZ, et.x, et.z);
+						if (Math.abs(angleDiff(ang, baseWorld)) > turret.coneHalf) continue;
+						if (d >= nearestDist) continue;
+						nearestDist = d;
+						nearestX = et.x;
+						nearestZ = et.z;
+						found = true;
+						void _enemy;
+					}
 
-						for (const { components: { enemy: _enemy, localTransform3D: et } } of queries.enemies) {
-							const d = distanceXZ(mountWorldX, mountWorldZ, et.x, et.z);
-							if (d > TURRET_RANGE) continue;
-							const ang = bearingXZ(mountWorldX, mountWorldZ, et.x, et.z);
-							if (Math.abs(angleDiff(ang, baseWorld)) > turret.coneHalf) continue;
-							if (d >= nearestDist) continue;
-							nearestDist = d;
-							nearestX = et.x;
-							nearestZ = et.z;
-							nearestVx = 0;
-							nearestVz = 0;
-							found = true;
-							void _enemy;
-						}
-
-						if (found) {
-							const lead = leadTarget(mountWorldX, mountWorldZ, nearestX, nearestZ, nearestVx, nearestVz, BULLET_SPEED);
-							targetAngle = bearingXZ(mountWorldX, mountWorldZ, lead.x, lead.z);
-						}
+					if (found) {
+						const lead = leadTarget(mountWorldX, mountWorldZ, nearestX, nearestZ, 0, 0, BULLET_SPEED);
+						targetAngle = bearingXZ(mountWorldX, mountWorldZ, lead.x, lead.z);
 					}
 
 					if (targetAngle === null) {
@@ -92,14 +79,10 @@ export const createTurretPlugin = () => definePlugin({
 			.setPriority(220)
 			.inPhase('update')
 			.addQuery('turrets', { with: ['turret'] })
-			.withResources(['playerState'])
-			.setProcess(({ queries, ecs, resources: { playerState } }) => {
+			.setProcess(({ queries, ecs }) => {
 				const now = performance.now();
 				for (const { components: { turret } } of queries.turrets) {
-					const isFlagship = ecs.getComponent(turret.ownerShipId, 'commandVessel');
-					const overrideActive = playerState.controlMode === 'override' && isFlagship;
-					const shouldFire = overrideActive || turret.hasTarget;
-					if (!shouldFire) continue;
+					if (!turret.hasTarget) continue;
 					if (now - turret.lastFiredAt < turret.fireIntervalMs) continue;
 
 					const ship = ecs.getComponent(turret.ownerShipId, 'ship');

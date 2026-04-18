@@ -9,7 +9,7 @@ import {
 import { ENEMY_HULL_LENGTH, ENEMY_HULL_WIDTH, ENEMY_HULL_HEIGHT, TURRET_CONE_HALF, TURRET_FIRE_INTERVAL_MS, BULLET_DAMAGE } from './constants';
 import { ENEMY_SPECS, type EnemyKind } from './enemies';
 
-export type ShipClass = 'corvette' | 'frigate' | 'destroyer' | 'dreadnought';
+export type ShipClass = 'carrier' | 'corvette' | 'frigate' | 'destroyer' | 'dreadnought';
 
 export interface TurretMount {
 	readonly x: number;
@@ -33,6 +33,7 @@ export interface ShipSpec {
 	readonly hp: number;
 	readonly cost: number;
 	readonly turrets: readonly TurretMount[];
+	readonly flatBow?: true;
 }
 
 const FRONT = 0;
@@ -42,6 +43,21 @@ const PORT_FORE = -Math.PI / 4;
 const STARBOARD_FORE = Math.PI / 4;
 
 export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
+	carrier: {
+		hullLength: 11.0,
+		hullWidth: 2.4,
+		hullHeight: 0.8,
+		color: 0x8a94a6,
+		turnRate: 0.08,
+		turnAccel: 0.05,
+		accel: 0.25,
+		maxSpeed: 1.8,
+		drag: 0.3,
+		hp: 100,
+		cost: 0,
+		turrets: [],
+		flatBow: true,
+	},
 	corvette: {
 		hullLength: 6.2,
 		hullWidth: 1.45,
@@ -289,7 +305,59 @@ const addDreadnoughtDetails: ShipDetailBuilder = (group, spec, mats) => {
 	group.add(prow);
 };
 
+// Flat-topped silhouette: full-length flight deck that overhangs the hull, with
+// a compact starboard-offset island tower. Intentionally undefended — carriers
+// rely on their escort wing for firepower.
+const addCarrierDetails: ShipDetailBuilder = (group, spec, mats) => {
+	const deck = new Mesh(
+		new BoxGeometry(spec.hullWidth * 1.25, 0.08, spec.hullLength * 1.05),
+		mats.accent,
+	);
+	deck.position.set(0, spec.hullHeight + 0.04, spec.hullLength * 0.02);
+	group.add(deck);
+
+	const deckStripe = new Mesh(
+		new BoxGeometry(0.12, 0.02, spec.hullLength * 0.85),
+		mats.hull,
+	);
+	deckStripe.position.set(0, spec.hullHeight + 0.09, 0);
+	group.add(deckStripe);
+
+	const islandX = spec.hullWidth * 0.42;
+	const islandZ = -spec.hullLength * 0.15;
+	const islandBase = new Mesh(
+		new BoxGeometry(spec.hullWidth * 0.22, spec.hullHeight * 0.9, spec.hullLength * 0.18),
+		mats.accent,
+	);
+	islandBase.position.set(islandX, spec.hullHeight + 0.08 + spec.hullHeight * 0.45, islandZ);
+	group.add(islandBase);
+
+	const bridge = new Mesh(
+		new BoxGeometry(spec.hullWidth * 0.16, spec.hullHeight * 0.55, spec.hullLength * 0.1),
+		mats.accent,
+	);
+	bridge.position.set(islandX, spec.hullHeight + 0.08 + spec.hullHeight * 1.17, islandZ + spec.hullLength * 0.02);
+	group.add(bridge);
+
+	const mast = new Mesh(
+		new BoxGeometry(0.1, spec.hullHeight * 0.8, 0.1),
+		mats.accent,
+	);
+	mast.position.set(islandX, spec.hullHeight + 0.08 + spec.hullHeight * 1.85, islandZ);
+	group.add(mast);
+
+	SIDES.forEach((side) => {
+		const eng = new Mesh(
+			new BoxGeometry(spec.hullWidth * 0.35, spec.hullHeight * 0.55, 0.18),
+			mats.engine,
+		);
+		eng.position.set(side * spec.hullWidth * 0.3, spec.hullHeight * 0.5, -spec.hullLength / 2 - 0.09);
+		group.add(eng);
+	});
+};
+
 const SHIP_DETAILS: Record<ShipClass, ShipDetailBuilder> = {
+	carrier: addCarrierDetails,
 	corvette: addCorvetteDetails,
 	frigate: addFrigateDetails,
 	destroyer: addDestroyerDetails,
@@ -333,10 +401,12 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 	hull.position.y = spec.hullHeight / 2;
 	group.add(hull);
 
-	const bow = new Mesh(new ConeGeometry(spec.hullWidth * 0.55, spec.hullLength * 0.35, 12), mats.hull);
-	bow.position.set(0, spec.hullHeight / 2, spec.hullLength / 2 + spec.hullLength * 0.17);
-	bow.rotation.x = Math.PI / 2;
-	group.add(bow);
+	if (!spec.flatBow) {
+		const bow = new Mesh(new ConeGeometry(spec.hullWidth * 0.55, spec.hullLength * 0.35, 12), mats.hull);
+		bow.position.set(0, spec.hullHeight / 2, spec.hullLength / 2 + spec.hullLength * 0.17);
+		bow.rotation.x = Math.PI / 2;
+		group.add(bow);
+	}
 
 	SHIP_DETAILS[shipClass](group, spec, mats);
 

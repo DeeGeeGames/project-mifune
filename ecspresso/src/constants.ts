@@ -63,7 +63,7 @@ export const PICKUP_MAGNET_RADIUS = 6;
 export const PICKUP_MAGNET_SPEED = 14;
 export const PICKUP_COLLECT_RADIUS = 1;
 
-export const FORMATION_SPACING = 4;
+export const FORMATION_SPACING = 6;
 export const FORMATION_SLOWING_RADIUS = FORMATION_SPACING * 1.5;
 export const FORMATION_CONTROL_TAU = 0.2;
 

@@ -13,8 +13,6 @@ export const createHudPlugin = () => definePlugin({
 			.withResources(['playerState', 'hudRefs'])
 			.setProcess(({ queries, resources: { playerState, hudRefs } }) => {
 				hudRefs.resourcesEl.textContent = `Resources: ${Math.floor(playerState.resources)}`;
-				hudRefs.modeEl.textContent = playerState.controlMode === 'override' ? 'OVERRIDE' : 'AUTO';
-				hudRefs.modeEl.className = `hud-mode ${playerState.controlMode}`;
 
 				const rosterLines = queries.ships.map((e) => {
 					const isFlag = e.id === playerState.commandVesselId ? '◆' : '·';

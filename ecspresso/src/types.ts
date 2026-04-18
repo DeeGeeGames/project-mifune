@@ -14,9 +14,7 @@ import {
 	CAMERA_VIEW_SIZE,
 	CAMERA_FOLLOW_SMOOTHING,
 	GP_BUTTON_A,
-	GP_BUTTON_Y,
 	GP_BUTTON_LB,
-	GP_BUTTON_RB,
 	GP_BUTTON_DPAD_UP,
 	GP_BUTTON_DPAD_DOWN,
 	GP_BUTTON_DPAD_LEFT,
@@ -32,13 +30,11 @@ import type { EnemyBehavior } from './enemies';
 export type GameAction =
 	| 'fwd'
 	| 'rev'
-	| 'cycleVessel'
 	| 'summon1'
 	| 'summon2'
 	| 'summon3'
 	| 'summon4'
 	| 'confirmSummon'
-	| 'overrideAim'
 	| 'aimGate'
 	| 'zoomIn'
 	| 'zoomOut'
@@ -50,13 +46,11 @@ export type GameAction =
 const actions: ActionMap<GameAction> = {
 	fwd:           { keys: ['w'] },
 	rev:           { keys: ['s'] },
-	cycleVessel:   { keys: ['Tab'], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_Y) },
 	summon1:       { keys: ['1'] },
 	summon2:       { keys: ['2'] },
 	summon3:       { keys: ['3'] },
 	summon4:       { keys: ['4'] },
 	confirmSummon: { gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
-	overrideAim:   { pointerButtons: [2], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_RB) },
 	aimGate:       { pointerButtons: [0], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_LB) },
 	zoomIn:        { keys: ['e'] },
 	zoomOut:       { keys: ['q'] },
@@ -113,15 +107,11 @@ export interface SummonAnimComponent {
 	originZ: number;
 }
 
-export type ControlMode = 'autonomous' | 'override';
-
 export interface PlayerState {
 	resources: number;
 	ownedShipIds: number[];
 	commandVesselId: number;
-	controlMode: ControlMode;
 	selectedSummon: ShipClass;
-	overrideAimAngle: number;
 	pendingHeading: number;
 	headingPreviewActive: boolean;
 }
@@ -142,18 +132,12 @@ export interface HudRefs {
 	resourcesEl: HTMLElement;
 	rosterEl: HTMLElement;
 	menuEl: HTMLElement;
-	modeEl: HTMLElement;
 	thrustBarFillEl: HTMLElement;
 }
 
 export interface ShipSummonedEvent {
 	entityId: number;
 	shipClass: ShipClass;
-}
-
-export interface CommandSwappedEvent {
-	oldVesselId: number;
-	newVesselId: number;
 }
 
 export interface EnemyKilledEvent {
@@ -214,11 +198,9 @@ export const builder = ECSpresso.create()
 		Renderer3DEventTypes &
 		{
 			'ship:summoned': ShipSummonedEvent;
-			'ship:commandSwapped': CommandSwappedEvent;
 			'enemy:killed': EnemyKilledEvent;
 			'pickup:collected': PickupCollectedEvent;
 			'summon:request': SummonRequestEvent;
-			'vessel:cycleRequested': void;
 		}
 	>()
 	.withResourceTypes<

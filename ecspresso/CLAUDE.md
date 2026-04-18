@@ -34,16 +34,15 @@ Coordinate conventions:
 - `src/main.ts` — install plugins, spawn initial corvette, add ground + lights, attach camera follow
 - `src/plugins/` — feature plugins:
   - `cursor.ts` — mouse → ground-plane raycast; wheel → ortho zoom (TODO-noted shim until camera3D gains wheel-zoom for ortho)
-  - `control.ts` — gamepad + keyboard/mouse → command-vessel `headingTarget` / `throttle`, override mode, summon/cycle events
+  - `control.ts` — gamepad + keyboard/mouse → command-vessel `headingTarget` / `throttle`, summon events
   - `movement.ts` — per-ship rotation + thrust + drag + position integration (delegates to `kinematic.ts`)
   - `formation.ts` — non-flagship ships arrive-steer toward their V-formation slot (from `slotLocalXZ`)
-  - `turret.ts` — aim (nearest in cone with lead-targeting, or player override) + fire (cooldown, spawn projectile)
+  - `turret.ts` — aim (nearest in cone with lead-targeting) + fire (cooldown, spawn projectile). Autonomous only — player has no manual aim.
   - `combat.ts` — projectile integration, hit tests, enemy death → pickup spawn
   - `enemy.ts` — ship-like kinematics (shared integrator); per-`kind` AI dispatch (pursuer = tail-chase, interceptor = lead via `leadTarget`, flanker = lead + perpendicular offset, orbiter = ring-hold with periodic strikes)
   - `waves.ts` — interval-driven enemy spawns on a ring outside view, rate ramps over time
   - `pickups.ts` — magnet toward command vessel; collect on contact
   - `summon.ts` — listen for `summon:request`, deduct cost, spawn ship off-screen with `summonAnim`
-  - `commandSwap.ts` — cycle `commandVessel` marker + formation slots; retarget camera follow
   - `hud.ts` — DOM overlay updates each render phase
   - `aimPreview.ts` — aim-gate arc preview (see Controls)
 
@@ -57,8 +56,10 @@ Coordinate conventions:
 
 ## Controls
 
+Player commands a carrier — slow, unarmed, depends entirely on its escort wing for firepower. Losing the carrier ends the run (loss-condition wiring pending).
+
 Heading is gated: the ship only turns when the aim-gate is held. While held, stick/cursor drives `playerState.pendingHeading` (visualized as a dashed arc); release commits it to `ship.headingTarget`.
 
-**Gamepad (primary):** LB held = aim gate (LS sets pending heading) · RT = forward · LT = reverse · RB held = override fire (RS aims) · A = summon selected · Y = cycle vessel · D-pad ◀▶ = cycle summon selection.
+**Gamepad (primary):** LB held = aim gate (LS sets pending heading) · RT = forward · LT = reverse · A = summon selected · D-pad ◀▶ = cycle summon selection.
 
-**Keyboard / mouse:** Left-mouse held = aim gate (mouse sets pending heading) · W/S = thrust · Right-mouse held = override fire · 1-4 = summon by class · Tab = cycle vessel · Mouse wheel / Q-E = zoom.
+**Keyboard / mouse:** Left-mouse held = aim gate (mouse sets pending heading) · W/S = thrust · 1-4 = summon by class · Mouse wheel / Q-E = zoom.

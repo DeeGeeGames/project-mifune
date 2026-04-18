@@ -5,8 +5,6 @@ import {
 	GP_BUTTON_RT,
 	GP_AXIS_LS_X,
 	GP_AXIS_LS_Y,
-	GP_AXIS_RS_X,
-	GP_AXIS_RS_Y,
 	ISO_AZIMUTH,
 	STICK_ACTIVE_THRESHOLD,
 	TRIGGER_DEADZONE,
@@ -59,23 +57,6 @@ export const createControlPlugin = () => definePlugin({
 						: ship.headingTarget;
 					playerState.headingPreviewActive = shouldTrack;
 					ship.throttle = updateThrust(ship.throttle, input, gp, hasGamepad, dt);
-				}
-
-				const overrideHeld = input.actions.isActive('overrideAim');
-				playerState.controlMode = overrideHeld ? 'override' : 'autonomous';
-
-				if (overrideHeld) {
-					playerState.overrideAimAngle = computeOverrideAim(
-						queries.commandVessel[0]?.components.localTransform3D,
-						cursorState,
-						gp,
-						hasGamepad,
-						playerState.overrideAimAngle,
-					);
-				}
-
-				if (input.actions.justActivated('cycleVessel')) {
-					ecs.eventBus.publish('vessel:cycleRequested', undefined);
 				}
 
 				for (const [action, shipClass] of Object.entries(SUMMON_BY_ACTION)) {
@@ -157,19 +138,3 @@ function updateThrust(
 	);
 }
 
-function computeOverrideAim(
-	flagshipTransform: { x: number; z: number } | undefined,
-	cursor: { x: number; z: number; valid: boolean },
-	gp: { axis(i: number): number; connected: boolean } | undefined,
-	hasGamepad: boolean,
-	previousAngle: number,
-): number {
-	if (hasGamepad && gp) {
-		const angle = stickToWorldAngle(gp.axis(GP_AXIS_RS_X), gp.axis(GP_AXIS_RS_Y), STICK_ACTIVE_THRESHOLD, ISO_AZIMUTH);
-		if (angle !== null) return angle;
-	}
-	if (flagshipTransform && cursor.valid) {
-		return bearingXZ(flagshipTransform.x, flagshipTransform.z, cursor.x, cursor.z);
-	}
-	return previousAngle;
-}

@@ -23,9 +23,6 @@
 			backdrop-filter: blur(4px);
 		}
 		#hud-resources { top: 12px; left: 12px; font-size: 18px; font-weight: 600; color: #ffd55a; }
-		#hud-mode { top: 12px; right: 12px; font-weight: 700; letter-spacing: 0.1em; }
-		#hud-mode.autonomous { color: #7fb2ff; }
-		#hud-mode.override { color: #ff6a6a; }
 		#hud-roster { top: 60px; left: 12px; min-width: 140px; }
 		#hud-menu { bottom: 12px; left: 12px; }
 		#hud-help { bottom: 12px; right: 12px; color: #98a7be; }
@@ -59,7 +56,6 @@
 <body>
 	<div id="game-container"></div>
 	<div id="hud-resources" class="hud-panel">Resources: 0</div>
-	<div id="hud-mode" class="hud-panel autonomous">AUTO</div>
 	<div id="hud-roster" class="hud-panel"></div>
 	<div id="hud-menu" class="hud-panel"></div>
 	<div id="hud-thrust" class="hud-panel">
@@ -69,8 +65,8 @@
 			<div id="hud-thrust-fill" class="thrust-fill"></div>
 		</div>
 	</div>
-	<div id="hud-help" class="hud-panel">Gamepad: LS heading • RT/LT thrust • RB override • Y cycle • A summon
-Keyboard: mouse heading • W/S thrust • RMB override • Tab cycle • 1-4 summon • Wheel/Q/E zoom</div>
+	<div id="hud-help" class="hud-panel">Gamepad: LS heading • RT/LT thrust • A summon • D-pad ◀▶ select
+Keyboard: LMB heading • W/S thrust • 1-4 summon • Wheel/Q/E zoom</div>
 	<script type="module" src="/src/main.ts"></script>
 </body>
 </html>
