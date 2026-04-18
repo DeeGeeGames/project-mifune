@@ -76,7 +76,7 @@ export const SUMMON_OFFSCREEN_RING = 35;
 
 export const GROUND_SIZE = 400;
 
-export const AIM_ARC_RADIUS = 3;
+export const AIM_ARC_RADIUS = 12;
 export const AIM_ARC_SEGMENTS = 24;
 export const AIM_ARC_Y_OFFSET = 0.05;
 export const AIM_ARC_FILL_Y_OFFSET = 0.04;

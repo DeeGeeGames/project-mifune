@@ -305,46 +305,41 @@ const addDreadnoughtDetails: ShipDetailBuilder = (group, spec, mats) => {
 	group.add(prow);
 };
 
-// Flat-topped silhouette: full-length flight deck that overhangs the hull, with
-// a compact starboard-offset island tower. Intentionally undefended — carriers
-// rely on their escort wing for firepower.
+// Slab-hulled space carrier: ships launch from internal hangar bays, so no
+// open flight deck — just a centered command tower atop a long armored hull.
+// Intentionally undefended — carriers rely on their escort wing for firepower.
 const addCarrierDetails: ShipDetailBuilder = (group, spec, mats) => {
-	const deck = new Mesh(
-		new BoxGeometry(spec.hullWidth * 1.25, 0.08, spec.hullLength * 1.05),
-		mats.accent,
+	const towerMat = new MeshStandardMaterial({ color: 0x565e6c, roughness: 0.55, metalness: 0.25 });
+	const towerZ = -spec.hullLength * 0.15;
+	const towerBase = new Mesh(
+		new BoxGeometry(spec.hullWidth * 0.35, spec.hullHeight * 0.9, spec.hullLength * 0.18),
+		towerMat,
 	);
-	deck.position.set(0, spec.hullHeight + 0.04, spec.hullLength * 0.02);
-	group.add(deck);
-
-	const deckStripe = new Mesh(
-		new BoxGeometry(0.12, 0.02, spec.hullLength * 0.85),
-		mats.hull,
-	);
-	deckStripe.position.set(0, spec.hullHeight + 0.09, 0);
-	group.add(deckStripe);
-
-	const islandX = spec.hullWidth * 0.42;
-	const islandZ = -spec.hullLength * 0.15;
-	const islandBase = new Mesh(
-		new BoxGeometry(spec.hullWidth * 0.22, spec.hullHeight * 0.9, spec.hullLength * 0.18),
-		mats.accent,
-	);
-	islandBase.position.set(islandX, spec.hullHeight + 0.08 + spec.hullHeight * 0.45, islandZ);
-	group.add(islandBase);
+	towerBase.position.set(0, spec.hullHeight + spec.hullHeight * 0.45, towerZ);
+	group.add(towerBase);
 
 	const bridge = new Mesh(
-		new BoxGeometry(spec.hullWidth * 0.16, spec.hullHeight * 0.55, spec.hullLength * 0.1),
-		mats.accent,
+		new BoxGeometry(spec.hullWidth * 0.26, spec.hullHeight * 0.55, spec.hullLength * 0.11),
+		towerMat,
 	);
-	bridge.position.set(islandX, spec.hullHeight + 0.08 + spec.hullHeight * 1.17, islandZ + spec.hullLength * 0.02);
+	bridge.position.set(0, spec.hullHeight + spec.hullHeight * 1.17, towerZ + spec.hullLength * 0.02);
 	group.add(bridge);
 
 	const mast = new Mesh(
 		new BoxGeometry(0.1, spec.hullHeight * 0.8, 0.1),
-		mats.accent,
+		towerMat,
 	);
-	mast.position.set(islandX, spec.hullHeight + 0.08 + spec.hullHeight * 1.85, islandZ);
+	mast.position.set(0, spec.hullHeight + spec.hullHeight * 1.85, towerZ);
 	group.add(mast);
+
+	SIDES.forEach((side) => {
+		const hangarStripe = new Mesh(
+			new BoxGeometry(0.04, spec.hullHeight * 0.45, spec.hullLength * 0.6),
+			mats.accent,
+		);
+		hangarStripe.position.set(side * (spec.hullWidth / 2 + 0.02), spec.hullHeight * 0.55, 0);
+		group.add(hangarStripe);
+	});
 
 	SIDES.forEach((side) => {
 		const eng = new Mesh(
