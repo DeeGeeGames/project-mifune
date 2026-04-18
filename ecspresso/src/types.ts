@@ -26,6 +26,7 @@ import {
 } from './constants';
 import type { ShipClass } from './ships';
 import type { Group } from 'three';
+import type { KinematicState } from './kinematic';
 
 export type GameAction =
 	| 'fwd'
@@ -64,19 +65,8 @@ const actions: ActionMap<GameAction> = {
 	menuRight:     { keys: ['ArrowRight'], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_RIGHT) },
 };
 
-export interface ShipComponent {
+export interface ShipComponent extends KinematicState {
 	class: ShipClass;
-	heading: number;
-	headingTarget: number;
-	throttle: number;
-	vx: number;
-	vz: number;
-	turnRate: number;
-	turnSpeed: number;
-	turnAccel: number;
-	accel: number;
-	maxSpeed: number;
-	drag: number;
 	hp: number;
 }
 
@@ -98,9 +88,8 @@ export interface ProjectileComponent {
 	damage: number;
 }
 
-export interface EnemyComponent {
+export interface EnemyComponent extends KinematicState {
 	hp: number;
-	speed: number;
 }
 
 export interface PickupComponent {

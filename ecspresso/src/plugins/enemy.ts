@@ -1,6 +1,6 @@
 import { definePlugin } from '../types';
-import { bearingXZ, distanceXZ } from '../math';
-import { ENEMY_SPEED } from '../constants';
+import { bearingXZ } from '../math';
+import { integrateKinematicXZ } from '../kinematic';
 
 export const createEnemyPlugin = () => definePlugin({
 	id: 'enemy',
@@ -16,14 +16,9 @@ export const createEnemyPlugin = () => definePlugin({
 				const ft = flagship.components.localTransform3D;
 
 				for (const { id, components: { localTransform3D, enemy } } of queries.enemies) {
-					const d = distanceXZ(localTransform3D.x, localTransform3D.z, ft.x, ft.z);
-					if (d < 0.01) continue;
-					const angle = bearingXZ(localTransform3D.x, localTransform3D.z, ft.x, ft.z);
-					const vx = Math.sin(angle) * enemy.speed;
-					const vz = Math.cos(angle) * enemy.speed;
-					localTransform3D.x += vx * dt;
-					localTransform3D.z += vz * dt;
-					localTransform3D.ry = angle;
+					enemy.headingTarget = bearingXZ(localTransform3D.x, localTransform3D.z, ft.x, ft.z);
+					enemy.throttle = 1;
+					integrateKinematicXZ(enemy, localTransform3D, dt);
 					ecs.markChanged(id, 'localTransform3D');
 				}
 			});

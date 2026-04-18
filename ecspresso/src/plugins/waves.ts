@@ -1,9 +1,14 @@
 import { definePlugin } from '../types';
-import { enemyMesh } from '../ships';
-import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
+import { enemyShipGroup } from '../ships';
+import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
+import { bearingXZ } from '../math';
 import {
 	ENEMY_HP,
-	ENEMY_SPEED,
+	ENEMY_TURN_RATE,
+	ENEMY_TURN_ACCEL,
+	ENEMY_ACCEL,
+	ENEMY_MAX_SPEED,
+	ENEMY_DRAG,
 	ENEMY_SPAWN_RING_PAD,
 	CAMERA_VIEW_SIZE,
 	WAVE_MIN_INTERVAL_MS,
@@ -44,10 +49,28 @@ export const createWavesPlugin = () => definePlugin({
 				const radius = CAMERA_VIEW_SIZE + ENEMY_SPAWN_RING_PAD;
 				const spawnX = ft.x + Math.sin(angle) * radius;
 				const spawnZ = ft.z + Math.cos(angle) * radius;
+				const spawnHeading = bearingXZ(spawnX, spawnZ, ft.x, ft.z);
 
 				ecs.spawn({
-					...createMeshComponents(enemyMesh(), { x: spawnX, y: 0, z: spawnZ }),
-					enemy: { hp: ENEMY_HP, speed: ENEMY_SPEED },
+					...createGroupComponents(
+						enemyShipGroup(),
+						{ x: spawnX, y: 0, z: spawnZ },
+						{ rotation: { y: spawnHeading } },
+					),
+					enemy: {
+						hp: ENEMY_HP,
+						heading: spawnHeading,
+						headingTarget: spawnHeading,
+						throttle: 0,
+						vx: 0,
+						vz: 0,
+						turnRate: ENEMY_TURN_RATE,
+						turnSpeed: 0,
+						turnAccel: ENEMY_TURN_ACCEL,
+						accel: ENEMY_ACCEL,
+						maxSpeed: ENEMY_MAX_SPEED,
+						drag: ENEMY_DRAG,
+					},
 				});
 			});
 	},

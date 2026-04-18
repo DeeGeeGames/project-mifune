@@ -27,17 +27,18 @@ Coordinate conventions:
 - `src/types.ts` — builder chain, `GameAction` union, action map, all component/event/resource types, `definePlugin`, `World`
 - `src/constants.ts` — all tunable numbers (ship specs, camera, turret, wave, summon costs, gamepad button indices)
 - `src/math.ts` — pure helpers (`normalizeAngle`, `stepAngle`, `rotateY`, `bearingXZ`, `forwardXZ`, `leadTarget`)
-- `src/ships.ts` — `SHIP_SPECS` table per class + `createShipGroup` / `enemyMesh` / `projectileMesh` / `pickupMesh` factories
+- `src/kinematic.ts` — shared `integrateKinematicXZ(state, transform, dt)` used by both `movement.ts` (ships) and `enemy.ts` (enemies)
+- `src/ships.ts` — `SHIP_SPECS` table per class + `createShipGroup` / `enemyShipGroup` / `projectileMesh` / `pickupMesh` factories
 - `src/formation.ts` — pure helpers: `slotLocalXZ(slotIndex)` maps flat slot indices to a V formation (row 0 = front tip, row 1 = command row, each next row +2 slots); `reassignFormationSlots` repacks slots from `ownedShipIds` order.
 - `src/main.ts` — install plugins, spawn initial corvette, add ground + lights, attach camera follow
 - `src/plugins/` — feature plugins:
   - `cursor.ts` — mouse → ground-plane raycast; wheel → ortho zoom (TODO-noted shim until camera3D gains wheel-zoom for ortho)
   - `control.ts` — gamepad + keyboard/mouse → command-vessel `headingTarget` / `throttle`, override mode, summon/cycle events
-  - `movement.ts` — per-ship rotation + thrust + drag + position integration
+  - `movement.ts` — per-ship rotation + thrust + drag + position integration (delegates to `kinematic.ts`)
   - `formation.ts` — non-flagship ships arrive-steer toward their V-formation slot (from `slotLocalXZ`)
   - `turret.ts` — aim (nearest in cone with lead-targeting, or player override) + fire (cooldown, spawn projectile)
   - `combat.ts` — projectile integration, hit tests, enemy death → pickup spawn
-  - `enemy.ts` — homing toward the command vessel at fixed speed
+  - `enemy.ts` — ship-like kinematics (shared integrator); AI sets `headingTarget` toward flagship + full throttle to ram
   - `waves.ts` — interval-driven enemy spawns on a ring outside view, rate ramps over time
   - `pickups.ts` — magnet toward command vessel; collect on contact
   - `summon.ts` — listen for `summon:request`, deduct cost, spawn ship off-screen with `summonAnim`

@@ -6,6 +6,7 @@ import {
 	CylinderGeometry,
 	MeshStandardMaterial,
 } from 'three';
+import { ENEMY_HULL_LENGTH, ENEMY_HULL_WIDTH, ENEMY_HULL_HEIGHT } from './constants';
 
 export type ShipClass = 'corvette' | 'frigate' | 'destroyer' | 'dreadnought';
 
@@ -169,13 +170,29 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 	return { group, turretMounts };
 }
 
-export function enemyMesh(): Mesh {
-	const geo = new ConeGeometry(0.55, 1.1, 6);
-	const mat = new MeshStandardMaterial({ color: 0xcc33aa, roughness: 0.4, metalness: 0.2, emissive: 0x330022 });
-	const mesh = new Mesh(geo, mat);
-	mesh.rotation.x = Math.PI;
-	mesh.position.y = 0.55;
-	return mesh;
+const ENEMY_HULL_GEO = new BoxGeometry(ENEMY_HULL_WIDTH, ENEMY_HULL_HEIGHT, ENEMY_HULL_LENGTH);
+const ENEMY_BOW_GEO = new ConeGeometry(ENEMY_HULL_WIDTH * 0.6, ENEMY_HULL_LENGTH * 0.55, 8);
+const ENEMY_TAIL_GEO = new BoxGeometry(ENEMY_HULL_WIDTH * 0.25, ENEMY_HULL_HEIGHT * 1.1, ENEMY_HULL_LENGTH * 0.3);
+const ENEMY_HULL_MAT = new MeshStandardMaterial({ color: 0xcc3344, roughness: 0.5, metalness: 0.25, emissive: 0x220008 });
+const ENEMY_ACCENT_MAT = new MeshStandardMaterial({ color: 0x2a1418, roughness: 0.6, metalness: 0.2 });
+
+export function enemyShipGroup(): Group {
+	const group = new Group();
+
+	const hull = new Mesh(ENEMY_HULL_GEO, ENEMY_HULL_MAT);
+	hull.position.y = ENEMY_HULL_HEIGHT / 2;
+	group.add(hull);
+
+	const bow = new Mesh(ENEMY_BOW_GEO, ENEMY_HULL_MAT);
+	bow.position.set(0, ENEMY_HULL_HEIGHT / 2, ENEMY_HULL_LENGTH / 2 + ENEMY_HULL_LENGTH * 0.27);
+	bow.rotation.x = Math.PI / 2;
+	group.add(bow);
+
+	const tailFin = new Mesh(ENEMY_TAIL_GEO, ENEMY_ACCENT_MAT);
+	tailFin.position.set(0, ENEMY_HULL_HEIGHT * 0.65, -ENEMY_HULL_LENGTH / 2 - ENEMY_HULL_LENGTH * 0.08);
+	group.add(tailFin);
+
+	return group;
 }
 
 export function projectileMesh(): Mesh {
