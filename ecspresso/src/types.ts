@@ -110,7 +110,7 @@ export interface PickupComponent {
 
 export interface FormationSlotComponent {
 	flagshipId: number;
-	slotAngle: number;
+	slotIndex: number;
 }
 
 export interface SummonAnimComponent {

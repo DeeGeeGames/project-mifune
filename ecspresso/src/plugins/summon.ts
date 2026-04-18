@@ -1,8 +1,9 @@
 import { definePlugin } from '../types';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
-import { SHIP_SPECS, createShipGroup, type ShipClass } from '../ships';
-import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING, FORMATION_RADIUS } from '../constants';
+import { SHIP_SPECS, createShipGroup } from '../ships';
+import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING } from '../constants';
 import { bearingXZ, rotateY } from '../math';
+import { slotLocalXZ } from '../formation';
 
 export const createSummonPlugin = () => definePlugin({
 	id: 'summon',
@@ -19,7 +20,7 @@ export const createSummonPlugin = () => definePlugin({
 
 					playerState.resources -= spec.cost;
 
-					const slotAngle = nextSlotAngle(playerState.ownedShipIds.length - 1);
+					const slotIndex = playerState.ownedShipIds.length - 1;
 					const angleFromFlagship = Math.random() * Math.PI * 2;
 					const originX = flagshipTransform.x + Math.sin(angleFromFlagship) * SUMMON_OFFSCREEN_RING;
 					const originZ = flagshipTransform.z + Math.cos(angleFromFlagship) * SUMMON_OFFSCREEN_RING;
@@ -43,7 +44,7 @@ export const createSummonPlugin = () => definePlugin({
 							drag: spec.drag,
 							hp: spec.hp,
 						},
-						formationSlot: { flagshipId: playerState.commandVesselId, slotAngle },
+						formationSlot: { flagshipId: playerState.commandVesselId, slotIndex },
 						summonAnim: { progress: 0, originX, originZ },
 					});
 
@@ -87,11 +88,8 @@ export const createSummonPlugin = () => definePlugin({
 
 					summonAnim.progress = Math.min(1, summonAnim.progress + dt / SUMMON_ANIM_SEC);
 
-					const slotLocal = {
-						x: Math.sin(formationSlot.slotAngle) * FORMATION_RADIUS,
-						z: Math.cos(formationSlot.slotAngle) * FORMATION_RADIUS,
-					};
-					const slotWorld = rotateY(slotLocal, flagshipShip.heading);
+					const slotLocal = slotLocalXZ(formationSlot.slotIndex);
+					const slotWorld = rotateY(slotLocal, -flagshipShip.heading);
 					const targetX = flagshipTransform.x + slotWorld.x;
 					const targetZ = flagshipTransform.z + slotWorld.z;
 
@@ -111,12 +109,7 @@ export const createSummonPlugin = () => definePlugin({
 	},
 });
 
-function nextSlotAngle(existingFollowerCount: number): number {
-	const total = existingFollowerCount + 1;
-	return (existingFollowerCount * Math.PI * 2) / Math.max(1, total);
-}
-
-function easeOutCubic(t: number): number {
+const easeOutCubic = (t: number): number => {
 	const x = 1 - t;
 	return 1 - x * x * x;
-}
+};
