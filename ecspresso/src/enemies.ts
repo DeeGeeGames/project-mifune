@@ -3,12 +3,21 @@ import {
 	ENEMY_HULL_LENGTH,
 	ENEMY_HULL_WIDTH,
 	ENEMY_HULL_HEIGHT,
+	BRAWLER_THREAT_TOLERANCE,
 	GUNSHIP_THREAT_TOLERANCE,
 	ORBIT_STRIKE_INTERVAL_SEC,
+	SNIPER_THREAT_TOLERANCE,
 } from './constants';
 import type { TurretMount } from './ships';
 
-export type EnemyKind = 'pursuer' | 'interceptor' | 'flanker' | 'orbiter' | 'gunship';
+export type EnemyKind =
+	| 'pursuer'
+	| 'interceptor'
+	| 'flanker'
+	| 'orbiter'
+	| 'gunship'
+	| 'brawler'
+	| 'sniper';
 
 export type PerceptionTier = 'positional' | 'kinematic' | 'predictive';
 
@@ -17,7 +26,9 @@ export type EnemyBehavior =
 	| { readonly kind: 'interceptor' }
 	| { readonly kind: 'flanker'; readonly side: -1 | 1 }
 	| { kind: 'orbiter'; readonly dir: -1 | 1; strikeTimer: number; mode: 'orbit' | 'strike' }
-	| { readonly kind: 'gunship'; readonly perceptionTier: PerceptionTier };
+	| { readonly kind: 'gunship'; readonly perceptionTier: PerceptionTier }
+	| { readonly kind: 'brawler'; readonly perceptionTier: PerceptionTier }
+	| { readonly kind: 'sniper'; readonly perceptionTier: PerceptionTier };
 
 export interface EnemySpec {
 	readonly hp: number;
@@ -35,7 +46,7 @@ export interface EnemySpec {
 	readonly threatTolerance?: number;
 }
 
-export const ENEMY_KINDS = ['pursuer', 'interceptor', 'flanker', 'orbiter', 'gunship'] as const satisfies readonly EnemyKind[];
+export const ENEMY_KINDS = ['pursuer', 'interceptor', 'flanker', 'orbiter', 'gunship', 'brawler', 'sniper'] as const satisfies readonly EnemyKind[];
 
 const KAMIKAZE_HULL = {
 	hullLength: ENEMY_HULL_LENGTH,
@@ -108,6 +119,52 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		},
 		threatTolerance: GUNSHIP_THREAT_TOLERANCE,
 	},
+	brawler: {
+		hp: 80,
+		color: 0xdd6600,
+		turnRate: 0.15,
+		turnAccel: 0.15,
+		accel: 0.35,
+		maxSpeed: 2.2,
+		drag: 0.3,
+		hullLength: 6.5,
+		hullWidth: 1.8,
+		hullHeight: 0.7,
+		radius: 1.6,
+		turretMount: {
+			x: 0,
+			z: 0.8,
+			baseAngle: 0,
+			coneHalf: Math.PI / 2,
+			range: 12,
+			fireIntervalMs: 200,
+			damage: 2,
+		},
+		threatTolerance: BRAWLER_THREAT_TOLERANCE,
+	},
+	sniper: {
+		hp: 25,
+		color: 0x6644cc,
+		turnRate: 0.12,
+		turnAccel: 0.1,
+		accel: 0.45,
+		maxSpeed: 3.0,
+		drag: 0.3,
+		hullLength: 4.8,
+		hullWidth: 0.9,
+		hullHeight: 0.35,
+		radius: 0.9,
+		turretMount: {
+			x: 0,
+			z: 0.5,
+			baseAngle: 0,
+			coneHalf: Math.PI / 8,
+			range: 35,
+			fireIntervalMs: 2500,
+			damage: 20,
+		},
+		threatTolerance: SNIPER_THREAT_TOLERANCE,
+	},
 };
 
 const randomSide = (): -1 | 1 => (Math.random() < 0.5 ? -1 : 1);
@@ -123,6 +180,8 @@ const BEHAVIOR_FACTORIES: Record<EnemyKind, () => EnemyBehavior> = {
 		mode: 'orbit',
 	}),
 	gunship: () => ({ kind: 'gunship', perceptionTier: 'positional' }),
+	brawler: () => ({ kind: 'brawler', perceptionTier: 'positional' }),
+	sniper: () => ({ kind: 'sniper', perceptionTier: 'predictive' }),
 };
 
 export const makeBehavior = (kind: EnemyKind): EnemyBehavior => BEHAVIOR_FACTORIES[kind]();

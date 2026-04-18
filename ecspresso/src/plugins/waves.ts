@@ -1,17 +1,24 @@
-import { definePlugin } from '../types';
+import type { BehaviorTreeDefinition } from 'ecspresso/plugins/ai/behavior-tree';
+import { definePlugin, type World } from '../types';
 import { enemyShipGroup, turretFromMount } from '../ships';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { bearingXZ } from '../math';
-import { ENEMY_KINDS, ENEMY_SPECS, makeBehavior, type EnemyKind } from '../enemies';
-import { GUNSHIP_TREE, createBehaviorTree } from './enemy-behavior';
+import { ENEMY_KINDS, ENEMY_SPECS, makeBehavior, type EnemyBehavior, type EnemyKind } from '../enemies';
+import { RANGED_TREE, SNIPER_TREE, createBehaviorTree, type RangedBlackboard } from './enemy-behavior';
 import {
-	ENEMY_SPAWN_RING_PAD,
-	ENEMY_SPAWN_WEIGHTS,
+	BRAWLER_RANGED_CONFIG,
 	CAMERA_VIEW_SIZE,
 	CAMERA_ZOOM_MIN,
+	ENEMY_SPAWN_RING_PAD,
+	ENEMY_SPAWN_WEIGHTS,
+	GUNSHIP_RANGED_CONFIG,
+	SNIPER_AIM_CONFIG,
+	SNIPER_RANGED_CONFIG,
 	WAVE_MIN_INTERVAL_MS,
 	WAVE_RAMP_SEC,
 	WAVE_START_INTERVAL_MS,
+	type RangedBehaviorConfig,
+	type SniperAimConfig,
 } from '../constants';
 
 const TOTAL_WEIGHT = ENEMY_KINDS.reduce((sum, kind) => sum + ENEMY_SPAWN_WEIGHTS[kind], 0);
@@ -26,6 +33,70 @@ const pickKind = (): EnemyKind => {
 	return 'pursuer';
 };
 
+type ShooterBehavior = Extract<EnemyBehavior, { kind: 'gunship' | 'brawler' | 'sniper' }>;
+
+interface ShooterTreeSpec {
+	readonly tree: BehaviorTreeDefinition<RangedBlackboard>;
+	readonly config: RangedBehaviorConfig;
+	readonly sniperAim: SniperAimConfig | null;
+}
+
+const SHOOTER_TREES: Record<ShooterBehavior['kind'], ShooterTreeSpec> = {
+	gunship: { tree: RANGED_TREE, config: GUNSHIP_RANGED_CONFIG, sniperAim: null },
+	brawler: { tree: RANGED_TREE, config: BRAWLER_RANGED_CONFIG, sniperAim: null },
+	sniper: { tree: SNIPER_TREE, config: SNIPER_RANGED_CONFIG, sniperAim: SNIPER_AIM_CONFIG },
+};
+
+const isShooterBehavior = (b: EnemyBehavior): b is ShooterBehavior => b.kind in SHOOTER_TREES;
+
+const behaviorTreeFor = (behavior: EnemyBehavior) => {
+	if (!isShooterBehavior(behavior)) return null;
+	const { tree, config, sniperAim } = SHOOTER_TREES[behavior.kind];
+	return createBehaviorTree(tree, { tier: behavior.perceptionTier, config, sniperAim });
+};
+
+const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number, targetX: number, targetZ: number): void => {
+	const spec = ENEMY_SPECS[kind];
+	const { group, turretMount } = enemyShipGroup(kind);
+	const behavior = makeBehavior(kind);
+	const isShooter = spec.turretMount !== undefined && turretMount !== null;
+	const behaviorTree = behaviorTreeFor(behavior);
+	const spawnHeading = bearingXZ(spawnX, spawnZ, targetX, targetZ);
+
+	const enemyEntity = ecs.spawn({
+		...createGroupComponents(
+			group,
+			{ x: spawnX, y: 0, z: spawnZ },
+			{ rotation: { y: spawnHeading } },
+		),
+		enemy: {
+			hp: spec.hp,
+			radius: spec.radius,
+			threatTolerance: spec.threatTolerance ?? Infinity,
+			hitEscalation: 0,
+			heading: spawnHeading,
+			headingTarget: spawnHeading,
+			throttle: 0,
+			vx: 0,
+			vz: 0,
+			turnRate: spec.turnRate,
+			turnSpeed: 0,
+			turnAccel: spec.turnAccel,
+			accel: spec.accel,
+			maxSpeed: spec.maxSpeed,
+			drag: spec.drag,
+			behavior,
+		},
+		...(behaviorTree ?? {}),
+	});
+
+	if (isShooter && spec.turretMount && turretMount) {
+		ecs.spawn({
+			turret: turretFromMount(enemyEntity.id, 'enemy', spec.turretMount, turretMount),
+		});
+	}
+};
+
 export const createWavesPlugin = () => definePlugin({
 	id: 'waves',
 	install: (world) => {
@@ -33,6 +104,7 @@ export const createWavesPlugin = () => definePlugin({
 			timer: 0,
 			spawnIntervalMs: WAVE_START_INTERVAL_MS,
 			elapsedSec: 0,
+			initialSeedDone: false,
 		});
 
 		world.addSystem('waves')
@@ -44,6 +116,19 @@ export const createWavesPlugin = () => definePlugin({
 				const flagship = queries.flagship[0];
 				if (!flagship) return;
 
+				const ft = flagship.components.localTransform3D;
+				const radius = CAMERA_VIEW_SIZE / CAMERA_ZOOM_MIN + ENEMY_SPAWN_RING_PAD;
+
+				if (!waveState.initialSeedDone) {
+					ENEMY_KINDS.forEach((kind, i) => {
+						const angle = (i / ENEMY_KINDS.length) * Math.PI * 2;
+						const spawnX = ft.x + Math.sin(angle) * radius;
+						const spawnZ = ft.z + Math.cos(angle) * radius;
+						spawnEnemy(ecs, kind, spawnX, spawnZ, ft.x, ft.z);
+					});
+					waveState.initialSeedDone = true;
+				}
+
 				waveState.elapsedSec += dt;
 				waveState.timer += dt * 1000;
 
@@ -54,56 +139,10 @@ export const createWavesPlugin = () => definePlugin({
 				if (waveState.timer < waveState.spawnIntervalMs) return;
 				waveState.timer -= waveState.spawnIntervalMs;
 
-				const ft = flagship.components.localTransform3D;
 				const angle = Math.random() * Math.PI * 2;
-				const radius = CAMERA_VIEW_SIZE / CAMERA_ZOOM_MIN + ENEMY_SPAWN_RING_PAD;
 				const spawnX = ft.x + Math.sin(angle) * radius;
 				const spawnZ = ft.z + Math.cos(angle) * radius;
-				const spawnHeading = bearingXZ(spawnX, spawnZ, ft.x, ft.z);
-
-				const kind = pickKind();
-				const spec = ENEMY_SPECS[kind];
-				const { group, turretMount } = enemyShipGroup(kind);
-
-				const behavior = makeBehavior(kind);
-				const isShooter = spec.turretMount !== undefined && turretMount !== null;
-
-				const enemySpawn = {
-					...createGroupComponents(
-						group,
-						{ x: spawnX, y: 0, z: spawnZ },
-						{ rotation: { y: spawnHeading } },
-					),
-					enemy: {
-						hp: spec.hp,
-						radius: spec.radius,
-						threatTolerance: spec.threatTolerance ?? Infinity,
-						hitEscalation: 0,
-						heading: spawnHeading,
-						headingTarget: spawnHeading,
-						throttle: 0,
-						vx: 0,
-						vz: 0,
-						turnRate: spec.turnRate,
-						turnSpeed: 0,
-						turnAccel: spec.turnAccel,
-						accel: spec.accel,
-						maxSpeed: spec.maxSpeed,
-						drag: spec.drag,
-						behavior,
-					},
-					...(isShooter && behavior.kind === 'gunship'
-						? createBehaviorTree(GUNSHIP_TREE, { tier: behavior.perceptionTier })
-						: {}),
-				};
-
-				const enemyEntity = ecs.spawn(enemySpawn);
-
-				if (isShooter && spec.turretMount && turretMount) {
-					ecs.spawn({
-						turret: turretFromMount(enemyEntity.id, 'enemy', spec.turretMount, turretMount),
-					});
-				}
+				spawnEnemy(ecs, pickKind(), spawnX, spawnZ, ft.x, ft.z);
 			});
 	},
 });

@@ -551,11 +551,13 @@ const ENEMY_HULL_MATS: Record<EnemyKind, MeshStandardMaterial> = {
 	flanker: enemyHullMat('flanker'),
 	orbiter: enemyHullMat('orbiter'),
 	gunship: enemyHullMat('gunship'),
+	brawler: enemyHullMat('brawler'),
+	sniper: enemyHullMat('sniper'),
 };
 
 type EnemyDetailBuilder = (group: Group, hullMat: MeshStandardMaterial) => void;
 
-const addPursuerDetails: EnemyDetailBuilder = () => {};
+const noEnemyDetails: EnemyDetailBuilder = () => {};
 
 const addInterceptorDetails: EnemyDetailBuilder = (group, hullMat) => {
 	const antenna = new Mesh(
@@ -595,14 +597,14 @@ const addOrbiterDetails: EnemyDetailBuilder = (group, hullMat) => {
 	group.add(dorsalFin);
 };
 
-const addGunshipDetails: EnemyDetailBuilder = () => {};
-
 const ENEMY_DETAILS: Record<EnemyKind, EnemyDetailBuilder> = {
-	pursuer: addPursuerDetails,
+	pursuer: noEnemyDetails,
 	interceptor: addInterceptorDetails,
 	flanker: addFlankerDetails,
 	orbiter: addOrbiterDetails,
-	gunship: addGunshipDetails,
+	gunship: noEnemyDetails,
+	brawler: noEnemyDetails,
+	sniper: noEnemyDetails,
 };
 
 export interface BuiltEnemy {

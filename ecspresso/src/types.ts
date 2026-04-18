@@ -167,6 +167,7 @@ export interface WaveState {
 	timer: number;
 	spawnIntervalMs: number;
 	elapsedSec: number;
+	initialSeedDone: boolean;
 }
 
 export interface CursorState {

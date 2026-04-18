@@ -69,12 +69,51 @@ export const ORBIT_BAND = 1.5;
 export const ORBIT_STRIKE_INTERVAL_SEC = 4;
 export const ORBIT_STRIKE_DURATION_SEC = 1.2;
 
-export const GUNSHIP_PREFERRED_RANGE = 20;
-export const GUNSHIP_RANGE_TOLERANCE = 2;
-export const GUNSHIP_HOLD_THROTTLE = 0.15;
+export interface RangedBehaviorConfig {
+	readonly preferredRange: number;
+	readonly rangeTolerance: number;
+	readonly holdThrottle: number;
+	readonly evadeMaxOffset: number;
+	readonly evadeThrottle: number;
+}
+
+export const GUNSHIP_RANGED_CONFIG: RangedBehaviorConfig = {
+	preferredRange: 20,
+	rangeTolerance: 2,
+	holdThrottle: 0.15,
+	evadeMaxOffset: Math.PI / 7,
+	evadeThrottle: 0.6,
+};
+
+export const BRAWLER_RANGED_CONFIG: RangedBehaviorConfig = {
+	preferredRange: 8,
+	rangeTolerance: 2,
+	holdThrottle: 0.5,
+	evadeMaxOffset: Math.PI / 10,
+	evadeThrottle: 0.7,
+};
+
+export const SNIPER_RANGED_CONFIG: RangedBehaviorConfig = {
+	preferredRange: 32,
+	rangeTolerance: 3,
+	holdThrottle: 0,
+	evadeMaxOffset: Math.PI / 5,
+	evadeThrottle: 1,
+};
+
 export const GUNSHIP_THREAT_TOLERANCE = 8;
-export const GUNSHIP_EVADE_MAX_OFFSET = Math.PI / 7;
-export const GUNSHIP_EVADE_THROTTLE = 0.6;
+export const BRAWLER_THREAT_TOLERANCE = 30;
+export const SNIPER_THREAT_TOLERANCE = 3;
+
+export interface SniperAimConfig {
+	readonly angleThreshold: number;
+	readonly throttleThreshold: number;
+}
+
+export const SNIPER_AIM_CONFIG: SniperAimConfig = {
+	angleThreshold: Math.PI / 3,
+	throttleThreshold: 0.3,
+};
 
 export const HIT_ESCALATION_DECAY_RATE = 1.0;
 
@@ -83,7 +122,9 @@ export const ENEMY_SPAWN_WEIGHTS = {
 	interceptor: 22,
 	flanker: 20,
 	orbiter: 18,
-	gunship: 15,
+	gunship: 10,
+	brawler: 8,
+	sniper: 5,
 } as const;
 
 export const PROJECTILE_RADIUS = 0.25;
@@ -97,8 +138,8 @@ export const FORMATION_SPACING = 6;
 export const FORMATION_SLOWING_RADIUS = FORMATION_SPACING * 1.5;
 export const FORMATION_CONTROL_TAU = 0.2;
 
-export const WAVE_START_INTERVAL_MS = 1500;
-export const WAVE_MIN_INTERVAL_MS = 400;
+export const WAVE_START_INTERVAL_MS = 30000;
+export const WAVE_MIN_INTERVAL_MS = 30000;
 export const WAVE_RAMP_SEC = 180;
 
 export const SUMMON_ANIM_SEC = 1.0;

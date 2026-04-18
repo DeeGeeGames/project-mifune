@@ -95,7 +95,7 @@ const orbiter = ({ enemy, ex, ez, flagship, dt }: AiContext): void => {
 	enemy.throttle = 0.7;
 };
 
-type KamikazeKind = Exclude<EnemyKind, 'gunship'>;
+type KamikazeKind = Exclude<EnemyKind, 'gunship' | 'brawler' | 'sniper'>;
 
 const AI_HANDLERS: Record<KamikazeKind, (ctx: AiContext) => void> = {
 	pursuer,
@@ -103,6 +103,8 @@ const AI_HANDLERS: Record<KamikazeKind, (ctx: AiContext) => void> = {
 	flanker,
 	orbiter,
 };
+
+const isKamikazeKind = (kind: EnemyKind): kind is KamikazeKind => kind in AI_HANDLERS;
 
 export const createEnemyPlugin = () => definePlugin({
 	id: 'enemy',
@@ -123,7 +125,7 @@ export const createEnemyPlugin = () => definePlugin({
 					if (enemy.hitEscalation > 0) {
 						enemy.hitEscalation = Math.max(0, enemy.hitEscalation - HIT_ESCALATION_DECAY_RATE * dt);
 					}
-					if (enemy.behavior.kind !== 'gunship') {
+					if (isKamikazeKind(enemy.behavior.kind)) {
 						const ctx: AiContext = {
 							enemy,
 							ex: localTransform3D.x,
