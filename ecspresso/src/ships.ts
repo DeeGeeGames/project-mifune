@@ -79,7 +79,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		accel: 0.25,
 		maxSpeed: 1.8,
 		drag: 0.3,
-		hp: 100,
+		hp: 1000,
 		cost: 0,
 		turrets: [],
 		missileTurrets: [
@@ -98,7 +98,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		accel: 0.75,
 		maxSpeed: 4,
 		drag: 0.3,
-		hp: 10,
+		hp: 100,
 		cost: 0,
 		turrets: [
 			{ x: -0.57, z: -1.83, baseAngle: PORT_FORE, coneHalf: Math.PI / 4, fireIntervalMs: 1000 / 3, damage: 2 },
@@ -115,7 +115,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		accel: 0.625,
 		maxSpeed: 3.5,
 		drag: 0.3,
-		hp: 20,
+		hp: 200,
 		cost: 100,
 		turrets: [
 			{ x: -0.78, z: 0.24, baseAngle: PORT },
@@ -132,7 +132,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		accel: 0.5,
 		maxSpeed: 3,
 		drag: 0.3,
-		hp: 35,
+		hp: 350,
 		cost: 250,
 		turrets: [
 			{ x: 0, z: 2.61, baseAngle: FRONT },
@@ -150,7 +150,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		accel: 0.375,
 		maxSpeed: 2.5,
 		drag: 0.3,
-		hp: 60,
+		hp: 600,
 		cost: 500,
 		turrets: [
 			{ x: 0, z: 3.25, baseAngle: FRONT },

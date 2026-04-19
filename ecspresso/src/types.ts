@@ -28,7 +28,7 @@ import {
 	ISO_ELEVATION,
 } from './constants';
 import type { ShipClass } from './ships';
-import type { Group } from 'three';
+import type { Group, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
 
@@ -121,10 +121,17 @@ export interface MissileComponent {
 
 export interface EnemyComponent extends KinematicState {
 	hp: number;
+	maxHp: number;
 	radius: number;
 	threatTolerance: number;
 	hitEscalation: number;
 	behavior: EnemyBehavior;
+}
+
+export interface HealthBarComponent {
+	bg: Sprite;
+	fill: Sprite;
+	lastRatio: number;
 }
 
 export interface EnemyThreatSummary {
@@ -252,6 +259,7 @@ export const builder = ECSpresso.create()
 			projectile: ProjectileComponent;
 			missile: MissileComponent;
 			enemy: EnemyComponent;
+			healthBar: HealthBarComponent;
 			pickup: PickupComponent;
 			summonAnim: SummonAnimComponent;
 		}

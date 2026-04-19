@@ -17,6 +17,7 @@ import { createPickupsPlugin } from './plugins/pickups';
 import { createSummonPlugin } from './plugins/summon';
 import { createHudPlugin } from './plugins/hud';
 import { createAimPreviewPlugin } from './plugins/aimPreview';
+import { createHealthBarsPlugin } from './plugins/healthBars';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -33,6 +34,7 @@ const game = builder
 	.withPlugin(createSummonPlugin())
 	.withPlugin(createHudPlugin())
 	.withPlugin(createAimPreviewPlugin())
+	.withPlugin(createHealthBarsPlugin())
 	.build();
 
 game.addResource('playerState', {

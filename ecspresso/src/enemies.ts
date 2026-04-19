@@ -57,7 +57,7 @@ const KAMIKAZE_HULL = {
 
 export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 	pursuer: {
-		hp: 1,
+		hp: 10,
 		color: 0xcc3344,
 		turnRate: 0.225,
 		turnAccel: 0.3,
@@ -67,7 +67,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		...KAMIKAZE_HULL,
 	},
 	interceptor: {
-		hp: 2,
+		hp: 20,
 		color: 0xcc33cc,
 		turnRate: 0.3,
 		turnAccel: 0.4,
@@ -77,7 +77,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		...KAMIKAZE_HULL,
 	},
 	flanker: {
-		hp: 3,
+		hp: 30,
 		color: 0xaacc33,
 		turnRate: 0.35,
 		turnAccel: 0.45,
@@ -87,7 +87,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		...KAMIKAZE_HULL,
 	},
 	orbiter: {
-		hp: 5,
+		hp: 50,
 		color: 0x33cccc,
 		turnRate: 0.45,
 		turnAccel: 0.5,
@@ -97,7 +97,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		...KAMIKAZE_HULL,
 	},
 	gunship: {
-		hp: 50,
+		hp: 500,
 		color: 0xb04030,
 		turnRate: 0.18,
 		turnAccel: 0.18,
@@ -120,7 +120,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		threatTolerance: GUNSHIP_THREAT_TOLERANCE,
 	},
 	brawler: {
-		hp: 80,
+		hp: 800,
 		color: 0xdd6600,
 		turnRate: 0.15,
 		turnAccel: 0.15,
@@ -143,7 +143,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		threatTolerance: BRAWLER_THREAT_TOLERANCE,
 	},
 	sniper: {
-		hp: 25,
+		hp: 250,
 		color: 0x6644cc,
 		turnRate: 0.12,
 		turnAccel: 0.1,

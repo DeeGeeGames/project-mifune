@@ -5,6 +5,7 @@ import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { bearingXZ } from '../math';
 import { ENEMY_KINDS, ENEMY_SPECS, makeBehavior, type EnemyBehavior, type EnemyKind } from '../enemies';
 import { RANGED_TREE, SNIPER_TREE, createBehaviorTree, type RangedBlackboard } from './enemy-behavior';
+import { buildHealthBar } from './healthBars';
 import {
 	BRAWLER_RANGED_CONFIG,
 	CAMERA_VIEW_SIZE,
@@ -63,6 +64,12 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 	const behaviorTree = behaviorTreeFor(behavior);
 	const spawnHeading = bearingXZ(spawnX, spawnZ, targetX, targetZ);
 
+	const healthBar = buildHealthBar({
+		parent: group,
+		hullLength: spec.hullLength,
+		hullHeight: spec.hullHeight,
+	});
+
 	const enemyEntity = ecs.spawn({
 		...createGroupComponents(
 			group,
@@ -71,6 +78,7 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 		),
 		enemy: {
 			hp: spec.hp,
+			maxHp: spec.hp,
 			radius: spec.radius,
 			threatTolerance: spec.threatTolerance ?? Infinity,
 			hitEscalation: 0,
@@ -87,6 +95,7 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 			drag: spec.drag,
 			behavior,
 		},
+		healthBar,
 		...(behaviorTree ?? {}),
 	});
 

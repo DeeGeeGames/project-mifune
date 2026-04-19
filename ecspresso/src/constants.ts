@@ -162,3 +162,11 @@ export const AIM_ARC_COLOR = 0x7fd1ff;
 export const AIM_ARC_DASH_SIZE = 0.25;
 export const AIM_ARC_GAP_SIZE = 0.15;
 export const AIM_ARC_FILL_OPACITY = 0.18;
+
+export const HEALTH_BAR_Y_OFFSET = 1.0;
+export const HEALTH_BAR_HEIGHT = 0.15;
+export const HEALTH_BAR_WIDTH_SCALE = 1.2;
+export const HEALTH_BAR_BG_COLOR = 0x222222;
+export const HEALTH_BAR_COLOR_FULL = 0x33cc33;
+export const HEALTH_BAR_COLOR_MID = 0xccaa33;
+export const HEALTH_BAR_COLOR_LOW = 0xcc3333;
