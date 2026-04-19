@@ -11,6 +11,8 @@ import {
 	BRAWLER_RANGED_CONFIG,
 	CAMERA_VIEW_SIZE,
 	CAMERA_ZOOM_MIN,
+	ENEMY_SPAWN_ANGLE_CENTER,
+	ENEMY_SPAWN_ANGLE_SPREAD,
 	ENEMY_SPAWN_RING_PAD,
 	ENEMY_SPAWN_WEIGHTS,
 	GUNSHIP_RANGED_CONFIG,
@@ -121,7 +123,8 @@ export const createWavesPlugin = () => definePlugin({
 
 				if (!waveState.initialSeedDone) {
 					ENEMY_KINDS.forEach((kind, i) => {
-						const angle = (i / ENEMY_KINDS.length) * Math.PI * 2;
+						const t = ENEMY_KINDS.length > 1 ? (i / (ENEMY_KINDS.length - 1) - 0.5) : 0;
+						const angle = ENEMY_SPAWN_ANGLE_CENTER + t * ENEMY_SPAWN_ANGLE_SPREAD;
 						const spawnX = ft.x + Math.sin(angle) * radius;
 						const spawnZ = ft.z + Math.cos(angle) * radius;
 						spawnEnemy(ecs, kind, spawnX, spawnZ, ft.x, ft.z);
@@ -139,7 +142,7 @@ export const createWavesPlugin = () => definePlugin({
 				if (waveState.timer < waveState.spawnIntervalMs) return;
 				waveState.timer -= waveState.spawnIntervalMs;
 
-				const angle = Math.random() * Math.PI * 2;
+				const angle = ENEMY_SPAWN_ANGLE_CENTER + (Math.random() - 0.5) * ENEMY_SPAWN_ANGLE_SPREAD;
 				const spawnX = ft.x + Math.sin(angle) * radius;
 				const spawnZ = ft.z + Math.cos(angle) * radius;
 				spawnEnemy(ecs, pickKind(), spawnX, spawnZ, ft.x, ft.z);

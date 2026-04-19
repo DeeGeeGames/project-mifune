@@ -157,6 +157,10 @@ export const WAVE_START_INTERVAL_MS = 30000;
 export const WAVE_MIN_INTERVAL_MS = 30000;
 export const WAVE_RAMP_SEC = 180;
 
+// +Z world direction = directly in front of player
+export const ENEMY_SPAWN_ANGLE_CENTER = 0;
+export const ENEMY_SPAWN_ANGLE_SPREAD = Math.PI / 2;
+
 export const SUMMON_ANIM_SEC = 1.0;
 export const SUMMON_OFFSCREEN_RING = 35;
 
