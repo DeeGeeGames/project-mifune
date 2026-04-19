@@ -4,7 +4,10 @@ import {
 	BoxGeometry,
 	ConeGeometry,
 	CylinderGeometry,
+	RingGeometry,
+	MeshBasicMaterial,
 	MeshStandardMaterial,
+	DoubleSide,
 } from 'three';
 import {
 	ENEMY_HULL_LENGTH,
@@ -16,12 +19,16 @@ import {
 	TURRET_BURST_COUNT,
 	TURRET_BURST_SHOT_DELAY_MS,
 	BULLET_DAMAGE,
-	MISSILE_TURRET_CONE_HALF,
-	MISSILE_TURRET_FIRE_INTERVAL_MS,
-	MISSILE_TURRET_RANGE,
-	MISSILE_TURRET_BURST_COUNT,
-	MISSILE_TURRET_BURST_SHOT_DELAY_MS,
-	MISSILE_DAMAGE,
+	CANNON_TURRET_CONE_HALF,
+	CANNON_TURRET_FIRE_INTERVAL_MS,
+	CANNON_TURRET_RANGE,
+	CANNON_TURRET_BURST_COUNT,
+	CANNON_TURRET_BURST_SHOT_DELAY_MS,
+	CANNON_DAMAGE,
+	CANNON_SPLASH_DAMAGE,
+	CANNON_SPLASH_RADIUS,
+	CANNON_SHELL_SPEED,
+	CANNON_SHELL_LIFE_SEC,
 	BEAM_TURRET_CONE_HALF,
 	BEAM_TURRET_RANGE,
 	BEAM_TURRET_DAMAGE_PER_SEC,
@@ -45,19 +52,8 @@ export interface TurretMount {
 	readonly range?: number;
 	readonly fireIntervalMs?: number;
 	readonly damage?: number;
-	readonly burstCount?: number;
-	readonly burstShotDelayMs?: number;
-}
-
-export interface MissileTurretMount {
-	readonly x: number;
-	readonly z: number;
-	readonly baseAngle: number;
-	readonly fireAngle: number;
-	readonly coneHalf?: number;
-	readonly range?: number;
-	readonly fireIntervalMs?: number;
-	readonly damage?: number;
+	readonly splashDamage?: number;
+	readonly splashRadius?: number;
 	readonly burstCount?: number;
 	readonly burstShotDelayMs?: number;
 }
@@ -86,7 +82,7 @@ export interface ShipSpec {
 	readonly hp: number;
 	readonly cost: number;
 	readonly turrets: readonly TurretMount[];
-	readonly missileTurrets?: readonly MissileTurretMount[];
+	readonly cannonTurrets?: readonly TurretMount[];
 	readonly beamTurrets?: readonly BeamTurretMount[];
 	readonly flatBow?: true;
 }
@@ -111,8 +107,8 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hp: 1000,
 		cost: 0,
 		turrets: [],
-		missileTurrets: [
-			{ x: 1.0, z: 0, baseAngle: STARBOARD_FORE, fireAngle: STARBOARD },
+		cannonTurrets: [
+			{ x: 1.0, z: 0, baseAngle: STARBOARD_FORE },
 		],
 		beamTurrets: [
 			{ x: -1.0, z: 0, baseAngle: PORT_FORE },
@@ -273,14 +269,6 @@ function buildBeamMountGroup(
 	return { mount, beamMesh };
 }
 
-const LAUNCHER_BODY_W = 0.5;
-const LAUNCHER_BODY_H = 0.2;
-const LAUNCHER_BODY_L = 0.7;
-const LAUNCHER_TIP_W = 0.35;
-const LAUNCHER_TIP_H = 0.16;
-const LAUNCHER_TIP_L = 0.18;
-const LAUNCHER_TIP_Z = 0.42;
-
 export interface BeamMountBuild {
 	readonly mount: Group;
 	readonly beamMesh: Mesh;
@@ -289,7 +277,7 @@ export interface BeamMountBuild {
 export interface BuiltShip {
 	readonly group: Group;
 	readonly turretMounts: readonly Group[];
-	readonly missileTurretMounts: readonly Group[];
+	readonly cannonTurretMounts: readonly Group[];
 	readonly beamTurretMounts: readonly BeamMountBuild[];
 }
 
@@ -539,10 +527,10 @@ export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, bu
 		if (!mount) return;
 		ecs.spawn({ ...turretFromMount(ownerId, 'ally', mountSpec, mount) });
 	});
-	(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
-		const mount = built.missileTurretMounts[idx];
+	(spec.cannonTurrets ?? []).forEach((mountSpec, idx) => {
+		const mount = built.cannonTurretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ ...missileTurretFromMount(ownerId, mountSpec, mount) });
+		ecs.spawn({ ...cannonTurretFromMount(ownerId, 'ally', mountSpec, mount) });
 	});
 	(spec.beamTurrets ?? []).forEach((mountSpec, idx) => {
 		const beamMount = built.beamTurretMounts[idx];
@@ -581,23 +569,30 @@ export function beamTurretFromMount(
 	};
 }
 
-export function missileTurretFromMount(ownerShipId: number, mountSpec: MissileTurretMount, mount: Group) {
+export function cannonTurretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
 	return {
-		missileTurret: {
-			ownerShipId,
+		turret: {
+			ownerId,
+			faction,
 			mountX: mountSpec.x,
 			mountZ: mountSpec.z,
 			baseAngle: mountSpec.baseAngle,
-			fireAngle: mountSpec.fireAngle,
-			coneHalf: mountSpec.coneHalf ?? MISSILE_TURRET_CONE_HALF,
-			range: mountSpec.range ?? MISSILE_TURRET_RANGE,
-			damage: mountSpec.damage ?? MISSILE_DAMAGE,
+			aimAngle: mountSpec.baseAngle,
+			coneHalf: mountSpec.coneHalf ?? CANNON_TURRET_CONE_HALF,
+			range: mountSpec.range ?? CANNON_TURRET_RANGE,
+			damage: mountSpec.damage ?? CANNON_DAMAGE,
+			splashDamage: mountSpec.splashDamage ?? CANNON_SPLASH_DAMAGE,
+			splashRadius: mountSpec.splashRadius ?? CANNON_SPLASH_RADIUS,
+			projectileKind: 'cannon' as const,
+			projectileSpeed: CANNON_SHELL_SPEED,
+			projectileLife: CANNON_SHELL_LIFE_SEC,
+			hasTarget: false,
 			mount,
 		},
 		burstFire: createBurstFireState({
-			fireIntervalMs: mountSpec.fireIntervalMs ?? MISSILE_TURRET_FIRE_INTERVAL_MS,
-			burstCount: mountSpec.burstCount ?? MISSILE_TURRET_BURST_COUNT,
-			burstShotDelayMs: mountSpec.burstShotDelayMs ?? MISSILE_TURRET_BURST_SHOT_DELAY_MS,
+			fireIntervalMs: mountSpec.fireIntervalMs ?? CANNON_TURRET_FIRE_INTERVAL_MS,
+			burstCount: mountSpec.burstCount ?? CANNON_TURRET_BURST_COUNT,
+			burstShotDelayMs: mountSpec.burstShotDelayMs ?? CANNON_TURRET_BURST_SHOT_DELAY_MS,
 		}),
 	};
 }
@@ -637,27 +632,10 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		return turretGroup;
 	});
 
-	const missileTurretMounts: Group[] = (spec.missileTurrets ?? []).map((mount) => {
-		const launcherGroup = new Group();
-		launcherGroup.position.set(mount.x, spec.hullHeight, mount.z);
-		launcherGroup.rotation.y = mount.fireAngle;
-
-		const body = new Mesh(
-			new BoxGeometry(LAUNCHER_BODY_W, LAUNCHER_BODY_H, LAUNCHER_BODY_L),
-			mats.accent,
-		);
-		body.position.set(0, LAUNCHER_BODY_H / 2, 0);
-		launcherGroup.add(body);
-
-		const tip = new Mesh(
-			new BoxGeometry(LAUNCHER_TIP_W, LAUNCHER_TIP_H, LAUNCHER_TIP_L),
-			BARREL_MAT,
-		);
-		tip.position.set(0, LAUNCHER_BODY_H / 2, LAUNCHER_TIP_Z);
-		launcherGroup.add(tip);
-
-		group.add(launcherGroup);
-		return launcherGroup;
+	const cannonTurretMounts: Group[] = (spec.cannonTurrets ?? []).map((mount) => {
+		const turretGroup = buildTurretMountGroup(mount, spec.hullHeight, mats.accent);
+		group.add(turretGroup);
+		return turretGroup;
 	});
 
 	const beamTurretMounts: BeamMountBuild[] = (spec.beamTurrets ?? []).map((mount) => {
@@ -666,7 +644,7 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		return built;
 	});
 
-	return { group, turretMounts, missileTurretMounts, beamTurretMounts };
+	return { group, turretMounts, cannonTurretMounts, beamTurretMounts };
 }
 
 const ENEMY_ACCENT_MAT = new MeshStandardMaterial({ color: 0x2a1418, roughness: 0.6, metalness: 0.2 });
@@ -790,15 +768,38 @@ export function projectileMesh(): Mesh {
 	return new Mesh(geo, mat);
 }
 
-const MISSILE_GEO = (() => {
-	const g = new CylinderGeometry(0.1, 0.1, 0.8, 8);
+const CANNON_SHELL_GEO = (() => {
+	const g = new CylinderGeometry(0.16, 0.16, 0.6, 10);
 	g.rotateX(Math.PI / 2);
 	return g;
 })();
-const MISSILE_MAT = new MeshStandardMaterial({ color: 0xff5533, emissive: 0xaa2200, emissiveIntensity: 0.9, roughness: 0.4 });
+const CANNON_SHELL_MAT = new MeshStandardMaterial({ color: 0xff7733, emissive: 0xdd3300, emissiveIntensity: 1.2, roughness: 0.4, metalness: 0.3 });
 
-export function missileMesh(): Mesh {
-	return new Mesh(MISSILE_GEO, MISSILE_MAT);
+export function cannonShellMesh(): Mesh {
+	return new Mesh(CANNON_SHELL_GEO, CANNON_SHELL_MAT);
+}
+
+interface BuiltBlast {
+	readonly mesh: Mesh;
+	readonly material: MeshBasicMaterial;
+}
+
+const BLAST_GEO = (() => {
+	const g = new RingGeometry(0.82, 1.0, 32);
+	g.rotateX(-Math.PI / 2);
+	return g;
+})();
+
+export function createBlast(): BuiltBlast {
+	const material = new MeshBasicMaterial({
+		color: 0xff8844,
+		transparent: true,
+		opacity: 0.9,
+		side: DoubleSide,
+		depthWrite: false,
+	});
+	const mesh = new Mesh(BLAST_GEO, material);
+	return { mesh, material };
 }
 
 export function pickupMesh(): Mesh {

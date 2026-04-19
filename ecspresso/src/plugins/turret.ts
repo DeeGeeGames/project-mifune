@@ -1,6 +1,6 @@
 import { definePlugin, type World } from '../types';
 import { angleDiff, bearingXZ, clamp, distanceXZ, forwardXZ, leadTarget, mountToWorld, normalizeAngle, stepAngle } from '../math';
-import { projectileMesh } from '../ships';
+import { cannonShellMesh, projectileMesh } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { canFire, recordShot } from '../weapons';
 import {
@@ -9,6 +9,11 @@ import {
 	MUZZLE_OFFSET,
 	TURRET_TURN_RATE,
 } from '../constants';
+
+const PROJECTILE_MESH_FACTORY = {
+	bullet: projectileMesh,
+	cannon: cannonShellMesh,
+} as const;
 
 export interface OwnerState {
 	readonly heading: number;
@@ -78,7 +83,8 @@ export const createTurretPlugin = () => definePlugin({
 						continue;
 					}
 
-					const lead = leadTarget(mountWorldX, mountWorldZ, nearestX, nearestZ, 0, 0, BULLET_SPEED);
+					const projectileSpeed = turret.projectileSpeed ?? BULLET_SPEED;
+					const lead = leadTarget(mountWorldX, mountWorldZ, nearestX, nearestZ, 0, 0, projectileSpeed);
 					const targetAngle = bearingXZ(mountWorldX, mountWorldZ, lead.x, lead.z);
 					const diff = angleDiff(targetAngle, baseWorld);
 					const clampedDiff = clamp(diff, -turret.coneHalf, turret.coneHalf);
@@ -111,15 +117,20 @@ export const createTurretPlugin = () => definePlugin({
 					const fwd = forwardXZ(turret.aimAngle);
 					const muzzleX = mountWorldX + fwd.x * MUZZLE_OFFSET;
 					const muzzleZ = mountWorldZ + fwd.z * MUZZLE_OFFSET;
+					const speed = turret.projectileSpeed ?? BULLET_SPEED;
+					const life = turret.projectileLife ?? BULLET_LIFE_SEC;
+					const mesh = PROJECTILE_MESH_FACTORY[turret.projectileKind ?? 'bullet']();
 
 					ecs.spawn({
-						...createMeshComponents(projectileMesh(), { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: turret.aimAngle } }),
+						...createMeshComponents(mesh, { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: turret.aimAngle } }),
 						projectile: {
 							faction: turret.faction,
-							vx: fwd.x * BULLET_SPEED,
-							vz: fwd.z * BULLET_SPEED,
-							life: BULLET_LIFE_SEC,
+							vx: fwd.x * speed,
+							vz: fwd.z * speed,
+							life,
 							damage: turret.damage,
+							splashDamage: turret.splashDamage,
+							splashRadius: turret.splashRadius,
 						},
 					});
 

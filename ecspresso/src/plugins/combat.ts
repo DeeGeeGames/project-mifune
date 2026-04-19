@@ -1,7 +1,7 @@
 import { definePlugin, type World } from '../types';
 import { distanceXZ } from '../math';
-import { PROJECTILE_RADIUS, PICKUP_VALUE, SHIP_HIT_RADIUS } from '../constants';
-import { pickupMesh } from '../ships';
+import { PROJECTILE_RADIUS, PICKUP_VALUE, SHIP_HIT_RADIUS, BLAST_LIFE_SEC } from '../constants';
+import { pickupMesh, createBlast, type ShipClass } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 
 export function killEnemyAndDrop(ecs: World, enemyId: number, x: number, z: number): void {
@@ -11,6 +11,22 @@ export function killEnemyAndDrop(ecs: World, enemyId: number, x: number, z: numb
 		pickup: { value: PICKUP_VALUE, magnetized: false },
 	});
 	ecs.removeEntity(enemyId);
+}
+
+function destroyShip(ecs: World, shipId: number, shipClass: ShipClass): void {
+	ecs.eventBus.publish('ship:destroyed', { entityId: shipId, shipClass });
+	if (shipClass === 'carrier') {
+		ecs.eventBus.publish('carrier:destroyed', { entityId: shipId });
+	}
+	ecs.removeEntity(shipId);
+}
+
+function spawnBlast(ecs: World, x: number, z: number, radius: number): void {
+	const { mesh, material } = createBlast();
+	ecs.spawn({
+		...createMeshComponents(mesh, { x, y: 0.1, z }, { scale: radius }),
+		blast: { life: BLAST_LIFE_SEC, maxLife: BLAST_LIFE_SEC, material },
+	});
 }
 
 export const createCombatPlugin = () => definePlugin({
@@ -44,14 +60,31 @@ export const createCombatPlugin = () => definePlugin({
 			.setProcess(({ queries, ecs }) => {
 				const shipHitRadius = SHIP_HIT_RADIUS + PROJECTILE_RADIUS;
 				for (const { id: projId, components: { projectile, localTransform3D: pt } } of queries.projectiles) {
+					const splashDamage = projectile.splashDamage ?? 0;
+					const splashRadius = projectile.splashRadius ?? 0;
+					const hasSplash = splashDamage > 0 && splashRadius > 0;
+
 					if (projectile.faction === 'ally') {
 						for (const { id: enemyId, components: { enemy, localTransform3D: et } } of queries.enemies) {
 							const d = distanceXZ(pt.x, pt.z, et.x, et.z);
 							if (d > enemy.radius + PROJECTILE_RADIUS) continue;
 							enemy.hp -= projectile.damage;
 							enemy.hitEscalation += projectile.damage;
+							const impactX = pt.x;
+							const impactZ = pt.z;
 							ecs.removeEntity(projId);
 							if (enemy.hp <= 0) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
+							if (hasSplash) {
+								spawnBlast(ecs, impactX, impactZ, splashRadius);
+								for (const { id: otherId, components: { enemy: other, localTransform3D: ot } } of queries.enemies) {
+									if (otherId === enemyId) continue;
+									const sd = distanceXZ(impactX, impactZ, ot.x, ot.z);
+									if (sd > splashRadius + other.radius) continue;
+									other.hp -= splashDamage;
+									other.hitEscalation += splashDamage;
+									if (other.hp <= 0) killEnemyAndDrop(ecs, otherId, ot.x, ot.z);
+								}
+							}
 							break;
 						}
 						continue;
@@ -61,13 +94,19 @@ export const createCombatPlugin = () => definePlugin({
 						const d = distanceXZ(pt.x, pt.z, st.x, st.z);
 						if (d > shipHitRadius) continue;
 						ship.hp -= projectile.damage;
+						const impactX = pt.x;
+						const impactZ = pt.z;
 						ecs.removeEntity(projId);
-						if (ship.hp <= 0) {
-							ecs.eventBus.publish('ship:destroyed', { entityId: shipId, shipClass: ship.class });
-							if (ship.class === 'carrier') {
-								ecs.eventBus.publish('carrier:destroyed', { entityId: shipId });
+						if (ship.hp <= 0) destroyShip(ecs, shipId, ship.class);
+						if (hasSplash) {
+							spawnBlast(ecs, impactX, impactZ, splashRadius);
+							for (const { id: otherId, components: { ship: other, localTransform3D: ot } } of queries.ships) {
+								if (otherId === shipId) continue;
+								const sd = distanceXZ(impactX, impactZ, ot.x, ot.z);
+								if (sd > splashRadius + SHIP_HIT_RADIUS) continue;
+								other.hp -= splashDamage;
+								if (other.hp <= 0) destroyShip(ecs, otherId, other.class);
 							}
-							ecs.removeEntity(shipId);
 						}
 						break;
 					}

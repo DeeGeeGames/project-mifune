@@ -49,18 +49,17 @@ export const BULLET_SPEED = 30;
 export const BULLET_LIFE_SEC = 1.5;
 export const BULLET_DAMAGE = 1;
 
-export const MISSILE_SPEED = 72;
-export const MISSILE_LAUNCH_SPEED = 4.5;
-export const MISSILE_LIFE_SEC = 3;
-export const MISSILE_UNGUIDED_SEC = 0.5;
-export const MISSILE_TURN_RATE = Math.PI;
-export const MISSILE_DAMAGE = 4;
-export const MISSILE_RADIUS = 0.3;
-export const MISSILE_TURRET_FIRE_INTERVAL_MS = 2000;
-export const MISSILE_TURRET_CONE_HALF = Math.PI / 4;
-export const MISSILE_TURRET_RANGE = 160;
-export const MISSILE_TURRET_BURST_COUNT = 3;
-export const MISSILE_TURRET_BURST_SHOT_DELAY_MS = 120;
+export const CANNON_TURRET_CONE_HALF = Math.PI / 3;
+export const CANNON_TURRET_RANGE = 120;
+export const CANNON_TURRET_FIRE_INTERVAL_MS = 4000;
+export const CANNON_TURRET_BURST_COUNT = 1;
+export const CANNON_TURRET_BURST_SHOT_DELAY_MS = 0;
+export const CANNON_DAMAGE = 5;
+export const CANNON_SPLASH_RADIUS = 15;
+export const CANNON_SPLASH_DAMAGE = 2;
+export const CANNON_SHELL_SPEED = 144;
+export const CANNON_SHELL_LIFE_SEC = 3;
+export const BLAST_LIFE_SEC = 0.25;
 
 export const BEAM_TURRET_CONE_HALF = Math.PI / 6;
 export const BEAM_TURRET_RANGE = 140;
@@ -72,6 +71,7 @@ export const BEAM_COLOR = 0x55eeff;
 
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;
+export const ENEMY_SPAWN_DISTANCE_SCALE = 0.5;
 export const SHIP_HIT_RADIUS = 1.2;
 
 export const ENEMY_HULL_LENGTH = 1.3;

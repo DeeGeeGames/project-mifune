@@ -29,7 +29,7 @@ import {
 	ISO_ELEVATION,
 } from './constants';
 import type { ShipClass } from './ships';
-import type { Group, Mesh, Sprite } from 'three';
+import type { Group, Mesh, MeshBasicMaterial, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
 import type { BurstFireState } from './weapons';
@@ -77,6 +77,8 @@ export interface ShipComponent {
 
 export type Faction = 'ally' | 'enemy';
 
+export type ProjectileKind = 'bullet' | 'cannon';
+
 export interface TurretComponent {
 	ownerId: number;
 	faction: Faction;
@@ -89,6 +91,11 @@ export interface TurretComponent {
 	damage: number;
 	hasTarget: boolean;
 	mount: Group;
+	projectileKind?: ProjectileKind;
+	projectileSpeed?: number;
+	projectileLife?: number;
+	splashDamage?: number;
+	splashRadius?: number;
 }
 
 export interface ProjectileComponent {
@@ -97,27 +104,8 @@ export interface ProjectileComponent {
 	vz: number;
 	life: number;
 	damage: number;
-}
-
-export interface MissileTurretComponent {
-	ownerShipId: number;
-	mountX: number;
-	mountZ: number;
-	baseAngle: number;
-	fireAngle: number;
-	coneHalf: number;
-	range: number;
-	damage: number;
-	mount: Group;
-}
-
-export interface MissileComponent {
-	heading: number;
-	speed: number;
-	life: number;
-	unguidedTime: number;
-	damage: number;
-	targetId: number | null;
+	splashDamage?: number;
+	splashRadius?: number;
 }
 
 export type BeamTurretState = 'idle' | 'firing' | 'cooldown';
@@ -183,6 +171,12 @@ export interface SummonAnimComponent {
 	progress: number;
 	originX: number;
 	originZ: number;
+}
+
+export interface BlastComponent {
+	life: number;
+	maxLife: number;
+	material: MeshBasicMaterial;
 }
 
 export interface PlayerState {
@@ -310,14 +304,13 @@ export const builder = ECSpresso.create()
 			commandVessel: true;
 			formationSlot: FormationSlotComponent;
 			turret: TurretComponent;
-			missileTurret: MissileTurretComponent;
 			beamTurret: BeamTurretComponent;
 			projectile: ProjectileComponent;
-			missile: MissileComponent;
 			enemy: EnemyComponent;
 			healthBar: HealthBarComponent;
 			pickup: PickupComponent;
 			summonAnim: SummonAnimComponent;
+			blast: BlastComponent;
 		}
 	>()
 	.withEventTypes<
