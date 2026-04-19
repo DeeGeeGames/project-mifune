@@ -69,6 +69,8 @@ export interface BeamTurretMount {
 	readonly beamCooldownMs?: number;
 }
 
+export type EmptyTurretMount = Pick<TurretMount, 'x' | 'z' | 'baseAngle'>;
+
 export interface ShipSpec {
 	readonly hullLength: number;
 	readonly hullWidth: number;
@@ -84,6 +86,7 @@ export interface ShipSpec {
 	readonly turrets: readonly TurretMount[];
 	readonly cannonTurrets?: readonly TurretMount[];
 	readonly beamTurrets?: readonly BeamTurretMount[];
+	readonly emptyTurretMounts?: readonly EmptyTurretMount[];
 	readonly flatBow?: true;
 }
 
@@ -92,6 +95,8 @@ const PORT = -Math.PI / 2;
 const STARBOARD = Math.PI / 2;
 const PORT_FORE = -Math.PI / 4;
 const STARBOARD_FORE = Math.PI / 4;
+const PORT_AFT = -3 * Math.PI / 4;
+const STARBOARD_AFT = 3 * Math.PI / 4;
 
 export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 	carrier: {
@@ -108,10 +113,16 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		cost: 0,
 		turrets: [],
 		cannonTurrets: [
-			{ x: 1.0, z: 0, baseAngle: STARBOARD_FORE },
+			{ x: 1.0, z: 0, baseAngle: STARBOARD },
 		],
 		beamTurrets: [
-			{ x: -1.0, z: 0, baseAngle: PORT_FORE },
+			{ x: -1.0, z: 0, baseAngle: PORT },
+		],
+		emptyTurretMounts: [
+			{ x: 1.0, z: 3.0, baseAngle: STARBOARD_FORE },
+			{ x: 1.0, z: -3.0, baseAngle: STARBOARD_AFT },
+			{ x: -1.0, z: 3.0, baseAngle: PORT_FORE },
+			{ x: -1.0, z: -3.0, baseAngle: PORT_AFT },
 		],
 		flatBow: true,
 	},
@@ -195,6 +206,7 @@ const TURRET_BASE_RADIUS = 0.25;
 const TURRET_BASE_HEIGHT = 0.25;
 
 const BARREL_MAT = new MeshStandardMaterial({ color: 0x111418, roughness: 0.45, metalness: 0.4 });
+const TURRET_BASE_GEO = new CylinderGeometry(TURRET_BASE_RADIUS, TURRET_BASE_RADIUS, TURRET_BASE_HEIGHT, 10);
 
 function buildTurretMountGroup(
 	mountSpec: TurretMount,
@@ -205,10 +217,7 @@ function buildTurretMountGroup(
 	turretGroup.position.set(mountSpec.x, hullHeight, mountSpec.z);
 	turretGroup.rotation.y = mountSpec.baseAngle;
 
-	const base = new Mesh(
-		new CylinderGeometry(TURRET_BASE_RADIUS, TURRET_BASE_RADIUS, TURRET_BASE_HEIGHT, 10),
-		accentMat,
-	);
+	const base = new Mesh(TURRET_BASE_GEO, accentMat);
 	base.position.y = TURRET_BASE_HEIGHT / 2;
 	turretGroup.add(base);
 
@@ -223,6 +232,22 @@ function buildTurretMountGroup(
 	return turretGroup;
 }
 
+function buildEmptyMountGroup(
+	mountSpec: EmptyTurretMount,
+	hullHeight: number,
+	accentMat: MeshStandardMaterial,
+): Group {
+	const mount = new Group();
+	mount.position.set(mountSpec.x, hullHeight, mountSpec.z);
+	mount.rotation.y = mountSpec.baseAngle;
+
+	const base = new Mesh(TURRET_BASE_GEO, accentMat);
+	base.position.y = TURRET_BASE_HEIGHT / 2;
+	mount.add(base);
+
+	return mount;
+}
+
 const BEAM_EMITTER_RADIUS = 0.18;
 const BEAM_EMITTER_LENGTH = 0.55;
 
@@ -235,10 +260,7 @@ function buildBeamMountGroup(
 	mount.position.set(mountSpec.x, hullHeight, mountSpec.z);
 	mount.rotation.y = mountSpec.baseAngle;
 
-	const base = new Mesh(
-		new CylinderGeometry(TURRET_BASE_RADIUS, TURRET_BASE_RADIUS, TURRET_BASE_HEIGHT, 10),
-		accentMat,
-	);
+	const base = new Mesh(TURRET_BASE_GEO, accentMat);
 	base.position.y = TURRET_BASE_HEIGHT / 2;
 	mount.add(base);
 
@@ -642,6 +664,10 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		const built = buildBeamMountGroup(mount, spec.hullHeight, mats.accent);
 		group.add(built.mount);
 		return built;
+	});
+
+	(spec.emptyTurretMounts ?? []).forEach((mount) => {
+		group.add(buildEmptyMountGroup(mount, spec.hullHeight, mats.accent));
 	});
 
 	return { group, turretMounts, cannonTurretMounts, beamTurretMounts };
