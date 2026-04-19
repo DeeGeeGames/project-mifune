@@ -19,7 +19,7 @@ export const createFormationPlugin = () => definePlugin({
 			.setPriority(60)
 			.inPhase('preUpdate')
 			.addQuery('followers', {
-				with: ['ship', 'formationSlot', 'localTransform3D'],
+				with: ['ship', 'kinematic', 'formationSlot', 'localTransform3D'],
 				without: ['summonAnim', 'commandVessel'],
 			})
 			.setProcess(({ queries, ecs }) => {
@@ -27,10 +27,10 @@ export const createFormationPlugin = () => definePlugin({
 				const predictFor = (flagshipId: number): PredictedKinematic | null => {
 					const cached = predictions.get(flagshipId);
 					if (cached !== undefined) return cached;
-					const flagshipShip = ecs.getComponent(flagshipId, 'ship');
+					const flagshipKinematic = ecs.getComponent(flagshipId, 'kinematic');
 					const flagshipTransform = ecs.getComponent(flagshipId, 'localTransform3D');
-					const predicted = flagshipShip && flagshipTransform
-						? predictKinematic(flagshipShip, flagshipTransform, FORMATION_LOOKAHEAD_SEC)
+					const predicted = flagshipKinematic && flagshipTransform
+						? predictKinematic(flagshipKinematic, flagshipTransform, FORMATION_LOOKAHEAD_SEC)
 						: null;
 					predictions.set(flagshipId, predicted);
 					return predicted;
@@ -39,10 +39,10 @@ export const createFormationPlugin = () => definePlugin({
 				const followerList = Array.from(queries.followers);
 				const sepR2 = FORMATION_SEPARATION_RADIUS * FORMATION_SEPARATION_RADIUS;
 
-				for (const { id, components: { ship, formationSlot, localTransform3D } } of followerList) {
+				for (const { id, components: { kinematic, formationSlot, localTransform3D } } of followerList) {
 					const predicted = predictFor(formationSlot.flagshipId);
 					if (!predicted) {
-						ship.throttle = 0;
+						kinematic.throttle = 0;
 						continue;
 					}
 
@@ -60,8 +60,8 @@ export const createFormationPlugin = () => definePlugin({
 					const dist = distanceXZ(targetX, targetZ, localTransform3D.x, localTransform3D.z);
 
 					const approachSpeed = dist < FORMATION_SLOWING_RADIUS
-						? ship.maxSpeed * (dist / FORMATION_SLOWING_RADIUS)
-						: ship.maxSpeed;
+						? kinematic.maxSpeed * (dist / FORMATION_SLOWING_RADIUS)
+						: kinematic.maxSpeed;
 					const dirX = dist > EPS ? dx / dist : 0;
 					const dirZ = dist > EPS ? dz / dist : 0;
 
@@ -87,18 +87,18 @@ export const createFormationPlugin = () => definePlugin({
 						? bearingXZ(0, 0, desiredVX, desiredVZ)
 						: predicted.state.heading;
 					const alignT = 1 - clamp(dist / FORMATION_SLOWING_RADIUS, 0, 1);
-					ship.headingTarget = normalizeAngle(
+					kinematic.headingTarget = normalizeAngle(
 						desiredBearing + alignT * angleDiff(predicted.state.heading, desiredBearing),
 					);
 
 					// Project desired velocity onto current heading so throttle doesn't spike
 					// while turning (magnitude would stay high even when we're sideways to it).
-					const fwd = forwardXZ(ship.heading);
-					const forwardSpeed = ship.vx * fwd.x + ship.vz * fwd.z;
+					const fwd = forwardXZ(kinematic.heading);
+					const forwardSpeed = kinematic.vx * fwd.x + kinematic.vz * fwd.z;
 					const desiredForwardSpeed = desiredVX * fwd.x + desiredVZ * fwd.z;
-					const dragCompensation = desiredForwardSpeed * ship.drag;
+					const dragCompensation = desiredForwardSpeed * kinematic.drag;
 					const proportional = (desiredForwardSpeed - forwardSpeed) / FORMATION_CONTROL_TAU;
-					ship.throttle = clamp((dragCompensation + proportional) / ship.accel, -1, 1);
+					kinematic.throttle = clamp((dragCompensation + proportional) / kinematic.accel, -1, 1);
 				}
 			});
 	},

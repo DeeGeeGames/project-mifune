@@ -4,6 +4,7 @@ import { enemyShipGroup, turretFromMount } from '../ships';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { bearingXZ } from '../math';
 import { ENEMY_KINDS, ENEMY_SPECS, makeBehavior, type EnemyBehavior, type EnemyKind } from '../enemies';
+import { createKinematicState } from '../kinematic';
 import { RANGED_TREE, SNIPER_TREE, createBehaviorTree, type RangedBlackboard } from './enemy-behavior';
 import { buildHealthBar } from './healthBars';
 import {
@@ -82,26 +83,16 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 			radius: spec.radius,
 			threatTolerance: spec.threatTolerance ?? Infinity,
 			hitEscalation: 0,
-			heading: spawnHeading,
-			headingTarget: spawnHeading,
-			throttle: 0,
-			vx: 0,
-			vz: 0,
-			turnRate: spec.turnRate,
-			turnSpeed: 0,
-			turnAccel: spec.turnAccel,
-			accel: spec.accel,
-			maxSpeed: spec.maxSpeed,
-			drag: spec.drag,
 			behavior,
 		},
+		kinematic: createKinematicState(spec, spawnHeading),
 		healthBar,
 		...(behaviorTree ?? {}),
 	});
 
 	if (isShooter && spec.turretMount && turretMount) {
 		ecs.spawn({
-			turret: turretFromMount(enemyEntity.id, 'enemy', spec.turretMount, turretMount),
+			...turretFromMount(enemyEntity.id, 'enemy', spec.turretMount, turretMount),
 		});
 	}
 };

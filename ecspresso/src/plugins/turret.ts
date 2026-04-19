@@ -18,12 +18,9 @@ interface OwnerState {
 
 const getOwnerState = (ecs: World, ownerId: number): OwnerState | null => {
 	const transform = ecs.getComponent(ownerId, 'localTransform3D');
-	if (!transform) return null;
-	const ship = ecs.getComponent(ownerId, 'ship');
-	if (ship) return { heading: ship.heading, x: transform.x, z: transform.z };
-	const enemy = ecs.getComponent(ownerId, 'enemy');
-	if (enemy) return { heading: enemy.heading, x: transform.x, z: transform.z };
-	return null;
+	const kinematic = ecs.getComponent(ownerId, 'kinematic');
+	if (!transform || !kinematic) return null;
+	return { heading: kinematic.heading, x: transform.x, z: transform.z };
 };
 
 interface TargetCandidate {
@@ -95,12 +92,12 @@ export const createTurretPlugin = () => definePlugin({
 		world.addSystem('turret-fire')
 			.setPriority(220)
 			.inPhase('update')
-			.addQuery('turrets', { with: ['turret'] })
+			.addQuery('turrets', { with: ['turret', 'burstFire'] })
 			.setProcess(({ queries, ecs }) => {
 				const now = performance.now();
-				for (const { components: { turret } } of queries.turrets) {
+				for (const { components: { turret, burstFire } } of queries.turrets) {
 					if (!turret.hasTarget) continue;
-					if (!canFire(turret, now)) continue;
+					if (!canFire(burstFire, now)) continue;
 
 					const owner = getOwnerState(ecs, turret.ownerId);
 					if (!owner) continue;
@@ -124,7 +121,7 @@ export const createTurretPlugin = () => definePlugin({
 						},
 					});
 
-					recordShot(turret, now);
+					recordShot(burstFire, now);
 				}
 			});
 	},

@@ -10,6 +10,7 @@ import {
 } from 'ecspresso/plugins/ai/behavior-tree';
 import { angleDiff, bearingXZ, distanceXZ, normalizeAngle } from '../math';
 import { getPlayerSnapshot, type PerceptionTier, type PlayerSnapshot } from '../perception';
+import type { KinematicState } from '../kinematic';
 import type { World, EnemyComponent, EnemyThreatSummary } from '../types';
 import {
 	GUNSHIP_RANGED_CONFIG,
@@ -25,6 +26,7 @@ interface RangedBlackboard {
 
 interface RangedContext {
 	readonly enemy: EnemyComponent;
+	readonly kinematic: KinematicState;
 	readonly ex: number;
 	readonly ez: number;
 	readonly snapshot: PlayerSnapshot;
@@ -36,18 +38,20 @@ interface RangedContext {
 const resolveContext = (btCtx: BehaviorTreeContext<RangedBlackboard>): RangedContext | null => {
 	const ecs = btCtx.ecs as unknown as World;
 	const enemy = ecs.getComponent(btCtx.entityId, 'enemy');
+	const kinematic = ecs.getComponent(btCtx.entityId, 'kinematic');
 	const transform = ecs.getComponent(btCtx.entityId, 'localTransform3D');
-	if (!enemy || !transform) return null;
+	if (!enemy || !kinematic || !transform) return null;
 	const playerState = ecs.getResource('playerState');
-	const carrierShip = ecs.getComponent(playerState.commandVesselId, 'ship');
+	const carrierKinematic = ecs.getComponent(playerState.commandVesselId, 'kinematic');
 	const carrierTransform = ecs.getComponent(playerState.commandVesselId, 'localTransform3D');
-	if (!carrierShip || !carrierTransform) return null;
+	if (!carrierKinematic || !carrierTransform) return null;
 	const threat = ecs.getResource('threatMap').byEnemyId.get(btCtx.entityId) ?? null;
 	return {
 		enemy,
+		kinematic,
 		ex: transform.x,
 		ez: transform.z,
-		snapshot: getPlayerSnapshot(carrierShip, carrierTransform, btCtx.blackboard.tier),
+		snapshot: getPlayerSnapshot(carrierKinematic, carrierTransform, btCtx.blackboard.tier),
 		threat,
 		config: btCtx.blackboard.config,
 		sniperAim: btCtx.blackboard.sniperAim,
@@ -76,8 +80,8 @@ const isTooClose = condition<RangedBlackboard>('rangedTooClose', (ctx) => {
 const closeDistance = action<RangedBlackboard>('rangedCloseDistance', (ctx) => {
 	const g = resolveContext(ctx);
 	if (!g) return NodeStatus.Failure;
-	g.enemy.headingTarget = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
-	g.enemy.throttle = 1;
+	g.kinematic.headingTarget = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
+	g.kinematic.throttle = 1;
 	return NodeStatus.Success;
 });
 
@@ -85,16 +89,16 @@ const openDistance = action<RangedBlackboard>('rangedOpenDistance', (ctx) => {
 	const g = resolveContext(ctx);
 	if (!g) return NodeStatus.Failure;
 	const bearing = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
-	g.enemy.headingTarget = normalizeAngle(bearing + Math.PI);
-	g.enemy.throttle = 1;
+	g.kinematic.headingTarget = normalizeAngle(bearing + Math.PI);
+	g.kinematic.throttle = 1;
 	return NodeStatus.Success;
 });
 
 const holdPosition = action<RangedBlackboard>('rangedHold', (ctx) => {
 	const g = resolveContext(ctx);
 	if (!g) return NodeStatus.Failure;
-	g.enemy.headingTarget = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
-	g.enemy.throttle = g.config.holdThrottle;
+	g.kinematic.headingTarget = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
+	g.kinematic.throttle = g.config.holdThrottle;
 	return NodeStatus.Success;
 });
 
@@ -110,15 +114,15 @@ const evade = action<RangedBlackboard>('rangedEvade', (ctx) => {
 	const carrierBearing = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
 	const threat = g.threat;
 	if (!threat || threat.dominantTurretId === null) {
-		g.enemy.headingTarget = carrierBearing;
-		g.enemy.throttle = g.config.holdThrottle;
+		g.kinematic.headingTarget = carrierBearing;
+		g.kinematic.throttle = g.config.holdThrottle;
 		return NodeStatus.Success;
 	}
 	const turretBearing = bearingXZ(g.ex, g.ez, threat.dominantTurretX, threat.dominantTurretZ);
 	const rel = angleDiff(turretBearing, carrierBearing);
 	const sign = rel > 0 ? -1 : 1;
-	g.enemy.headingTarget = normalizeAngle(carrierBearing + sign * g.config.evadeMaxOffset);
-	g.enemy.throttle = g.config.evadeThrottle;
+	g.kinematic.headingTarget = normalizeAngle(carrierBearing + sign * g.config.evadeMaxOffset);
+	g.kinematic.throttle = g.config.evadeThrottle;
 	return NodeStatus.Success;
 });
 
@@ -138,8 +142,8 @@ const preemptiveKite = action<RangedBlackboard>('sniperPreemptiveKite', (ctx) =>
 	const bearingFromCarrier = bearingXZ(g.snapshot.x, g.snapshot.z, g.ex, g.ez);
 	const alpha = angleDiff(bearingFromCarrier, g.snapshot.heading);
 	const sign = alpha >= 0 ? 1 : -1;
-	g.enemy.headingTarget = normalizeAngle(bearingFromCarrier + sign * Math.PI / 2);
-	g.enemy.throttle = 1;
+	g.kinematic.headingTarget = normalizeAngle(bearingFromCarrier + sign * Math.PI / 2);
+	g.kinematic.throttle = 1;
 	return NodeStatus.Success;
 });
 

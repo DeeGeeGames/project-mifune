@@ -77,7 +77,7 @@ export const createAimPreviewPlugin = () => definePlugin({
 		world.addSystem('aimPreview')
 			.inPhase('render')
 			.addQuery('commandVessel', {
-				with: ['ship', 'commandVessel', 'localTransform3D'],
+				with: ['kinematic', 'commandVessel', 'localTransform3D'],
 			})
 			.withResources(['playerState'])
 			.setProcess(({ queries, resources: { playerState } }) => {
@@ -88,9 +88,9 @@ export const createAimPreviewPlugin = () => definePlugin({
 
 				const vessel = queries.commandVessel[0];
 				if (!vessel) return;
-				const { ship, localTransform3D } = vessel.components;
+				const { kinematic, localTransform3D } = vessel.components;
 
-				writeArcPositions(arcPositions, localTransform3D.x, localTransform3D.z, ship.heading, playerState.pendingHeading);
+				writeArcPositions(arcPositions, localTransform3D.x, localTransform3D.z, kinematic.heading, playerState.pendingHeading);
 				writeFillPositions(fillPositions, arcPositions, localTransform3D.x, localTransform3D.z);
 
 				lineGeometry.getAttribute('position').needsUpdate = true;

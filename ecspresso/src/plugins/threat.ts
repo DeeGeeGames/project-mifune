@@ -74,28 +74,28 @@ export const createThreatPlugin = () => definePlugin({
 		world.addSystem('threat-scan')
 			.setPriority(205)
 			.inPhase('update')
-			.addQuery('turrets', { with: ['turret'] })
+			.addQuery('turrets', { with: ['turret', 'burstFire'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.withResources(['threatMap'])
 			.setProcess(({ queries, ecs, resources: { threatMap } }) => {
 				threatMap.byEnemyId.clear();
 
-				const allyTurrets: TurretSnapshot[] = queries.turrets.flatMap(({ id, components: { turret } }) => {
+				const allyTurrets: TurretSnapshot[] = queries.turrets.flatMap(({ id, components: { turret, burstFire } }) => {
 					if (turret.faction !== 'ally') return [];
 					const ownerTransform = ecs.getComponent(turret.ownerId, 'localTransform3D');
-					const ownerShip = ecs.getComponent(turret.ownerId, 'ship');
-					if (!ownerTransform || !ownerShip) return [];
+					const ownerKinematic = ecs.getComponent(turret.ownerId, 'kinematic');
+					if (!ownerTransform || !ownerKinematic) return [];
 					const { x, z } = mountToWorld(
-						ownerTransform.x, ownerTransform.z, ownerShip.heading, turret.mountX, turret.mountZ,
+						ownerTransform.x, ownerTransform.z, ownerKinematic.heading, turret.mountX, turret.mountZ,
 					);
 					return [{
 						id,
 						x,
 						z,
-						baseWorld: normalizeAngle(ownerShip.heading + turret.baseAngle),
+						baseWorld: normalizeAngle(ownerKinematic.heading + turret.baseAngle),
 						coneHalf: turret.coneHalf,
 						range: turret.range,
-						dps: turret.damage * (1000 / turret.fireIntervalMs),
+						dps: turret.damage * (1000 / burstFire.fireIntervalMs),
 					}];
 				});
 

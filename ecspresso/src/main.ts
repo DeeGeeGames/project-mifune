@@ -2,6 +2,7 @@ import { AmbientLight, DirectionalLight, Mesh, PlaneGeometry, MeshStandardMateri
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder } from './types';
 import { SHIP_SPECS, createShipGroup, spawnShipTurrets } from './ships';
+import { createKinematicState } from './kinematic';
 import { GROUND_SIZE } from './constants';
 import { createCursorPlugin } from './plugins/cursor';
 import { createControlPlugin } from './plugins/control';
@@ -78,19 +79,9 @@ const carrier = game.spawn({
 	...createGroupComponents(carrierGroup, { x: 0, y: 0, z: 0 }),
 	ship: {
 		class: 'carrier',
-		heading: 0,
-		headingTarget: 0,
-		throttle: 0,
-		vx: 0,
-		vz: 0,
-		turnRate: spec.turnRate,
-		turnSpeed: 0,
-		turnAccel: spec.turnAccel,
-		accel: spec.accel,
-		maxSpeed: spec.maxSpeed,
-		drag: spec.drag,
 		hp: spec.hp,
 	},
+	kinematic: createKinematicState(spec, 0),
 	commandVessel: true,
 });
 

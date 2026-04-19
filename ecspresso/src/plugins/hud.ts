@@ -10,6 +10,7 @@ export const createHudPlugin = () => definePlugin({
 			.setPriority(100)
 			.inPhase('render')
 			.addQuery('ships', { with: ['ship'] })
+			.addQuery('flagship', { with: ['commandVessel', 'kinematic'] })
 			.withResources(['playerState', 'hudRefs'])
 			.setProcess(({ queries, resources: { playerState, hudRefs } }) => {
 				hudRefs.resourcesEl.textContent = `Resources: ${Math.floor(playerState.resources)}`;
@@ -29,8 +30,7 @@ export const createHudPlugin = () => definePlugin({
 				});
 				hudRefs.menuEl.textContent = menuLines.join('\n');
 
-				const commandVessel = queries.ships.find((e) => e.id === playerState.commandVesselId);
-				const throttle = commandVessel?.components.ship.throttle ?? 0;
+				const throttle = queries.flagship[0]?.components.kinematic.throttle ?? 0;
 				const fill = hudRefs.thrustBarFillEl;
 				if (throttle >= 0) {
 					fill.style.left = '50%';

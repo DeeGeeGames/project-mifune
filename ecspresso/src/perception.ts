@@ -23,7 +23,7 @@ export type PlayerSnapshot =
 	  };
 
 export function getPlayerSnapshot(
-	ship: KinematicState,
+	kinematic: KinematicState,
 	transform: KinematicTransform,
 	tier: PerceptionTier,
 ): PlayerSnapshot {
@@ -31,16 +31,16 @@ export function getPlayerSnapshot(
 		return { tier, x: transform.x, z: transform.z };
 	}
 	if (tier === 'kinematic') {
-		return { tier, x: transform.x, z: transform.z, vx: ship.vx, vz: ship.vz };
+		return { tier, x: transform.x, z: transform.z, vx: kinematic.vx, vz: kinematic.vz };
 	}
 	return {
 		tier: 'predictive',
 		x: transform.x,
 		z: transform.z,
-		vx: ship.vx,
-		vz: ship.vz,
-		heading: ship.heading,
-		turnSpeed: ship.turnSpeed,
-		throttle: ship.throttle,
+		vx: kinematic.vx,
+		vz: kinematic.vz,
+		heading: kinematic.heading,
+		turnSpeed: kinematic.turnSpeed,
+		throttle: kinematic.throttle,
 	};
 }

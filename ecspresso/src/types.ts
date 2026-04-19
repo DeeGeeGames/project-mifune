@@ -66,14 +66,14 @@ const actions: ActionMap<GameAction> = {
 	menuRight:     { keys: ['ArrowRight'], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_RIGHT) },
 };
 
-export interface ShipComponent extends KinematicState {
+export interface ShipComponent {
 	class: ShipClass;
 	hp: number;
 }
 
 export type Faction = 'ally' | 'enemy';
 
-export interface TurretComponent extends BurstFireState {
+export interface TurretComponent {
 	ownerId: number;
 	faction: Faction;
 	mountX: number;
@@ -95,7 +95,7 @@ export interface ProjectileComponent {
 	damage: number;
 }
 
-export interface MissileTurretComponent extends BurstFireState {
+export interface MissileTurretComponent {
 	ownerShipId: number;
 	mountX: number;
 	mountZ: number;
@@ -116,7 +116,7 @@ export interface MissileComponent {
 	targetId: number | null;
 }
 
-export interface EnemyComponent extends KinematicState {
+export interface EnemyComponent {
 	hp: number;
 	maxHp: number;
 	radius: number;
@@ -249,6 +249,8 @@ export const builder = ECSpresso.create()
 		BehaviorTreeComponentTypes &
 		{
 			ship: ShipComponent;
+			kinematic: KinematicState;
+			burstFire: BurstFireState;
 			commandVessel: true;
 			formationSlot: FormationSlotComponent;
 			turret: TurretComponent;

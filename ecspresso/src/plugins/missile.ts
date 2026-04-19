@@ -20,21 +20,21 @@ export const createMissilePlugin = () => definePlugin({
 		world.addSystem('missile-fire')
 			.setPriority(220)
 			.inPhase('update')
-			.addQuery('turrets', { with: ['missileTurret'] })
+			.addQuery('turrets', { with: ['missileTurret', 'burstFire'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.setProcess(({ queries, ecs }) => {
 				const now = performance.now();
-				for (const { components: { missileTurret: turret } } of queries.turrets) {
-					if (!canFire(turret, now)) continue;
+				for (const { components: { missileTurret: turret, burstFire } } of queries.turrets) {
+					if (!canFire(burstFire, now)) continue;
 
-					const ship = ecs.getComponent(turret.ownerShipId, 'ship');
+					const kinematic = ecs.getComponent(turret.ownerShipId, 'kinematic');
 					const shipTransform = ecs.getComponent(turret.ownerShipId, 'localTransform3D');
-					if (!ship || !shipTransform) continue;
+					if (!kinematic || !shipTransform) continue;
 
 					const { x: mountWorldX, z: mountWorldZ } = mountToWorld(
-						shipTransform.x, shipTransform.z, ship.heading, turret.mountX, turret.mountZ,
+						shipTransform.x, shipTransform.z, kinematic.heading, turret.mountX, turret.mountZ,
 					);
-					const detectWorld = normalizeAngle(ship.heading + turret.baseAngle);
+					const detectWorld = normalizeAngle(kinematic.heading + turret.baseAngle);
 
 					let nearestId: number | null = null;
 					let nearestDist = Infinity;
@@ -50,7 +50,7 @@ export const createMissilePlugin = () => definePlugin({
 
 					if (nearestId === null) continue;
 
-					const launchWorld = normalizeAngle(ship.heading + turret.fireAngle);
+					const launchWorld = normalizeAngle(kinematic.heading + turret.fireAngle);
 					const fwd = forwardXZ(launchWorld);
 					const muzzleX = mountWorldX + fwd.x * MUZZLE_OFFSET;
 					const muzzleZ = mountWorldZ + fwd.z * MUZZLE_OFFSET;
@@ -67,7 +67,7 @@ export const createMissilePlugin = () => definePlugin({
 						},
 					});
 
-					recordShot(turret, now);
+					recordShot(burstFire, now);
 				}
 			});
 

@@ -51,8 +51,8 @@ Coordinate conventions:
 - Export `builder` (pre-`.build()`) from `types.ts` so feature plugins use `definePlugin({id, install})`.
 - Plugin creators are `createXPlugin() => definePlugin({...})` — called from `main.ts`.
 - Ship turrets are separate entities with a `turret` component referencing their `ownerShipId`; `turret.mount` holds the three.js `Group` child so the aim system can rotate it in ship-local space.
-- Heading is stored on `ship.heading` (world radians) and mirrored into `localTransform3D.ry`.
-- Velocity lives on `ship.vx`/`vz` for ships and on `projectile.vx`/`vz` for bullets — no physics3D.
+- Heading is stored on `kinematic.heading` (world radians) and mirrored into `localTransform3D.ry`.
+- Velocity lives on `kinematic.vx`/`vz` for ships and enemies, and on `projectile.vx`/`vz` for bullets — no physics3D.
 
 ## Controls
 

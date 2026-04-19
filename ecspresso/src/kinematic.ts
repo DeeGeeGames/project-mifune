@@ -14,6 +14,28 @@ export interface KinematicState {
 	drag: number;
 }
 
+export interface KinematicSpec {
+	readonly turnRate: number;
+	readonly turnAccel: number;
+	readonly accel: number;
+	readonly maxSpeed: number;
+	readonly drag: number;
+}
+
+export const createKinematicState = (spec: KinematicSpec, initialHeading: number): KinematicState => ({
+	heading: initialHeading,
+	headingTarget: initialHeading,
+	throttle: 0,
+	vx: 0,
+	vz: 0,
+	turnRate: spec.turnRate,
+	turnSpeed: 0,
+	turnAccel: spec.turnAccel,
+	accel: spec.accel,
+	maxSpeed: spec.maxSpeed,
+	drag: spec.drag,
+});
+
 export interface KinematicTransform {
 	x: number;
 	z: number;

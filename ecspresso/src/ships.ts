@@ -25,6 +25,7 @@ import {
 } from './constants';
 import type { Faction, World } from './types';
 import { ENEMY_SPECS, type EnemyKind } from './enemies';
+import { createBurstFireState } from './weapons';
 
 export type ShipClass = 'carrier' | 'corvette' | 'frigate' | 'destroyer' | 'dreadnought';
 
@@ -437,22 +438,24 @@ const SHIP_DETAILS: Record<ShipClass, ShipDetailBuilder> = {
 
 export function turretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
 	return {
-		ownerId,
-		faction,
-		mountX: mountSpec.x,
-		mountZ: mountSpec.z,
-		baseAngle: mountSpec.baseAngle,
-		aimAngle: mountSpec.baseAngle,
-		coneHalf: mountSpec.coneHalf ?? TURRET_CONE_HALF,
-		range: mountSpec.range ?? TURRET_RANGE,
-		fireIntervalMs: mountSpec.fireIntervalMs ?? TURRET_FIRE_INTERVAL_MS,
-		damage: mountSpec.damage ?? BULLET_DAMAGE,
-		burstCount: mountSpec.burstCount ?? TURRET_BURST_COUNT,
-		burstShotDelayMs: mountSpec.burstShotDelayMs ?? TURRET_BURST_SHOT_DELAY_MS,
-		shotsRemainingInBurst: 0,
-		lastFiredAt: 0,
-		hasTarget: false,
-		mount,
+		turret: {
+			ownerId,
+			faction,
+			mountX: mountSpec.x,
+			mountZ: mountSpec.z,
+			baseAngle: mountSpec.baseAngle,
+			aimAngle: mountSpec.baseAngle,
+			coneHalf: mountSpec.coneHalf ?? TURRET_CONE_HALF,
+			range: mountSpec.range ?? TURRET_RANGE,
+			damage: mountSpec.damage ?? BULLET_DAMAGE,
+			hasTarget: false,
+			mount,
+		},
+		burstFire: createBurstFireState({
+			fireIntervalMs: mountSpec.fireIntervalMs ?? TURRET_FIRE_INTERVAL_MS,
+			burstCount: mountSpec.burstCount ?? TURRET_BURST_COUNT,
+			burstShotDelayMs: mountSpec.burstShotDelayMs ?? TURRET_BURST_SHOT_DELAY_MS,
+		}),
 	};
 }
 
@@ -460,31 +463,33 @@ export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, bu
 	spec.turrets.forEach((mountSpec, idx) => {
 		const mount = built.turretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ turret: turretFromMount(ownerId, 'ally', mountSpec, mount) });
+		ecs.spawn({ ...turretFromMount(ownerId, 'ally', mountSpec, mount) });
 	});
 	(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
 		const mount = built.missileTurretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ missileTurret: missileTurretFromMount(ownerId, mountSpec, mount) });
+		ecs.spawn({ ...missileTurretFromMount(ownerId, mountSpec, mount) });
 	});
 }
 
 export function missileTurretFromMount(ownerShipId: number, mountSpec: MissileTurretMount, mount: Group) {
 	return {
-		ownerShipId,
-		mountX: mountSpec.x,
-		mountZ: mountSpec.z,
-		baseAngle: mountSpec.baseAngle,
-		fireAngle: mountSpec.fireAngle,
-		coneHalf: mountSpec.coneHalf ?? MISSILE_TURRET_CONE_HALF,
-		range: mountSpec.range ?? MISSILE_TURRET_RANGE,
-		fireIntervalMs: mountSpec.fireIntervalMs ?? MISSILE_TURRET_FIRE_INTERVAL_MS,
-		damage: mountSpec.damage ?? MISSILE_DAMAGE,
-		burstCount: mountSpec.burstCount ?? MISSILE_TURRET_BURST_COUNT,
-		burstShotDelayMs: mountSpec.burstShotDelayMs ?? MISSILE_TURRET_BURST_SHOT_DELAY_MS,
-		shotsRemainingInBurst: 0,
-		lastFiredAt: 0,
-		mount,
+		missileTurret: {
+			ownerShipId,
+			mountX: mountSpec.x,
+			mountZ: mountSpec.z,
+			baseAngle: mountSpec.baseAngle,
+			fireAngle: mountSpec.fireAngle,
+			coneHalf: mountSpec.coneHalf ?? MISSILE_TURRET_CONE_HALF,
+			range: mountSpec.range ?? MISSILE_TURRET_RANGE,
+			damage: mountSpec.damage ?? MISSILE_DAMAGE,
+			mount,
+		},
+		burstFire: createBurstFireState({
+			fireIntervalMs: mountSpec.fireIntervalMs ?? MISSILE_TURRET_FIRE_INTERVAL_MS,
+			burstCount: mountSpec.burstCount ?? MISSILE_TURRET_BURST_COUNT,
+			burstShotDelayMs: mountSpec.burstShotDelayMs ?? MISSILE_TURRET_BURST_SHOT_DELAY_MS,
+		}),
 	};
 }
 

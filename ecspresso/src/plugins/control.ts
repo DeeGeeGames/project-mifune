@@ -26,7 +26,7 @@ export const createControlPlugin = () => definePlugin({
 			.setPriority(50)
 			.inPhase('preUpdate')
 			.addQuery('commandVessel', {
-				with: ['ship', 'commandVessel', 'localTransform3D'],
+				with: ['kinematic', 'commandVessel', 'localTransform3D'],
 			})
 			.withResources(['inputState', 'cursorState', 'playerState'])
 			.setProcess(({ queries, resources: { inputState: input, cursorState, playerState }, ecs, dt }) => {
@@ -37,13 +37,13 @@ export const createControlPlugin = () => definePlugin({
 				const gateReleased = input.actions.justDeactivated('aimGate');
 				const lockPressed = input.actions.justActivated('aimGate');
 
-				for (const { components: { ship, localTransform3D } } of queries.commandVessel) {
+				for (const { components: { kinematic, localTransform3D } } of queries.commandVessel) {
 					const stickActive = hasGamepad && isStickActive(gp, GP_AXIS_LS_X, GP_AXIS_LS_Y);
 					const shouldTrack = hasGamepad ? stickActive : gateHeld;
 					const shouldCommit = hasGamepad ? lockPressed : gateReleased;
 
 					if (shouldCommit) {
-						ship.headingTarget = playerState.pendingHeading;
+						kinematic.headingTarget = playerState.pendingHeading;
 					}
 					playerState.pendingHeading = shouldTrack
 						? computePendingHeading(
@@ -54,9 +54,9 @@ export const createControlPlugin = () => definePlugin({
 							hasGamepad,
 							gp,
 						)
-						: ship.headingTarget;
+						: kinematic.headingTarget;
 					playerState.headingPreviewActive = shouldTrack;
-					ship.throttle = updateThrust(ship.throttle, input, gp, hasGamepad, dt);
+					kinematic.throttle = updateThrust(kinematic.throttle, input, gp, hasGamepad, dt);
 				}
 
 				for (const [action, shipClass] of Object.entries(SUMMON_BY_ACTION)) {
