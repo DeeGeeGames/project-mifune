@@ -10,6 +10,7 @@ import { createMovementPlugin } from './plugins/movement';
 import { createFormationPlugin } from './plugins/formation';
 import { createTurretPlugin } from './plugins/turret';
 import { createMissilePlugin } from './plugins/missile';
+import { createBeamPlugin } from './plugins/beam';
 import { createCombatPlugin } from './plugins/combat';
 import { createEnemyPlugin } from './plugins/enemy';
 import { createThreatPlugin } from './plugins/threat';
@@ -29,6 +30,7 @@ const game = builder
 	.withPlugin(createFormationPlugin())
 	.withPlugin(createTurretPlugin())
 	.withPlugin(createMissilePlugin())
+	.withPlugin(createBeamPlugin())
 	.withPlugin(createCombatPlugin())
 	.withPlugin(createThreatPlugin())
 	.withPlugin(createEnemyPlugin())
@@ -87,18 +89,18 @@ const grid = new GridHelper(GROUND_SIZE, 100, 0x2a3550, 0x1a2535);
 grid.position.y = 0.01;
 scene.add(grid);
 
-const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'summonAnim', 'enemy', 'ship'] as const;
+const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'beamTurret', 'summonAnim', 'enemy', 'ship'] as const;
 
 const spawnCarrier = (ecs: World): void => {
 	const spec = SHIP_SPECS.carrier;
-	const { group: carrierGroup, turretMounts, missileTurretMounts } = createShipGroup('carrier');
+	const built = createShipGroup('carrier');
 	const carrier = ecs.spawn({
-		...createGroupComponents(carrierGroup, { x: 0, y: 0, z: 0 }),
+		...createGroupComponents(built.group, { x: 0, y: 0, z: 0 }),
 		ship: { class: 'carrier', hp: spec.hp },
 		kinematic: createKinematicState(spec, 0),
 		commandVessel: true,
 	});
-	spawnShipTurrets(ecs, carrier.id, spec, { group: carrierGroup, turretMounts, missileTurretMounts });
+	spawnShipTurrets(ecs, carrier.id, spec, built);
 
 	const playerState = ecs.getResource('playerState');
 	playerState.ownedShipIds = [carrier.id];

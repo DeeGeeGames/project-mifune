@@ -49,7 +49,7 @@ export const BULLET_SPEED = 30;
 export const BULLET_LIFE_SEC = 1.5;
 export const BULLET_DAMAGE = 1;
 
-export const MISSILE_SPEED = 36;
+export const MISSILE_SPEED = 72;
 export const MISSILE_LAUNCH_SPEED = 4.5;
 export const MISSILE_LIFE_SEC = 3;
 export const MISSILE_UNGUIDED_SEC = 0.5;
@@ -58,9 +58,17 @@ export const MISSILE_DAMAGE = 4;
 export const MISSILE_RADIUS = 0.3;
 export const MISSILE_TURRET_FIRE_INTERVAL_MS = 2000;
 export const MISSILE_TURRET_CONE_HALF = Math.PI / 4;
-export const MISSILE_TURRET_RANGE = 80;
+export const MISSILE_TURRET_RANGE = 160;
 export const MISSILE_TURRET_BURST_COUNT = 3;
 export const MISSILE_TURRET_BURST_SHOT_DELAY_MS = 120;
+
+export const BEAM_TURRET_CONE_HALF = Math.PI / 6;
+export const BEAM_TURRET_RANGE = 140;
+export const BEAM_TURRET_DAMAGE_PER_SEC = 8;
+export const BEAM_TURRET_DURATION_MS = 1000;
+export const BEAM_TURRET_COOLDOWN_MS = 3000;
+export const BEAM_RADIUS = 0.12;
+export const BEAM_COLOR = 0x55eeff;
 
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;

@@ -29,7 +29,7 @@ import {
 	ISO_ELEVATION,
 } from './constants';
 import type { ShipClass } from './ships';
-import type { Group, Sprite } from 'three';
+import type { Group, Mesh, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
 import type { BurstFireState } from './weapons';
@@ -118,6 +118,28 @@ export interface MissileComponent {
 	unguidedTime: number;
 	damage: number;
 	targetId: number | null;
+}
+
+export type BeamTurretState = 'idle' | 'firing' | 'cooldown';
+
+export interface BeamTurretComponent {
+	ownerId: number;
+	faction: Faction;
+	mountX: number;
+	mountZ: number;
+	baseAngle: number;
+	aimAngle: number;
+	coneHalf: number;
+	range: number;
+	damagePerSecond: number;
+	beamDurationMs: number;
+	beamCooldownMs: number;
+	state: BeamTurretState;
+	stateTimerMs: number;
+	targetId: number | null;
+	hasTarget: boolean;
+	mount: Group;
+	beamMesh: Mesh;
 }
 
 export interface EnemyComponent {
@@ -289,6 +311,7 @@ export const builder = ECSpresso.create()
 			formationSlot: FormationSlotComponent;
 			turret: TurretComponent;
 			missileTurret: MissileTurretComponent;
+			beamTurret: BeamTurretComponent;
 			projectile: ProjectileComponent;
 			missile: MissileComponent;
 			enemy: EnemyComponent;

@@ -10,13 +10,13 @@ import {
 	TURRET_TURN_RATE,
 } from '../constants';
 
-interface OwnerState {
+export interface OwnerState {
 	readonly heading: number;
 	readonly x: number;
 	readonly z: number;
 }
 
-const getOwnerState = (ecs: World, ownerId: number): OwnerState | null => {
+export const getOwnerState = (ecs: World, ownerId: number): OwnerState | null => {
 	const transform = ecs.getComponent(ownerId, 'localTransform3D');
 	const kinematic = ecs.getComponent(ownerId, 'kinematic');
 	if (!transform || !kinematic) return null;
