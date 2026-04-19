@@ -108,6 +108,27 @@ export interface ProjectileComponent {
 	splashRadius?: number;
 }
 
+export interface MissileTurretComponent {
+	ownerShipId: number;
+	mountX: number;
+	mountZ: number;
+	baseAngle: number;
+	fireAngle: number;
+	coneHalf: number;
+	range: number;
+	damage: number;
+	mount: Group;
+}
+
+export interface MissileComponent {
+	heading: number;
+	speed: number;
+	life: number;
+	unguidedTime: number;
+	damage: number;
+	targetId: number | null;
+}
+
 export type BeamTurretState = 'idle' | 'firing' | 'cooldown';
 
 export interface BeamTurretComponent {
@@ -310,8 +331,10 @@ export const builder = ECSpresso.create()
 			commandVessel: true;
 			formationSlot: FormationSlotComponent;
 			turret: TurretComponent;
+			missileTurret: MissileTurretComponent;
 			beamTurret: BeamTurretComponent;
 			projectile: ProjectileComponent;
+			missile: MissileComponent;
 			enemy: EnemyComponent;
 			healthBar: HealthBarComponent;
 			pickup: PickupComponent;

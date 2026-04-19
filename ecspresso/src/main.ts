@@ -9,6 +9,7 @@ import { createControlPlugin } from './plugins/control';
 import { createMovementPlugin } from './plugins/movement';
 import { createFormationPlugin } from './plugins/formation';
 import { createTurretPlugin } from './plugins/turret';
+import { createMissilePlugin } from './plugins/missile';
 import { createBeamPlugin } from './plugins/beam';
 import { createCombatPlugin } from './plugins/combat';
 import { createBlastPlugin } from './plugins/blast';
@@ -30,6 +31,7 @@ const game = builder
 	.withPlugin(createMovementPlugin())
 	.withPlugin(createFormationPlugin())
 	.withPlugin(createTurretPlugin())
+	.withPlugin(createMissilePlugin())
 	.withPlugin(createBeamPlugin())
 	.withPlugin(createCombatPlugin())
 	.withPlugin(createBlastPlugin())
@@ -99,7 +101,7 @@ const grid = new GridHelper(GROUND_SIZE, 100, 0x2a3550, 0x1a2535);
 grid.position.y = 0.01;
 scene.add(grid);
 
-const TEARDOWN_COMPONENTS = ['projectile', 'pickup', 'turret', 'beamTurret', 'summonAnim', 'blast', 'enemy', 'ship'] as const;
+const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'beamTurret', 'summonAnim', 'blast', 'enemy', 'ship'] as const;
 
 const spawnCarrier = (ecs: World): void => {
 	const spec = SHIP_SPECS.carrier;

@@ -49,6 +49,19 @@ export const BULLET_SPEED = 30;
 export const BULLET_LIFE_SEC = 1.5;
 export const BULLET_DAMAGE = 1;
 
+export const MISSILE_SPEED = 72;
+export const MISSILE_LAUNCH_SPEED = 4.5;
+export const MISSILE_LIFE_SEC = 3;
+export const MISSILE_UNGUIDED_SEC = 0.5;
+export const MISSILE_TURN_RATE = Math.PI;
+export const MISSILE_DAMAGE = 4;
+export const MISSILE_RADIUS = 0.3;
+export const MISSILE_TURRET_FIRE_INTERVAL_MS = 2000;
+export const MISSILE_TURRET_CONE_HALF = Math.PI / 4;
+export const MISSILE_TURRET_RANGE = 160;
+export const MISSILE_TURRET_BURST_COUNT = 3;
+export const MISSILE_TURRET_BURST_SHOT_DELAY_MS = 120;
+
 export const CANNON_TURRET_CONE_HALF = Math.PI / 3;
 export const CANNON_TURRET_RANGE = 120;
 export const CANNON_TURRET_FIRE_INTERVAL_MS = 4000;

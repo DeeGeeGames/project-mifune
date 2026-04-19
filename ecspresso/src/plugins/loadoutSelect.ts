@@ -25,14 +25,17 @@ type MenuRow =
 	| { kind: 'back' }
 	| { kind: 'start' };
 
-const WEAPON_CYCLE: readonly (WeaponKind | null)[] = [null, 'turret', 'cannon', 'beam'];
+const WEAPON_CYCLE: readonly (WeaponKind | null)[] = [null, 'turret', 'cannon', 'beam', 'missile'];
 
 const WEAPON_LABELS: Record<WeaponKind | 'none', string> = {
 	none: 'None',
 	turret: 'Turret',
 	cannon: 'Cannon',
 	beam: 'Beam',
+	missile: 'Missile',
 };
+
+const WEAPON_LABEL_WIDTH = Math.max(...Object.values(WEAPON_LABELS).map((l) => l.length));
 
 const PYLON_LABELS: readonly string[] = [
 	'Starboard Fore',
@@ -85,7 +88,7 @@ const renderRow = (row: MenuRow, loadout: CarrierLoadout): string => {
 	if (!pylon) return label;
 	if (row.kind === 'weapon') {
 		const weapon = WEAPON_LABELS[pylon.weaponKind ?? 'none'];
-		return `${label} weapon: ◀ ${weapon.padEnd(6)} ▶`;
+		return `${label} weapon: ◀ ${weapon.padEnd(WEAPON_LABEL_WIDTH)} ▶`;
 	}
 	return `${label} facing: ◀ ${formatFacingDeg(pylon.facing).padStart(5)} ▶`;
 };

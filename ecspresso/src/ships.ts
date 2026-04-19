@@ -29,6 +29,12 @@ import {
 	CANNON_SPLASH_RADIUS,
 	CANNON_SHELL_SPEED,
 	CANNON_SHELL_LIFE_SEC,
+	MISSILE_TURRET_CONE_HALF,
+	MISSILE_TURRET_FIRE_INTERVAL_MS,
+	MISSILE_TURRET_RANGE,
+	MISSILE_TURRET_BURST_COUNT,
+	MISSILE_TURRET_BURST_SHOT_DELAY_MS,
+	MISSILE_DAMAGE,
 	BEAM_TURRET_CONE_HALF,
 	BEAM_TURRET_RANGE,
 	BEAM_TURRET_DAMAGE_PER_SEC,
@@ -69,6 +75,19 @@ export interface BeamTurretMount {
 	readonly beamCooldownMs?: number;
 }
 
+export interface MissileTurretMount {
+	readonly x: number;
+	readonly z: number;
+	readonly baseAngle: number;
+	readonly fireAngle: number;
+	readonly coneHalf?: number;
+	readonly range?: number;
+	readonly fireIntervalMs?: number;
+	readonly damage?: number;
+	readonly burstCount?: number;
+	readonly burstShotDelayMs?: number;
+}
+
 const FRONT = 0;
 const PORT = -Math.PI / 2;
 const STARBOARD = Math.PI / 2;
@@ -83,7 +102,7 @@ export type EmptyTurretMount = Pick<TurretMount, 'x' | 'z' | 'baseAngle'> & {
 	readonly category: PylonCategory;
 };
 
-export type WeaponKind = 'turret' | 'cannon' | 'beam';
+export type WeaponKind = 'turret' | 'cannon' | 'beam' | 'missile';
 
 export interface CarrierLoadoutPylon {
 	weaponKind: WeaponKind | null;
@@ -120,6 +139,7 @@ export interface ShipSpec {
 	readonly turrets: readonly TurretMount[];
 	readonly cannonTurrets?: readonly TurretMount[];
 	readonly beamTurrets?: readonly BeamTurretMount[];
+	readonly missileTurrets?: readonly MissileTurretMount[];
 	readonly emptyTurretMounts?: readonly EmptyTurretMount[];
 	readonly flatBow?: true;
 }
@@ -272,6 +292,40 @@ function buildEmptyMountGroup(
 	return mount;
 }
 
+const LAUNCHER_BODY_W = 0.5;
+const LAUNCHER_BODY_H = 0.2;
+const LAUNCHER_BODY_L = 0.7;
+const LAUNCHER_TIP_W = 0.35;
+const LAUNCHER_TIP_H = 0.16;
+const LAUNCHER_TIP_L = 0.18;
+const LAUNCHER_TIP_Z = 0.42;
+
+function buildMissileMountGroup(
+	mountSpec: MissileTurretMount,
+	hullHeight: number,
+	accentMat: MeshStandardMaterial,
+): Group {
+	const launcherGroup = new Group();
+	launcherGroup.position.set(mountSpec.x, hullHeight, mountSpec.z);
+	launcherGroup.rotation.y = mountSpec.fireAngle;
+
+	const body = new Mesh(
+		new BoxGeometry(LAUNCHER_BODY_W, LAUNCHER_BODY_H, LAUNCHER_BODY_L),
+		accentMat,
+	);
+	body.position.set(0, LAUNCHER_BODY_H / 2, 0);
+	launcherGroup.add(body);
+
+	const tip = new Mesh(
+		new BoxGeometry(LAUNCHER_TIP_W, LAUNCHER_TIP_H, LAUNCHER_TIP_L),
+		BARREL_MAT,
+	);
+	tip.position.set(0, LAUNCHER_BODY_H / 2, LAUNCHER_TIP_Z);
+	launcherGroup.add(tip);
+
+	return launcherGroup;
+}
+
 const BEAM_EMITTER_RADIUS = 0.18;
 const BEAM_EMITTER_LENGTH = 0.55;
 
@@ -325,6 +379,7 @@ export interface BuiltShip {
 	readonly turretMounts: readonly Group[];
 	readonly cannonTurretMounts: readonly Group[];
 	readonly beamTurretMounts: readonly BeamMountBuild[];
+	readonly missileTurretMounts: readonly Group[];
 	readonly emptyTurretMountGroups: readonly Group[];
 }
 
@@ -584,6 +639,11 @@ export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, bu
 		if (!beamMount) return;
 		ecs.spawn({ ...beamTurretFromMount(ownerId, 'ally', mountSpec, beamMount.mount, beamMount.beamMesh) });
 	});
+	(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
+		const mount = built.missileTurretMounts[idx];
+		if (!mount) return;
+		ecs.spawn({ ...missileTurretFromMount(ownerId, mountSpec, mount) });
+	});
 }
 
 const CARRIER_ACCENT_MAT = new MeshStandardMaterial({ color: 0x222833, roughness: 0.6, metalness: 0.2 });
@@ -591,7 +651,8 @@ CARRIER_ACCENT_MAT.userData.shared = true;
 
 type MaterializedMount =
 	| { kind: 'turret' | 'cannon'; mount: Group; mountSpec: TurretMount }
-	| { kind: 'beam'; mount: Group; beamMesh: Mesh; mountSpec: BeamTurretMount };
+	| { kind: 'beam'; mount: Group; beamMesh: Mesh; mountSpec: BeamTurretMount }
+	| { kind: 'missile'; mount: Group; mountSpec: MissileTurretMount };
 
 const materializeLoadoutMount = (
 	spec: ShipSpec,
@@ -609,6 +670,12 @@ const materializeLoadoutMount = (
 		built.group.add(beamBuild.mount);
 		return { kind: 'beam', mount: beamBuild.mount, beamMesh: beamBuild.beamMesh, mountSpec };
 	}
+	if (pylon.weaponKind === 'missile') {
+		const missileSpec: MissileTurretMount = { ...mountSpec, fireAngle: pylon.facing };
+		const mount = buildMissileMountGroup(missileSpec, spec.hullHeight, CARRIER_ACCENT_MAT);
+		built.group.add(mount);
+		return { kind: 'missile', mount, mountSpec: missileSpec };
+	}
 	const mount = buildTurretMountGroup(mountSpec, spec.hullHeight, CARRIER_ACCENT_MAT);
 	built.group.add(mount);
 	return { kind: pylon.weaponKind, mount, mountSpec };
@@ -625,6 +692,13 @@ export function buildCarrierLoadoutVisual(
 	});
 }
 
+const loadoutComponentsFor = (ownerId: number, result: MaterializedMount) => {
+	if (result.kind === 'beam') return beamTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount, result.beamMesh);
+	if (result.kind === 'cannon') return cannonTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
+	if (result.kind === 'missile') return missileTurretFromMount(ownerId, result.mountSpec, result.mount);
+	return turretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
+};
+
 export function applyCarrierLoadout(
 	ecs: World,
 	ownerId: number,
@@ -637,12 +711,7 @@ export function applyCarrierLoadout(
 		if (!pylon) return;
 		const result = materializeLoadoutMount(spec, built, emptyMount, idx, pylon);
 		if (!result) return;
-		const components = result.kind === 'beam'
-			? beamTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount, result.beamMesh)
-			: result.kind === 'cannon'
-				? cannonTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount)
-				: turretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
-		ecs.spawn({ ...components });
+		ecs.spawn({ ...loadoutComponentsFor(ownerId, result) });
 	});
 }
 
@@ -673,6 +742,27 @@ export function beamTurretFromMount(
 			mount,
 			beamMesh,
 		},
+	};
+}
+
+export function missileTurretFromMount(ownerShipId: number, mountSpec: MissileTurretMount, mount: Group) {
+	return {
+		missileTurret: {
+			ownerShipId,
+			mountX: mountSpec.x,
+			mountZ: mountSpec.z,
+			baseAngle: mountSpec.baseAngle,
+			fireAngle: mountSpec.fireAngle,
+			coneHalf: mountSpec.coneHalf ?? MISSILE_TURRET_CONE_HALF,
+			range: mountSpec.range ?? MISSILE_TURRET_RANGE,
+			damage: mountSpec.damage ?? MISSILE_DAMAGE,
+			mount,
+		},
+		burstFire: createBurstFireState({
+			fireIntervalMs: mountSpec.fireIntervalMs ?? MISSILE_TURRET_FIRE_INTERVAL_MS,
+			burstCount: mountSpec.burstCount ?? MISSILE_TURRET_BURST_COUNT,
+			burstShotDelayMs: mountSpec.burstShotDelayMs ?? MISSILE_TURRET_BURST_SHOT_DELAY_MS,
+		}),
 	};
 }
 
@@ -751,13 +841,19 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		return built;
 	});
 
+	const missileTurretMounts: Group[] = (spec.missileTurrets ?? []).map((mount) => {
+		const launcherGroup = buildMissileMountGroup(mount, spec.hullHeight, mats.accent);
+		group.add(launcherGroup);
+		return launcherGroup;
+	});
+
 	const emptyTurretMountGroups: Group[] = (spec.emptyTurretMounts ?? []).map((mount) => {
 		const emptyGroup = buildEmptyMountGroup(mount, spec.hullHeight, mats.accent);
 		group.add(emptyGroup);
 		return emptyGroup;
 	});
 
-	return { group, turretMounts, cannonTurretMounts, beamTurretMounts, emptyTurretMountGroups };
+	return { group, turretMounts, cannonTurretMounts, beamTurretMounts, missileTurretMounts, emptyTurretMountGroups };
 }
 
 const ENEMY_ACCENT_MAT = new MeshStandardMaterial({ color: 0x2a1418, roughness: 0.6, metalness: 0.2 });
@@ -879,6 +975,19 @@ export function projectileMesh(): Mesh {
 	geo.rotateX(Math.PI / 2);
 	const mat = new MeshStandardMaterial({ color: 0xffee88, emissive: 0xffaa33, emissiveIntensity: 1.2, roughness: 0.3 });
 	return new Mesh(geo, mat);
+}
+
+const MISSILE_GEO = (() => {
+	const g = new CylinderGeometry(0.1, 0.1, 0.8, 8);
+	g.rotateX(Math.PI / 2);
+	return g;
+})();
+const MISSILE_MAT = new MeshStandardMaterial({ color: 0xff5533, emissive: 0xaa2200, emissiveIntensity: 0.9, roughness: 0.4 });
+MISSILE_GEO.userData.shared = true;
+MISSILE_MAT.userData.shared = true;
+
+export function missileMesh(): Mesh {
+	return new Mesh(MISSILE_GEO, MISSILE_MAT);
 }
 
 const CANNON_SHELL_GEO = (() => {
