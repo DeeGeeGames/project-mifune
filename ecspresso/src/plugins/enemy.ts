@@ -113,6 +113,7 @@ export const createEnemyPlugin = () => definePlugin({
 		world.addSystem('enemy-ai')
 			.setPriority(250)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('enemies', { with: ['enemy', 'kinematic', 'localTransform3D'] })
 			.addQuery('flagship', { with: ['commandVessel', 'localTransform3D', 'kinematic'] })
 			.setProcess(({ queries, dt, ecs }) => {

@@ -18,6 +18,7 @@ export const createFormationPlugin = () => definePlugin({
 		world.addSystem('formation')
 			.setPriority(60)
 			.inPhase('preUpdate')
+			.inScreens(['playing'])
 			.addQuery('followers', {
 				with: ['ship', 'kinematic', 'formationSlot', 'localTransform3D'],
 				without: ['summonAnim', 'commandVessel'],

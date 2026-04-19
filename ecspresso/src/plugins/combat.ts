@@ -19,6 +19,7 @@ export const createCombatPlugin = () => definePlugin({
 		world.addSystem('projectile-integrate')
 			.setPriority(300)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('projectiles', { with: ['projectile', 'localTransform3D'] })
 			.setProcess(({ queries, dt, ecs }) => {
 				for (const { id, components: { projectile, localTransform3D } } of queries.projectiles) {
@@ -36,6 +37,7 @@ export const createCombatPlugin = () => definePlugin({
 		world.addSystem('projectile-hit')
 			.setPriority(310)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('projectiles', { with: ['projectile', 'localTransform3D'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.addQuery('ships', { with: ['ship', 'localTransform3D'] })

@@ -9,11 +9,16 @@ export const createHudPlugin = () => definePlugin({
 		world.addSystem('hud')
 			.setPriority(100)
 			.inPhase('render')
+			.inScreens(['playing'])
 			.addQuery('ships', { with: ['ship'] })
 			.addQuery('flagship', { with: ['commandVessel', 'kinematic'] })
 			.withResources(['playerState', 'hudRefs'])
-			.setProcess(({ queries, resources: { playerState, hudRefs } }) => {
+			.setProcess(({ queries, ecs, resources: { playerState, hudRefs } }) => {
 				hudRefs.resourcesEl.textContent = `Resources: ${Math.floor(playerState.resources)}`;
+
+				const wave = ecs.getScreenState('playing');
+				const secs = Math.max(0, Math.ceil(wave.phaseTimer));
+				hudRefs.waveEl.textContent = `WAVE ${wave.waveNumber} — ${secs}s`;
 
 				const rosterLines = queries.ships.map((e) => {
 					const isFlag = e.id === playerState.commandVesselId ? '◆' : '·';

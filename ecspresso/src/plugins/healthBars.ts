@@ -70,6 +70,7 @@ export const createHealthBarsPlugin = () => definePlugin({
 	install: (world) => {
 		world.addSystem('healthBars')
 			.inPhase('render')
+			.inScreens(['playing'])
 			.addQuery('enemies', { with: ['enemy', 'healthBar'] })
 			.setProcess(({ queries }) => {
 				for (const { components: { enemy, healthBar } } of queries.enemies) {

@@ -74,6 +74,7 @@ export const createThreatPlugin = () => definePlugin({
 		world.addSystem('threat-scan')
 			.setPriority(205)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('turrets', { with: ['turret', 'burstFire'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.withResources(['threatMap'])

@@ -25,6 +25,7 @@ export const createControlPlugin = () => definePlugin({
 		world.addSystem('control')
 			.setPriority(50)
 			.inPhase('preUpdate')
+			.inScreens(['playing'])
 			.addQuery('commandVessel', {
 				with: ['kinematic', 'commandVessel', 'localTransform3D'],
 			})

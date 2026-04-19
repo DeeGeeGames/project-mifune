@@ -153,9 +153,12 @@ export const FORMATION_LOOKAHEAD_SEC = 0.4;
 export const FORMATION_SEPARATION_RADIUS = 3;
 export const FORMATION_SEPARATION_STRENGTH = 4;
 
-export const WAVE_START_INTERVAL_MS = 30000;
-export const WAVE_MIN_INTERVAL_MS = 30000;
-export const WAVE_RAMP_SEC = 180;
+export const WAVE_BASE_DURATION_SEC = 20;
+export const WAVE_DURATION_GROWTH_SEC = 5;
+export const WAVE_MAX_DURATION_SEC = 60;
+export const WAVE_BASE_SPAWN_INTERVAL_MS = 1500;
+export const WAVE_MIN_SPAWN_INTERVAL_MS = 400;
+export const WAVE_SPAWN_INTERVAL_DECAY = 0.9;
 
 // +Z world direction = directly in front of player
 export const ENEMY_SPAWN_ANGLE_CENTER = 0;

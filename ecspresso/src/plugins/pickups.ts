@@ -12,6 +12,7 @@ export const createPickupsPlugin = () => definePlugin({
 		world.addSystem('pickups')
 			.setPriority(320)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('pickups', { with: ['pickup', 'localTransform3D'] })
 			.addQuery('flagship', { with: ['commandVessel', 'localTransform3D'] })
 			.withResources(['playerState'])

@@ -18,9 +18,6 @@ import {
 	GUNSHIP_RANGED_CONFIG,
 	SNIPER_AIM_CONFIG,
 	SNIPER_RANGED_CONFIG,
-	WAVE_MIN_INTERVAL_MS,
-	WAVE_RAMP_SEC,
-	WAVE_START_INTERVAL_MS,
 	type RangedBehaviorConfig,
 	type SniperAimConfig,
 } from '../constants';
@@ -102,46 +99,46 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 export const createWavesPlugin = () => definePlugin({
 	id: 'waves',
 	install: (world) => {
-		world.addResource('waveState', {
-			timer: 0,
-			spawnIntervalMs: WAVE_START_INTERVAL_MS,
-			elapsedSec: 0,
-			initialSeedDone: false,
-		});
+		world.addSystem('waves-stats-init')
+			.setOnInitialize((ecs) => {
+				ecs.eventBus.subscribe('enemy:killed', () => {
+					const state = ecs.tryGetScreenState('playing');
+					if (state) state.kills += 1;
+				});
+				ecs.eventBus.subscribe('pickup:collected', ({ value }) => {
+					const state = ecs.tryGetScreenState('playing');
+					if (state) state.resourcesCollected += value;
+				});
+			});
 
 		world.addSystem('waves')
 			.setPriority(100)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('flagship', { with: ['commandVessel', 'localTransform3D'] })
-			.withResources(['waveState'])
-			.setProcess(({ queries, dt, ecs, resources: { waveState } }) => {
+			.setProcess(({ queries, dt, ecs }) => {
 				const flagship = queries.flagship[0];
 				if (!flagship) return;
 
-				const ft = flagship.components.localTransform3D;
-				const radius = CAMERA_VIEW_SIZE / CAMERA_ZOOM_MIN + ENEMY_SPAWN_RING_PAD;
+				const state = ecs.getScreenState('playing');
+				state.phaseTimer -= dt;
 
-				if (!waveState.initialSeedDone) {
-					ENEMY_KINDS.forEach((kind, i) => {
-						const t = ENEMY_KINDS.length > 1 ? (i / (ENEMY_KINDS.length - 1) - 0.5) : 0;
-						const angle = ENEMY_SPAWN_ANGLE_CENTER + t * ENEMY_SPAWN_ANGLE_SPREAD;
-						const spawnX = ft.x + Math.sin(angle) * radius;
-						const spawnZ = ft.z + Math.cos(angle) * radius;
-						spawnEnemy(ecs, kind, spawnX, spawnZ, ft.x, ft.z);
+				if (state.phaseTimer <= 0) {
+					state.phaseTimer = 0;
+					void ecs.setScreen('waveSummary', {
+						waveNumber: state.waveNumber,
+						kills: state.kills,
+						resourcesCollected: state.resourcesCollected,
 					});
-					waveState.initialSeedDone = true;
+					return;
 				}
 
-				waveState.elapsedSec += dt;
-				waveState.timer += dt * 1000;
+				state.spawnTimer += dt * 1000;
+				if (state.spawnTimer < state.spawnIntervalMs) return;
+				state.spawnTimer -= state.spawnIntervalMs;
 
-				const rampT = Math.min(1, waveState.elapsedSec / WAVE_RAMP_SEC);
-				waveState.spawnIntervalMs =
-					WAVE_START_INTERVAL_MS + (WAVE_MIN_INTERVAL_MS - WAVE_START_INTERVAL_MS) * rampT;
-
-				if (waveState.timer < waveState.spawnIntervalMs) return;
-				waveState.timer -= waveState.spawnIntervalMs;
-
+				const ft = flagship.components.localTransform3D;
+				const radius = CAMERA_VIEW_SIZE / CAMERA_ZOOM_MIN + ENEMY_SPAWN_RING_PAD;
 				const angle = ENEMY_SPAWN_ANGLE_CENTER + (Math.random() - 0.5) * ENEMY_SPAWN_ANGLE_SPREAD;
 				const spawnX = ft.x + Math.sin(angle) * radius;
 				const spawnZ = ft.z + Math.cos(angle) * radius;

@@ -14,6 +14,7 @@ import type {
 	BehaviorTreeComponentTypes,
 	BehaviorTreeEventTypes,
 } from 'ecspresso/plugins/ai/behavior-tree';
+import type { ScreenEvents } from 'ecspresso';
 import {
 	CAMERA_DISTANCE,
 	CAMERA_VIEW_SIZE,
@@ -32,6 +33,7 @@ import type { Group, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
 import type { BurstFireState } from './weapons';
+import { waveDuration, waveSpawnInterval } from './waveMath';
 
 export type GameAction =
 	| 'fwd'
@@ -47,7 +49,8 @@ export type GameAction =
 	| 'menuUp'
 	| 'menuDown'
 	| 'menuLeft'
-	| 'menuRight';
+	| 'menuRight'
+	| 'menuConfirm';
 
 const actions: ActionMap<GameAction> = {
 	fwd:           { keys: ['w'] },
@@ -64,6 +67,7 @@ const actions: ActionMap<GameAction> = {
 	menuDown:      { keys: ['ArrowDown'],  gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_DOWN) },
 	menuLeft:      { keys: ['ArrowLeft'],  gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_LEFT) },
 	menuRight:     { keys: ['ArrowRight'], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_RIGHT) },
+	menuConfirm:   { keys: ['Enter', ' '], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
 };
 
 export interface ShipComponent {
@@ -168,12 +172,30 @@ export interface PlayerState {
 	headingPreviewActive: boolean;
 }
 
-export interface WaveState {
-	timer: number;
+export type PlayingScreenConfig = {
+	waveNumber: number;
+};
+
+export type PlayingScreenState = {
+	waveNumber: number;
+	phaseTimer: number;
+	spawnTimer: number;
 	spawnIntervalMs: number;
-	elapsedSec: number;
-	initialSeedDone: boolean;
-}
+	kills: number;
+	resourcesCollected: number;
+};
+
+export type WaveSummaryConfig = {
+	waveNumber: number;
+	kills: number;
+	resourcesCollected: number;
+};
+
+export type WaveSummaryScreenState = WaveSummaryConfig & {
+	selectedIndex: number;
+};
+
+export type AppScreenName = 'playing' | 'waveSummary';
 
 export interface CursorState {
 	x: number;
@@ -186,6 +208,12 @@ export interface HudRefs {
 	rosterEl: HTMLElement;
 	menuEl: HTMLElement;
 	thrustBarFillEl: HTMLElement;
+	waveEl: HTMLElement;
+	gameHudEls: readonly HTMLElement[];
+	summaryEl: HTMLElement;
+	summaryTitleEl: HTMLElement;
+	summaryStatsEl: HTMLElement;
+	summaryMenuEl: HTMLElement;
 }
 
 export interface ShipSummonedEvent {
@@ -266,6 +294,7 @@ export const builder = ECSpresso.create()
 	.withEventTypes<
 		Renderer3DEventTypes &
 		BehaviorTreeEventTypes &
+		ScreenEvents<AppScreenName> &
 		{
 			'ship:summoned': ShipSummonedEvent;
 			'ship:destroyed': ShipDestroyedEvent;
@@ -281,12 +310,29 @@ export const builder = ECSpresso.create()
 		InputResourceTypes<GameAction> &
 		{
 			playerState: PlayerState;
-			waveState: WaveState;
 			cursorState: CursorState;
 			hudRefs: HudRefs;
 			threatMap: ThreatMap;
 		}
-	>();
+	>()
+	.withScreens(screens => screens
+		.add('playing', {
+			initialState: (config: PlayingScreenConfig): PlayingScreenState => ({
+				waveNumber: config.waveNumber,
+				phaseTimer: waveDuration(config.waveNumber),
+				spawnTimer: 0,
+				spawnIntervalMs: waveSpawnInterval(config.waveNumber),
+				kills: 0,
+				resourcesCollected: 0,
+			}),
+		})
+		.add('waveSummary', {
+			initialState: (config: WaveSummaryConfig): WaveSummaryScreenState => ({
+				...config,
+				selectedIndex: 0,
+			}),
+		}),
+	);
 
 export const definePlugin = builder.pluginFactory();
 

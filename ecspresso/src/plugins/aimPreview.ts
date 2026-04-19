@@ -76,6 +76,7 @@ export const createAimPreviewPlugin = () => definePlugin({
 
 		world.addSystem('aimPreview')
 			.inPhase('render')
+			.inScreens(['playing'])
 			.addQuery('commandVessel', {
 				with: ['kinematic', 'commandVessel', 'localTransform3D'],
 			})

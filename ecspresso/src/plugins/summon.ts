@@ -56,6 +56,7 @@ export const createSummonPlugin = () => definePlugin({
 		world.addSystem('summon-anim')
 			.setPriority(70)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('summoning', {
 				with: ['summonAnim', 'kinematic', 'formationSlot', 'localTransform3D'],
 			})

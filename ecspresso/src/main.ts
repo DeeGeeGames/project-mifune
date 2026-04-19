@@ -1,6 +1,6 @@
 import { AmbientLight, DirectionalLight, Mesh, PlaneGeometry, MeshStandardMaterial, GridHelper } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
-import { builder } from './types';
+import { builder, type World } from './types';
 import { SHIP_SPECS, createShipGroup, spawnShipTurrets } from './ships';
 import { createKinematicState } from './kinematic';
 import { GROUND_SIZE } from './constants';
@@ -19,6 +19,7 @@ import { createSummonPlugin } from './plugins/summon';
 import { createHudPlugin } from './plugins/hud';
 import { createAimPreviewPlugin } from './plugins/aimPreview';
 import { createHealthBarsPlugin } from './plugins/healthBars';
+import { createWaveSummaryPlugin } from './plugins/waveSummary';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -36,7 +37,10 @@ const game = builder
 	.withPlugin(createHudPlugin())
 	.withPlugin(createAimPreviewPlugin())
 	.withPlugin(createHealthBarsPlugin())
+	.withPlugin(createWaveSummaryPlugin())
 	.build();
+
+const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-help', 'hud-wave'] as const;
 
 game.addResource('playerState', {
 	resources: 500,
@@ -52,6 +56,12 @@ game.addResource('hudRefs', {
 	rosterEl: requireEl('hud-roster'),
 	menuEl: requireEl('hud-menu'),
 	thrustBarFillEl: requireEl('hud-thrust-fill'),
+	waveEl: requireEl('hud-wave'),
+	gameHudEls: gameHudIds.map(requireEl),
+	summaryEl: requireEl('hud-summary'),
+	summaryTitleEl: requireEl('hud-summary-title'),
+	summaryStatsEl: requireEl('hud-summary-stats'),
+	summaryMenuEl: requireEl('hud-summary-menu'),
 });
 
 await game.initialize();
@@ -73,25 +83,48 @@ const grid = new GridHelper(GROUND_SIZE, 100, 0x2a3550, 0x1a2535);
 grid.position.y = 0.01;
 scene.add(grid);
 
-const spec = SHIP_SPECS.carrier;
-const { group: carrierGroup, turretMounts, missileTurretMounts } = createShipGroup('carrier');
-const carrier = game.spawn({
-	...createGroupComponents(carrierGroup, { x: 0, y: 0, z: 0 }),
-	ship: {
-		class: 'carrier',
-		hp: spec.hp,
-	},
-	kinematic: createKinematicState(spec, 0),
-	commandVessel: true,
+const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'summonAnim', 'enemy', 'ship'] as const;
+
+const spawnCarrier = (ecs: World): void => {
+	const spec = SHIP_SPECS.carrier;
+	const { group: carrierGroup, turretMounts, missileTurretMounts } = createShipGroup('carrier');
+	const carrier = ecs.spawn({
+		...createGroupComponents(carrierGroup, { x: 0, y: 0, z: 0 }),
+		ship: { class: 'carrier', hp: spec.hp },
+		kinematic: createKinematicState(spec, 0),
+		commandVessel: true,
+	});
+	spawnShipTurrets(ecs, carrier.id, spec, { group: carrierGroup, turretMounts, missileTurretMounts });
+
+	const playerState = ecs.getResource('playerState');
+	playerState.ownedShipIds = [carrier.id];
+	playerState.commandVesselId = carrier.id;
+	playerState.pendingHeading = 0;
+	playerState.headingPreviewActive = false;
+
+	ecs.getResource('camera3DState').follow(carrier);
+};
+
+const teardownSim = (ecs: World): void => {
+	const seen = new Set<number>();
+	TEARDOWN_COMPONENTS.forEach((component) => {
+		ecs.getEntitiesWithQuery([component]).forEach(({ id }) => {
+			if (seen.has(id)) return;
+			seen.add(id);
+			ecs.removeEntity(id);
+		});
+	});
+};
+
+game.eventBus.subscribe('screenEnter', ({ screen }) => {
+	if (screen === 'playing') spawnCarrier(game);
 });
 
-spawnShipTurrets(game, carrier.id, spec, { group: carrierGroup, turretMounts, missileTurretMounts });
+game.eventBus.subscribe('screenExit', ({ screen }) => {
+	if (screen === 'playing') teardownSim(game);
+});
 
-const playerState = game.getResource('playerState');
-playerState.ownedShipIds.push(carrier.id);
-playerState.commandVesselId = carrier.id;
-
-game.getResource('camera3DState').follow(carrier);
+await game.setScreen('playing', { waveNumber: 1 });
 
 function requireEl(id: string): HTMLElement {
 	const el = document.getElementById(id);

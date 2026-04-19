@@ -7,6 +7,7 @@ export const createMovementPlugin = () => definePlugin({
 		world.addSystem('ship-movement')
 			.setPriority(200)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('ships', {
 				with: ['ship', 'kinematic', 'localTransform3D'],
 				without: ['summonAnim'],

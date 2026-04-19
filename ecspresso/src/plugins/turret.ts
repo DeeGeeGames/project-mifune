@@ -34,6 +34,7 @@ export const createTurretPlugin = () => definePlugin({
 		world.addSystem('turret-aim')
 			.setPriority(210)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('turrets', { with: ['turret'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.addQuery('ships', { with: ['ship', 'localTransform3D'] })
@@ -92,6 +93,7 @@ export const createTurretPlugin = () => definePlugin({
 		world.addSystem('turret-fire')
 			.setPriority(220)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('turrets', { with: ['turret', 'burstFire'] })
 			.setProcess(({ queries, ecs }) => {
 				const now = performance.now();

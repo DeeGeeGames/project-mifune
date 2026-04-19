@@ -20,6 +20,7 @@ export const createMissilePlugin = () => definePlugin({
 		world.addSystem('missile-fire')
 			.setPriority(220)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('turrets', { with: ['missileTurret', 'burstFire'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.setProcess(({ queries, ecs }) => {
@@ -74,6 +75,7 @@ export const createMissilePlugin = () => definePlugin({
 		world.addSystem('missile-update')
 			.setPriority(300)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('missiles', { with: ['missile', 'localTransform3D'] })
 			.setProcess(({ queries, dt, ecs }) => {
 				for (const { id, components: { missile, localTransform3D } } of queries.missiles) {
@@ -108,6 +110,7 @@ export const createMissilePlugin = () => definePlugin({
 		world.addSystem('missile-hit')
 			.setPriority(310)
 			.inPhase('update')
+			.inScreens(['playing'])
 			.addQuery('missiles', { with: ['missile', 'localTransform3D'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.setProcess(({ queries, ecs }) => {
