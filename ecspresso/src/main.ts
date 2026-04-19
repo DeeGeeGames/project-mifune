@@ -20,6 +20,7 @@ import { createHudPlugin } from './plugins/hud';
 import { createAimPreviewPlugin } from './plugins/aimPreview';
 import { createHealthBarsPlugin } from './plugins/healthBars';
 import { createWaveSummaryPlugin } from './plugins/waveSummary';
+import { createTitleScreenPlugin } from './plugins/titleScreen';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -38,6 +39,7 @@ const game = builder
 	.withPlugin(createAimPreviewPlugin())
 	.withPlugin(createHealthBarsPlugin())
 	.withPlugin(createWaveSummaryPlugin())
+	.withPlugin(createTitleScreenPlugin())
 	.build();
 
 const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-help', 'hud-wave'] as const;
@@ -62,6 +64,8 @@ game.addResource('hudRefs', {
 	summaryTitleEl: requireEl('hud-summary-title'),
 	summaryStatsEl: requireEl('hud-summary-stats'),
 	summaryMenuEl: requireEl('hud-summary-menu'),
+	titleEl: requireEl('hud-title'),
+	titleMenuEl: requireEl('hud-title-menu'),
 });
 
 await game.initialize();
@@ -124,7 +128,7 @@ game.eventBus.subscribe('screenExit', ({ screen }) => {
 	if (screen === 'playing') teardownSim(game);
 });
 
-await game.setScreen('playing', { waveNumber: 1 });
+await game.setScreen('title', {});
 
 function requireEl(id: string): HTMLElement {
 	const el = document.getElementById(id);

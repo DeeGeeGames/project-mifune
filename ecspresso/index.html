@@ -28,7 +28,7 @@
 		#hud-help { bottom: 12px; right: 12px; color: #98a7be; }
 		#hud-thrust { top: 48px; right: 12px; min-width: 160px; }
 		#hud-wave { top: 12px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: 600; letter-spacing: 0.08em; color: #e8f0ff; }
-		#hud-summary {
+		#hud-summary, #hud-title {
 			position: fixed;
 			inset: 0;
 			display: none;
@@ -112,6 +112,12 @@ Keyboard: LMB heading • W/S thrust • 1-4 summon • Wheel/Q/E zoom</div>
 			<div id="hud-summary-title" class="summary-title">WAVE 1 COMPLETE</div>
 			<div id="hud-summary-stats" class="summary-stats"></div>
 			<div id="hud-summary-menu" class="summary-menu"></div>
+		</div>
+	</div>
+	<div id="hud-title">
+		<div class="summary-card">
+			<div class="summary-title">HORDE DEFENSE</div>
+			<div id="hud-title-menu" class="summary-menu"></div>
 		</div>
 	</div>
 	<script type="module" src="/src/main.ts"></script>

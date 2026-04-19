@@ -6,6 +6,18 @@ const SUMMON_ORDER: readonly ShipClass[] = ['corvette', 'frigate', 'destroyer', 
 export const createHudPlugin = () => definePlugin({
 	id: 'hud',
 	install: (world) => {
+		const setGameHudDisplay = (value: '' | 'none'): void => {
+			world.getResource('hudRefs').gameHudEls.forEach((el) => { el.style.display = value; });
+		};
+
+		world.eventBus.subscribe('screenEnter', ({ screen }) => {
+			if (screen === 'playing') setGameHudDisplay('');
+		});
+
+		world.eventBus.subscribe('screenExit', ({ screen }) => {
+			if (screen === 'playing') setGameHudDisplay('none');
+		});
+
 		world.addSystem('hud')
 			.setPriority(100)
 			.inPhase('render')

@@ -24,15 +24,16 @@ Coordinate conventions:
 
 ## File Map
 
-- `src/types.ts` — builder chain, `GameAction` union, action map, all component/event/resource types, screens (`playing` / `waveSummary`), `definePlugin`, `World`
+- `src/types.ts` — builder chain, `GameAction` union, action map, all component/event/resource types, screens (`title` / `playing` / `waveSummary`), `definePlugin`, `World`
 - `src/constants.ts` — all tunable numbers (ship specs, camera, turret, wave duration/spawn-interval curve, summon costs, gamepad button indices)
 - `src/waveMath.ts` — pure wave-number → duration / spawn-interval helpers, consumed by `types.ts` screen init and `plugins/waves.ts`
 - `src/math.ts` — pure helpers (`normalizeAngle`, `stepAngle`, `rotateY`, `bearingXZ`, `forwardXZ`, `leadTarget`)
+- `src/menu.ts` — pure helpers (`wrapIndex`, `renderMenuText`) shared by overlay-screen menu plugins.
 - `src/kinematic.ts` — shared `integrateKinematicXZ(state, transform, dt)` used by both `movement.ts` (ships) and `enemy.ts` (enemies)
 - `src/ships.ts` — `SHIP_SPECS` table per class + `createShipGroup` / `enemyShipGroup(kind)` / `projectileMesh` / `pickupMesh` factories
 - `src/enemies.ts` — `EnemyKind` union (`pursuer | interceptor | flanker | orbiter`), `EnemyBehavior` discriminated union, `ENEMY_SPECS` stat/color table, `makeBehavior(kind)` factory
 - `src/formation.ts` — pure helpers: `slotLocalXZ(slotIndex)` maps flat slot indices to a V formation (row 0 = front tip, row 1 = command row, each next row +2 slots); `reassignFormationSlots` repacks slots from `ownedShipIds` order.
-- `src/main.ts` — install plugins, build hud refs, subscribe to `screenEnter`/`screenExit` to spawn carrier / tear down sim between waves, start wave 1
+- `src/main.ts` — install plugins, build hud refs, subscribe to `screenEnter`/`screenExit` to spawn carrier / tear down sim between waves, boot into `title` screen
 - `src/plugins/` — feature plugins:
   - `cursor.ts` — mouse → ground-plane raycast; wheel → ortho zoom (TODO-noted shim until camera3D gains wheel-zoom for ortho)
   - `control.ts` — gamepad + keyboard/mouse → command-vessel `headingTarget` / `throttle`, summon events
@@ -44,9 +45,10 @@ Coordinate conventions:
   - `waves.ts` — within-`playing`-screen spawn loop; on timer expiry triggers `setScreen('waveSummary')`. Also owns the `enemy:killed` / `pickup:collected` listeners that accumulate per-wave stats into the playing screen state.
   - `pickups.ts` — magnet toward command vessel; collect on contact
   - `summon.ts` — listen for `summon:request`, deduct cost, spawn ship off-screen with `summonAnim`
-  - `hud.ts` — in-game DOM overlay updates each render phase (gated to `playing`)
+  - `hud.ts` — in-game DOM overlay updates each render phase (gated to `playing`); toggles `gameHudEls` visibility on `screenEnter`/`screenExit('playing')`.
   - `aimPreview.ts` — aim-gate arc preview (see Controls)
-  - `waveSummary.ts` — between-wave screen: always-on DOM visibility toggle (`screen-ui`) + menu input/render system gated to `waveSummary`. Selecting `Continue` triggers `setScreen('playing', { waveNumber: n + 1 })`.
+  - `waveSummary.ts` — between-wave screen: toggles `summaryEl` visibility on `screenEnter`/`screenExit('waveSummary')` + menu input/render system gated to `waveSummary`. Selecting `Continue` triggers `setScreen('playing', { waveNumber: n + 1 })`.
+  - `titleScreen.ts` — placeholder title screen: toggles `titleEl` visibility on `screenEnter`/`screenExit('title')` + menu input/render system gated to `title`. Start → `setScreen('playing', { waveNumber: 1 })`; Quit → `window.close()`.
 
 ## Key Patterns
 
@@ -56,7 +58,7 @@ Coordinate conventions:
 - Heading is stored on `kinematic.heading` (world radians) and mirrored into `localTransform3D.ry`.
 - Velocity lives on `kinematic.vx`/`vz` for ships and enemies, and on `projectile.vx`/`vz` for bullets — no physics3D.
 - Round structure lives in screen state, not a resource: the `playing` screen's state owns `waveNumber`, `phaseTimer`, `spawnTimer`, per-wave `kills` / `resourcesCollected`. `waveSummary` screen carries `waveNumber` / `kills` / `resourcesCollected` forward for display plus a `selectedIndex` for the menu. Only `playerState.resources` is global and carries across waves — everything else (carrier, allied ships, pickups, projectiles) is torn down on `playing.onExit` and respawned fresh on the next `playing.onEnter`.
-- All simulation systems are gated with `.inScreens(['playing'])` so they pause during the summary screen. Always-on systems: renderer, camera, input, behavior-tree (plugin-internal), cursor, `screen-ui` (visibility toggle).
+- All simulation systems are gated with `.inScreens(['playing'])` so they pause during overlay screens. Always-on systems: renderer, camera, input, behavior-tree (plugin-internal), cursor. Screen-overlay visibility is event-driven via `screenEnter`/`screenExit` subscriptions per plugin, not polled in the render loop.
 
 ## Controls
 

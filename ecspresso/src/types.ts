@@ -195,7 +195,11 @@ export type WaveSummaryScreenState = WaveSummaryConfig & {
 	selectedIndex: number;
 };
 
-export type AppScreenName = 'playing' | 'waveSummary';
+export type TitleScreenState = {
+	selectedIndex: number;
+};
+
+export type AppScreenName = 'title' | 'playing' | 'waveSummary';
 
 export interface CursorState {
 	x: number;
@@ -214,6 +218,8 @@ export interface HudRefs {
 	summaryTitleEl: HTMLElement;
 	summaryStatsEl: HTMLElement;
 	summaryMenuEl: HTMLElement;
+	titleEl: HTMLElement;
+	titleMenuEl: HTMLElement;
 }
 
 export interface ShipSummonedEvent {
@@ -316,6 +322,11 @@ export const builder = ECSpresso.create()
 		}
 	>()
 	.withScreens(screens => screens
+		.add('title', {
+			initialState: (): TitleScreenState => ({
+				selectedIndex: 0,
+			}),
+		})
 		.add('playing', {
 			initialState: (config: PlayingScreenConfig): PlayingScreenState => ({
 				waveNumber: config.waveNumber,

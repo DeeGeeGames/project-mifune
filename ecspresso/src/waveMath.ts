@@ -1,0 +1,14 @@
+import {
+	WAVE_BASE_DURATION_SEC,
+	WAVE_BASE_SPAWN_INTERVAL_MS,
+	WAVE_DURATION_GROWTH_SEC,
+	WAVE_MAX_DURATION_SEC,
+	WAVE_MIN_SPAWN_INTERVAL_MS,
+	WAVE_SPAWN_INTERVAL_DECAY,
+} from './constants';
+
+export const waveDuration = (n: number): number =>
+	Math.min(WAVE_BASE_DURATION_SEC + (n - 1) * WAVE_DURATION_GROWTH_SEC, WAVE_MAX_DURATION_SEC);
+
+export const waveSpawnInterval = (n: number): number =>
+	Math.max(WAVE_BASE_SPAWN_INTERVAL_MS * Math.pow(WAVE_SPAWN_INTERVAL_DECAY, n - 1), WAVE_MIN_SPAWN_INTERVAL_MS);
