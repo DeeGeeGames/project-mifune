@@ -13,10 +13,14 @@ import {
 	TURRET_CONE_HALF,
 	TURRET_FIRE_INTERVAL_MS,
 	TURRET_RANGE,
+	TURRET_BURST_COUNT,
+	TURRET_BURST_SHOT_DELAY_MS,
 	BULLET_DAMAGE,
 	MISSILE_TURRET_CONE_HALF,
 	MISSILE_TURRET_FIRE_INTERVAL_MS,
 	MISSILE_TURRET_RANGE,
+	MISSILE_TURRET_BURST_COUNT,
+	MISSILE_TURRET_BURST_SHOT_DELAY_MS,
 	MISSILE_DAMAGE,
 } from './constants';
 import type { Faction, World } from './types';
@@ -32,6 +36,8 @@ export interface TurretMount {
 	readonly range?: number;
 	readonly fireIntervalMs?: number;
 	readonly damage?: number;
+	readonly burstCount?: number;
+	readonly burstShotDelayMs?: number;
 }
 
 export interface MissileTurretMount {
@@ -43,6 +49,8 @@ export interface MissileTurretMount {
 	readonly range?: number;
 	readonly fireIntervalMs?: number;
 	readonly damage?: number;
+	readonly burstCount?: number;
+	readonly burstShotDelayMs?: number;
 }
 
 export interface ShipSpec {
@@ -439,6 +447,9 @@ export function turretFromMount(ownerId: number, faction: Faction, mountSpec: Tu
 		range: mountSpec.range ?? TURRET_RANGE,
 		fireIntervalMs: mountSpec.fireIntervalMs ?? TURRET_FIRE_INTERVAL_MS,
 		damage: mountSpec.damage ?? BULLET_DAMAGE,
+		burstCount: mountSpec.burstCount ?? TURRET_BURST_COUNT,
+		burstShotDelayMs: mountSpec.burstShotDelayMs ?? TURRET_BURST_SHOT_DELAY_MS,
+		shotsRemainingInBurst: 0,
 		lastFiredAt: 0,
 		hasTarget: false,
 		mount,
@@ -469,6 +480,9 @@ export function missileTurretFromMount(ownerShipId: number, mountSpec: MissileTu
 		range: mountSpec.range ?? MISSILE_TURRET_RANGE,
 		fireIntervalMs: mountSpec.fireIntervalMs ?? MISSILE_TURRET_FIRE_INTERVAL_MS,
 		damage: mountSpec.damage ?? MISSILE_DAMAGE,
+		burstCount: mountSpec.burstCount ?? MISSILE_TURRET_BURST_COUNT,
+		burstShotDelayMs: mountSpec.burstShotDelayMs ?? MISSILE_TURRET_BURST_SHOT_DELAY_MS,
+		shotsRemainingInBurst: 0,
 		lastFiredAt: 0,
 		mount,
 	};

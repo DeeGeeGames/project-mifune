@@ -2,6 +2,7 @@ import { definePlugin } from '../types';
 import { angleDiff, bearingXZ, distanceXZ, forwardXZ, mountToWorld, normalizeAngle, stepAngle } from '../math';
 import { missileMesh } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
+import { canFire, recordShot } from '../weapons';
 import { killEnemyAndDrop } from './combat';
 import {
 	MISSILE_LAUNCH_SPEED,
@@ -24,7 +25,7 @@ export const createMissilePlugin = () => definePlugin({
 			.setProcess(({ queries, ecs }) => {
 				const now = performance.now();
 				for (const { components: { missileTurret: turret } } of queries.turrets) {
-					if (now - turret.lastFiredAt < turret.fireIntervalMs) continue;
+					if (!canFire(turret, now)) continue;
 
 					const ship = ecs.getComponent(turret.ownerShipId, 'ship');
 					const shipTransform = ecs.getComponent(turret.ownerShipId, 'localTransform3D');
@@ -66,7 +67,7 @@ export const createMissilePlugin = () => definePlugin({
 						},
 					});
 
-					turret.lastFiredAt = now;
+					recordShot(turret, now);
 				}
 			});
 

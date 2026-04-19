@@ -38,6 +38,8 @@ export const TURRET_CONE_HALF = Math.PI / 6;
 export const TURRET_TURN_RATE = Math.PI / 2;
 export const TURRET_FIRE_INTERVAL_MS = 1000 / 12;
 export const TURRET_RANGE = 40;
+export const TURRET_BURST_COUNT = 1;
+export const TURRET_BURST_SHOT_DELAY_MS = 0;
 export const MUZZLE_OFFSET = 0.9;
 
 export const CONE_APPROACH_RANGE_MULTIPLIER = 1.5;
@@ -57,6 +59,8 @@ export const MISSILE_RADIUS = 0.3;
 export const MISSILE_TURRET_FIRE_INTERVAL_MS = 2000;
 export const MISSILE_TURRET_CONE_HALF = Math.PI / 4;
 export const MISSILE_TURRET_RANGE = 40;
+export const MISSILE_TURRET_BURST_COUNT = 3;
+export const MISSILE_TURRET_BURST_SHOT_DELAY_MS = 120;
 
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;

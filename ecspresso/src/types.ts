@@ -31,6 +31,7 @@ import type { ShipClass } from './ships';
 import type { Group, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
+import type { BurstFireState } from './weapons';
 
 export type GameAction =
 	| 'fwd'
@@ -72,7 +73,7 @@ export interface ShipComponent extends KinematicState {
 
 export type Faction = 'ally' | 'enemy';
 
-export interface TurretComponent {
+export interface TurretComponent extends BurstFireState {
 	ownerId: number;
 	faction: Faction;
 	mountX: number;
@@ -81,9 +82,7 @@ export interface TurretComponent {
 	aimAngle: number;
 	coneHalf: number;
 	range: number;
-	fireIntervalMs: number;
 	damage: number;
-	lastFiredAt: number;
 	hasTarget: boolean;
 	mount: Group;
 }
@@ -96,7 +95,7 @@ export interface ProjectileComponent {
 	damage: number;
 }
 
-export interface MissileTurretComponent {
+export interface MissileTurretComponent extends BurstFireState {
 	ownerShipId: number;
 	mountX: number;
 	mountZ: number;
@@ -104,9 +103,7 @@ export interface MissileTurretComponent {
 	fireAngle: number;
 	coneHalf: number;
 	range: number;
-	fireIntervalMs: number;
 	damage: number;
-	lastFiredAt: number;
 	mount: Group;
 }
 

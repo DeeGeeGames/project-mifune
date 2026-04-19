@@ -2,6 +2,7 @@ import { definePlugin, type World } from '../types';
 import { angleDiff, bearingXZ, clamp, distanceXZ, forwardXZ, leadTarget, mountToWorld, normalizeAngle, stepAngle } from '../math';
 import { projectileMesh } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
+import { canFire, recordShot } from '../weapons';
 import {
 	BULLET_LIFE_SEC,
 	BULLET_SPEED,
@@ -99,7 +100,7 @@ export const createTurretPlugin = () => definePlugin({
 				const now = performance.now();
 				for (const { components: { turret } } of queries.turrets) {
 					if (!turret.hasTarget) continue;
-					if (now - turret.lastFiredAt < turret.fireIntervalMs) continue;
+					if (!canFire(turret, now)) continue;
 
 					const owner = getOwnerState(ecs, turret.ownerId);
 					if (!owner) continue;
@@ -123,7 +124,7 @@ export const createTurretPlugin = () => definePlugin({
 						},
 					});
 
-					turret.lastFiredAt = now;
+					recordShot(turret, now);
 				}
 			});
 	},
