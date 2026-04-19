@@ -53,3 +53,19 @@ export function integrateKinematicXZ(
 	transform.z += state.vz * dt;
 	transform.ry = state.heading;
 }
+
+export interface PredictedKinematic {
+	readonly state: KinematicState;
+	readonly transform: KinematicTransform;
+}
+
+export function predictKinematic(
+	state: KinematicState,
+	transform: KinematicTransform,
+	dt: number,
+): PredictedKinematic {
+	const nextState = { ...state };
+	const nextTransform = { x: transform.x, z: transform.z, ry: transform.ry };
+	integrateKinematicXZ(nextState, nextTransform, dt);
+	return { state: nextState, transform: nextTransform };
+}

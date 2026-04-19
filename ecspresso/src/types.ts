@@ -225,7 +225,7 @@ export const builder = ECSpresso.create()
 			projection: 'orthographic',
 			viewSize: CAMERA_VIEW_SIZE,
 			zoom: 1,
-			near: 0.1,
+			near: -500,
 			far: 500,
 		},
 	}))

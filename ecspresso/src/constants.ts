@@ -2,7 +2,7 @@ export const ISO_AZIMUTH = Math.PI / 4;
 export const ISO_ELEVATION = Math.atan(1 / Math.SQRT2);
 
 export const CAMERA_VIEW_SIZE = 20;
-export const CAMERA_ZOOM_MIN = 0.25;
+export const CAMERA_ZOOM_MIN = 0.125;
 export const CAMERA_ZOOM_MAX = 2.5;
 export const CAMERA_ZOOM_STEP = 1.1;
 export const CAMERA_FOLLOW_SMOOTHING = 6;
@@ -149,6 +149,9 @@ export const FORMATION_SPACING = 12;
 export const FORMATION_ROW_SPACING = FORMATION_SPACING * 2;
 export const FORMATION_SLOWING_RADIUS = FORMATION_SPACING * 1.5;
 export const FORMATION_CONTROL_TAU = 0.2;
+export const FORMATION_LOOKAHEAD_SEC = 0.4;
+export const FORMATION_SEPARATION_RADIUS = 3;
+export const FORMATION_SEPARATION_STRENGTH = 4;
 
 export const WAVE_START_INTERVAL_MS = 30000;
 export const WAVE_MIN_INTERVAL_MS = 30000;
@@ -157,7 +160,7 @@ export const WAVE_RAMP_SEC = 180;
 export const SUMMON_ANIM_SEC = 1.0;
 export const SUMMON_OFFSCREEN_RING = 35;
 
-export const GROUND_SIZE = 400;
+export const GROUND_SIZE = 1600;
 
 export const AIM_ARC_RADIUS = 12;
 export const AIM_ARC_SEGMENTS = 24;
