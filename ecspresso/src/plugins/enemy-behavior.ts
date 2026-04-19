@@ -54,8 +54,10 @@ const resolveContext = (btCtx: BehaviorTreeContext<RangedBlackboard>): RangedCon
 	};
 };
 
-const perceivedThreat = (enemy: EnemyComponent, threat: EnemyThreatSummary | null): number =>
-	(threat?.staticDps ?? 0) + enemy.hitEscalation;
+const perceivedThreat = (enemy: EnemyComponent, threat: EnemyThreatSummary | null, config: RangedBehaviorConfig): number =>
+	(threat?.staticDps ?? 0)
+	+ (threat?.coneThreat ?? 0) * config.coneThreatWeight
+	+ enemy.hitEscalation;
 
 const isTooFar = condition<RangedBlackboard>('rangedTooFar', (ctx) => {
 	const g = resolveContext(ctx);
@@ -99,7 +101,7 @@ const holdPosition = action<RangedBlackboard>('rangedHold', (ctx) => {
 const threatOverTolerance = condition<RangedBlackboard>('rangedThreatOverTolerance', (ctx) => {
 	const g = resolveContext(ctx);
 	if (!g) return false;
-	return perceivedThreat(g.enemy, g.threat) > g.enemy.threatTolerance;
+	return perceivedThreat(g.enemy, g.threat, g.config) > g.enemy.threatTolerance;
 });
 
 const evade = action<RangedBlackboard>('rangedEvade', (ctx) => {

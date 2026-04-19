@@ -129,6 +129,7 @@ export interface EnemyComponent extends KinematicState {
 
 export interface EnemyThreatSummary {
 	staticDps: number;
+	coneThreat: number;
 	dominantTurretId: number | null;
 	dominantTurretX: number;
 	dominantTurretZ: number;

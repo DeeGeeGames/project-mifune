@@ -40,6 +40,9 @@ export const TURRET_FIRE_INTERVAL_MS = 1000 / 12;
 export const TURRET_RANGE = 40;
 export const MUZZLE_OFFSET = 0.9;
 
+export const CONE_APPROACH_RANGE_MULTIPLIER = 1.5;
+export const CONE_APPROACH_ANGLE_MULTIPLIER = 1.3;
+
 export const BULLET_SPEED = 30;
 export const BULLET_LIFE_SEC = 1.5;
 export const BULLET_DAMAGE = 1;
@@ -75,6 +78,7 @@ export interface RangedBehaviorConfig {
 	readonly holdThrottle: number;
 	readonly evadeMaxOffset: number;
 	readonly evadeThrottle: number;
+	readonly coneThreatWeight: number;
 }
 
 export const GUNSHIP_RANGED_CONFIG: RangedBehaviorConfig = {
@@ -83,6 +87,7 @@ export const GUNSHIP_RANGED_CONFIG: RangedBehaviorConfig = {
 	holdThrottle: 0.15,
 	evadeMaxOffset: Math.PI / 7,
 	evadeThrottle: 0.6,
+	coneThreatWeight: 0.5,
 };
 
 export const BRAWLER_RANGED_CONFIG: RangedBehaviorConfig = {
@@ -91,6 +96,7 @@ export const BRAWLER_RANGED_CONFIG: RangedBehaviorConfig = {
 	holdThrottle: 0.5,
 	evadeMaxOffset: Math.PI / 10,
 	evadeThrottle: 0.7,
+	coneThreatWeight: 0.1,
 };
 
 export const SNIPER_RANGED_CONFIG: RangedBehaviorConfig = {
@@ -99,6 +105,7 @@ export const SNIPER_RANGED_CONFIG: RangedBehaviorConfig = {
 	holdThrottle: 0,
 	evadeMaxOffset: Math.PI / 5,
 	evadeThrottle: 1,
+	coneThreatWeight: 1.5,
 };
 
 export const GUNSHIP_THREAT_TOLERANCE = 8;
