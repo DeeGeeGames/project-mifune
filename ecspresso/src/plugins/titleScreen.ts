@@ -1,5 +1,5 @@
 import { definePlugin, type World } from '../types';
-import { wrapIndex, renderMenuText } from '../menu';
+import { wrapIndex, renderMenuText, menuAxisDelta } from '../menu';
 
 const MENU_ITEMS = [
 	{ id: 'start', label: 'Start' },
@@ -9,7 +9,7 @@ const MENU_ITEMS = [
 type MenuId = typeof MENU_ITEMS[number]['id'];
 
 const MENU_ACTIONS: Record<MenuId, (ecs: World) => void> = {
-	start: (ecs) => { void ecs.setScreen('playing', { waveNumber: 1 }); },
+	start: (ecs) => { void ecs.setScreen('loadoutSelect', {}); },
 	quit: () => { window.close(); },
 };
 
@@ -34,8 +34,7 @@ export const createTitleScreenPlugin = () => definePlugin({
 			.setProcess(({ ecs, resources: { inputState, hudRefs } }) => {
 				const state = ecs.getScreenState('title');
 
-				const delta = (inputState.actions.justActivated('menuDown') ? 1 : 0)
-					+ (inputState.actions.justActivated('menuUp') ? -1 : 0);
+				const delta = menuAxisDelta(inputState, 'menuUp', 'menuDown');
 				if (delta !== 0) {
 					state.selectedIndex = wrapIndex(state.selectedIndex + delta, MENU_ITEMS.length);
 				}
@@ -46,7 +45,7 @@ export const createTitleScreenPlugin = () => definePlugin({
 				}
 
 				if (state.selectedIndex !== lastRenderedIndex) {
-					hudRefs.titleMenuEl.textContent = renderMenuText(MENU_ITEMS, state.selectedIndex);
+					hudRefs.titleMenuEl.textContent = renderMenuText(MENU_ITEMS, state.selectedIndex, (item) => item.label);
 					lastRenderedIndex = state.selectedIndex;
 				}
 			});

@@ -1,7 +1,7 @@
 import { AmbientLight, DirectionalLight, Mesh, PlaneGeometry, MeshStandardMaterial, GridHelper } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder, type World } from './types';
-import { SHIP_SPECS, createShipGroup, spawnShipTurrets } from './ships';
+import { SHIP_SPECS, createShipGroup, spawnShipTurrets, applyCarrierLoadout } from './ships';
 import { createKinematicState } from './kinematic';
 import { GROUND_SIZE } from './constants';
 import { createCursorPlugin } from './plugins/cursor';
@@ -22,6 +22,7 @@ import { createAimPreviewPlugin } from './plugins/aimPreview';
 import { createHealthBarsPlugin } from './plugins/healthBars';
 import { createWaveSummaryPlugin } from './plugins/waveSummary';
 import { createTitleScreenPlugin } from './plugins/titleScreen';
+import { createLoadoutSelectPlugin } from './plugins/loadoutSelect';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -42,6 +43,7 @@ const game = builder
 	.withPlugin(createHealthBarsPlugin())
 	.withPlugin(createWaveSummaryPlugin())
 	.withPlugin(createTitleScreenPlugin())
+	.withPlugin(createLoadoutSelectPlugin())
 	.build();
 
 const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-help', 'hud-wave'] as const;
@@ -53,6 +55,10 @@ game.addResource('playerState', {
 	selectedSummon: 'frigate',
 	pendingHeading: 0,
 	headingPreviewActive: false,
+});
+
+game.addResource('carrierLoadout', {
+	pylons: (SHIP_SPECS.carrier.emptyTurretMounts ?? []).map((m) => ({ weaponKind: null, facing: m.baseAngle })),
 });
 
 game.addResource('hudRefs', {
@@ -68,7 +74,11 @@ game.addResource('hudRefs', {
 	summaryMenuEl: requireEl('hud-summary-menu'),
 	titleEl: requireEl('hud-title'),
 	titleMenuEl: requireEl('hud-title-menu'),
+	loadoutEl: requireEl('hud-loadout'),
+	loadoutMenuEl: requireEl('hud-loadout-menu'),
 });
+
+game.getResource('hudRefs').gameHudEls.forEach((el) => { el.style.display = 'none'; });
 
 await game.initialize();
 
@@ -101,6 +111,7 @@ const spawnCarrier = (ecs: World): void => {
 		commandVessel: true,
 	});
 	spawnShipTurrets(ecs, carrier.id, spec, built);
+	applyCarrierLoadout(ecs, carrier.id, spec, built, ecs.getResource('carrierLoadout'));
 
 	const playerState = ecs.getResource('playerState');
 	playerState.ownedShipIds = [carrier.id];

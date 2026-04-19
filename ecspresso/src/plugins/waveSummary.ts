@@ -1,5 +1,5 @@
 import { definePlugin, type World } from '../types';
-import { wrapIndex, renderMenuText } from '../menu';
+import { wrapIndex, renderMenuText, menuAxisDelta } from '../menu';
 
 const MENU_ITEMS = [
 	{ id: 'continue', label: 'Continue' },
@@ -36,8 +36,7 @@ export const createWaveSummaryPlugin = () => definePlugin({
 			.setProcess(({ ecs, resources: { inputState, hudRefs } }) => {
 				const state = ecs.getScreenState('waveSummary');
 
-				const delta = (inputState.actions.justActivated('menuDown') ? 1 : 0)
-					+ (inputState.actions.justActivated('menuUp') ? -1 : 0);
+				const delta = menuAxisDelta(inputState, 'menuUp', 'menuDown');
 				if (delta !== 0) {
 					state.selectedIndex = wrapIndex(state.selectedIndex + delta, MENU_ITEMS.length);
 				}
@@ -57,7 +56,7 @@ export const createWaveSummaryPlugin = () => definePlugin({
 				}
 
 				if (state.selectedIndex !== lastRenderedIndex) {
-					hudRefs.summaryMenuEl.textContent = renderMenuText(MENU_ITEMS, state.selectedIndex);
+					hudRefs.summaryMenuEl.textContent = renderMenuText(MENU_ITEMS, state.selectedIndex, (item) => item.label);
 					lastRenderedIndex = state.selectedIndex;
 				}
 			});

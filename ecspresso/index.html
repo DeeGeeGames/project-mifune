@@ -38,6 +38,31 @@
 			backdrop-filter: blur(6px);
 			z-index: 10;
 		}
+		#hud-loadout {
+			position: fixed;
+			top: 60px;
+			right: 12px;
+			bottom: 60px;
+			display: none;
+			flex-direction: column;
+			align-items: stretch;
+			z-index: 10;
+		}
+		.loadout-panel {
+			min-width: 320px;
+			padding: 20px 24px;
+			border: 1px solid rgba(150, 180, 220, 0.25);
+			border-radius: 10px;
+			background: rgba(8, 12, 22, 0.9);
+			backdrop-filter: blur(4px);
+		}
+		#hud-loadout .summary-title { margin-bottom: 16px; }
+		#hud-loadout-menu {
+			font-size: 14px;
+			line-height: 1.8;
+			color: #e8f0ff;
+			white-space: pre;
+		}
 		.summary-card {
 			min-width: 360px;
 			padding: 32px 48px;
@@ -118,6 +143,12 @@ Keyboard: LMB heading • W/S thrust • 1-4 summon • Wheel/Q/E zoom</div>
 		<div class="summary-card">
 			<div class="summary-title">HORDE DEFENSE</div>
 			<div id="hud-title-menu" class="summary-menu"></div>
+		</div>
+	</div>
+	<div id="hud-loadout">
+		<div class="loadout-panel">
+			<div class="summary-title">WEAPON LOADOUT</div>
+			<div id="hud-loadout-menu"></div>
 		</div>
 	</div>
 	<script type="module" src="/src/main.ts"></script>

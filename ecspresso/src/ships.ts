@@ -83,6 +83,17 @@ export type EmptyTurretMount = Pick<TurretMount, 'x' | 'z' | 'baseAngle'> & {
 	readonly category: PylonCategory;
 };
 
+export type WeaponKind = 'turret' | 'cannon' | 'beam';
+
+export interface CarrierLoadoutPylon {
+	weaponKind: WeaponKind | null;
+	facing: number;
+}
+
+export interface CarrierLoadout {
+	pylons: CarrierLoadoutPylon[];
+}
+
 const PYLON_ARC_RANGES = {
 	forward: [FRONT, STARBOARD_AFT],
 	side: [STARBOARD_FORE, STARBOARD_AFT],
@@ -127,16 +138,12 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hp: 1000,
 		cost: 0,
 		turrets: [],
-		cannonTurrets: [
-			{ x: 1.0, z: 0, baseAngle: STARBOARD },
-		],
-		beamTurrets: [
-			{ x: -1.0, z: 0, baseAngle: PORT },
-		],
 		emptyTurretMounts: [
 			{ x: 1.0, z: 3.0, baseAngle: STARBOARD_FORE, category: 'forward' },
+			{ x: 1.0, z: 0, baseAngle: STARBOARD, category: 'side' },
 			{ x: 1.0, z: -3.0, baseAngle: STARBOARD_AFT, category: 'back' },
 			{ x: -1.0, z: 3.0, baseAngle: PORT_FORE, category: 'forward' },
+			{ x: -1.0, z: 0, baseAngle: PORT, category: 'side' },
 			{ x: -1.0, z: -3.0, baseAngle: PORT_AFT, category: 'back' },
 		],
 		flatBow: true,
@@ -222,6 +229,8 @@ const TURRET_BASE_HEIGHT = 0.25;
 
 const BARREL_MAT = new MeshStandardMaterial({ color: 0x111418, roughness: 0.45, metalness: 0.4 });
 const TURRET_BASE_GEO = new CylinderGeometry(TURRET_BASE_RADIUS, TURRET_BASE_RADIUS, TURRET_BASE_HEIGHT, 10);
+BARREL_MAT.userData.shared = true;
+TURRET_BASE_GEO.userData.shared = true;
 
 function buildTurretMountGroup(
 	mountSpec: TurretMount,
@@ -316,6 +325,7 @@ export interface BuiltShip {
 	readonly turretMounts: readonly Group[];
 	readonly cannonTurretMounts: readonly Group[];
 	readonly beamTurretMounts: readonly BeamMountBuild[];
+	readonly emptyTurretMountGroups: readonly Group[];
 }
 
 interface ShipMaterials {
@@ -576,6 +586,66 @@ export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, bu
 	});
 }
 
+const CARRIER_ACCENT_MAT = new MeshStandardMaterial({ color: 0x222833, roughness: 0.6, metalness: 0.2 });
+CARRIER_ACCENT_MAT.userData.shared = true;
+
+type MaterializedMount =
+	| { kind: 'turret' | 'cannon'; mount: Group; mountSpec: TurretMount }
+	| { kind: 'beam'; mount: Group; beamMesh: Mesh; mountSpec: BeamTurretMount };
+
+const materializeLoadoutMount = (
+	spec: ShipSpec,
+	built: BuiltShip,
+	emptyMount: EmptyTurretMount,
+	idx: number,
+	pylon: CarrierLoadoutPylon,
+): MaterializedMount | null => {
+	if (pylon.weaponKind === null) return null;
+	const placeholder = built.emptyTurretMountGroups[idx];
+	if (placeholder) built.group.remove(placeholder);
+	const mountSpec = { x: emptyMount.x, z: emptyMount.z, baseAngle: pylon.facing };
+	if (pylon.weaponKind === 'beam') {
+		const beamBuild = buildBeamMountGroup(mountSpec, spec.hullHeight, CARRIER_ACCENT_MAT);
+		built.group.add(beamBuild.mount);
+		return { kind: 'beam', mount: beamBuild.mount, beamMesh: beamBuild.beamMesh, mountSpec };
+	}
+	const mount = buildTurretMountGroup(mountSpec, spec.hullHeight, CARRIER_ACCENT_MAT);
+	built.group.add(mount);
+	return { kind: pylon.weaponKind, mount, mountSpec };
+};
+
+export function buildCarrierLoadoutVisual(
+	spec: ShipSpec,
+	built: BuiltShip,
+	loadout: CarrierLoadout,
+): void {
+	(spec.emptyTurretMounts ?? []).forEach((emptyMount, idx) => {
+		const pylon = loadout.pylons[idx];
+		if (pylon) materializeLoadoutMount(spec, built, emptyMount, idx, pylon);
+	});
+}
+
+export function applyCarrierLoadout(
+	ecs: World,
+	ownerId: number,
+	spec: ShipSpec,
+	built: BuiltShip,
+	loadout: CarrierLoadout,
+): void {
+	(spec.emptyTurretMounts ?? []).forEach((emptyMount, idx) => {
+		const pylon = loadout.pylons[idx];
+		if (!pylon) return;
+		const result = materializeLoadoutMount(spec, built, emptyMount, idx, pylon);
+		if (!result) return;
+		const components = result.kind === 'beam'
+			? beamTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount, result.beamMesh)
+			: result.kind === 'cannon'
+				? cannonTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount)
+				: turretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
+		ecs.spawn({ ...components });
+	});
+}
+
 export function beamTurretFromMount(
 	ownerId: number,
 	faction: Faction,
@@ -681,11 +751,13 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		return built;
 	});
 
-	(spec.emptyTurretMounts ?? []).forEach((mount) => {
-		group.add(buildEmptyMountGroup(mount, spec.hullHeight, mats.accent));
+	const emptyTurretMountGroups: Group[] = (spec.emptyTurretMounts ?? []).map((mount) => {
+		const emptyGroup = buildEmptyMountGroup(mount, spec.hullHeight, mats.accent);
+		group.add(emptyGroup);
+		return emptyGroup;
 	});
 
-	return { group, turretMounts, cannonTurretMounts, beamTurretMounts };
+	return { group, turretMounts, cannonTurretMounts, beamTurretMounts, emptyTurretMountGroups };
 }
 
 const ENEMY_ACCENT_MAT = new MeshStandardMaterial({ color: 0x2a1418, roughness: 0.6, metalness: 0.2 });

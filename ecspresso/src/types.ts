@@ -28,7 +28,7 @@ import {
 	ISO_AZIMUTH,
 	ISO_ELEVATION,
 } from './constants';
-import type { ShipClass } from './ships';
+import type { ShipClass, CarrierLoadout } from './ships';
 import type { Group, Mesh, MeshBasicMaterial, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
@@ -215,7 +215,11 @@ export type TitleScreenState = {
 	selectedIndex: number;
 };
 
-export type AppScreenName = 'title' | 'playing' | 'waveSummary';
+export type LoadoutScreenState = {
+	selectedIndex: number;
+};
+
+export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'waveSummary';
 
 export interface CursorState {
 	x: number;
@@ -236,6 +240,8 @@ export interface HudRefs {
 	summaryMenuEl: HTMLElement;
 	titleEl: HTMLElement;
 	titleMenuEl: HTMLElement;
+	loadoutEl: HTMLElement;
+	loadoutMenuEl: HTMLElement;
 }
 
 export interface ShipSummonedEvent {
@@ -335,11 +341,17 @@ export const builder = ECSpresso.create()
 			cursorState: CursorState;
 			hudRefs: HudRefs;
 			threatMap: ThreatMap;
+			carrierLoadout: CarrierLoadout;
 		}
 	>()
 	.withScreens(screens => screens
 		.add('title', {
 			initialState: (): TitleScreenState => ({
+				selectedIndex: 0,
+			}),
+		})
+		.add('loadoutSelect', {
+			initialState: (): LoadoutScreenState => ({
 				selectedIndex: 0,
 			}),
 		})

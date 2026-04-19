@@ -24,7 +24,7 @@ Coordinate conventions:
 
 ## File Map
 
-- `src/types.ts` — builder chain, `GameAction` union, action map, all component/event/resource types, screens (`title` / `playing` / `waveSummary`), `definePlugin`, `World`
+- `src/types.ts` — builder chain, `GameAction` union, action map, all component/event/resource types, screens (`title` / `loadoutSelect` / `playing` / `waveSummary`), `definePlugin`, `World`
 - `src/constants.ts` — all tunable numbers (ship specs, camera, turret, wave duration/spawn-interval curve, summon costs, gamepad button indices)
 - `src/waveMath.ts` — pure wave-number → duration / spawn-interval helpers, consumed by `types.ts` screen init and `plugins/waves.ts`
 - `src/math.ts` — pure helpers (`normalizeAngle`, `stepAngle`, `rotateY`, `bearingXZ`, `forwardXZ`, `leadTarget`)
@@ -48,7 +48,8 @@ Coordinate conventions:
   - `hud.ts` — in-game DOM overlay updates each render phase (gated to `playing`); toggles `gameHudEls` visibility on `screenEnter`/`screenExit('playing')`.
   - `aimPreview.ts` — aim-gate arc preview (see Controls)
   - `waveSummary.ts` — between-wave screen: toggles `summaryEl` visibility on `screenEnter`/`screenExit('waveSummary')` + menu input/render system gated to `waveSummary`. Selecting `Continue` triggers `setScreen('playing', { waveNumber: n + 1 })`.
-  - `titleScreen.ts` — placeholder title screen: toggles `titleEl` visibility on `screenEnter`/`screenExit('title')` + menu input/render system gated to `title`. Start → `setScreen('playing', { waveNumber: 1 })`; Quit → `window.close()`.
+  - `titleScreen.ts` — placeholder title screen: toggles `titleEl` visibility on `screenEnter`/`screenExit('title')` + menu input/render system gated to `title`. Start → `setScreen('loadoutSelect', {})`; Quit → `window.close()`.
+  - `loadoutSelect.ts` — pre-game weapon loadout screen. On enter: spawns a non-simulated preview carrier at origin, attaches per-pylon arc visualizers (min/max boundary lines + facing indicator), unfollows camera. Menu rows derived each tick from `carrierLoadout` resource (one weapon row per pylon + facing row when weapon != None + Back + Start). Left/Right on weapon rows cycle `None→Turret→Cannon→Beam→None`; on facing rows step facing by π/4 clamped to `pylonArc(mount)` with wrap. Selecting Start → `setScreen('playing', { waveNumber: 1 })`, Back → `title`. Preview rebuilt from scratch on any loadout or selection change.
 
 ## Key Patterns
 
@@ -62,7 +63,7 @@ Coordinate conventions:
 
 ## Controls
 
-Player commands a carrier — slow, unarmed, depends entirely on its escort wing for firepower. Losing the carrier ends the run (loss-condition wiring pending).
+Player commands a carrier — slow, with four configurable weapon pylons chosen on the `loadoutSelect` screen before the run (no default weapons). Depends on its escort wing for most firepower. Losing the carrier ends the run (loss-condition wiring pending). Pylon positions and per-category firing-arc restrictions live in `SHIP_SPECS.carrier.emptyTurretMounts` + `pylonArc()` in `src/ships.ts`. The chosen loadout persists across waves in the `carrierLoadout` resource but resets on page reload.
 
 Heading is gated: the ship only turns when the aim-gate is held. While held, stick/cursor drives `playerState.pendingHeading` (visualized as a dashed arc); release commits it to `ship.headingTarget`.
 
