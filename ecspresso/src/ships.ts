@@ -69,7 +69,30 @@ export interface BeamTurretMount {
 	readonly beamCooldownMs?: number;
 }
 
-export type EmptyTurretMount = Pick<TurretMount, 'x' | 'z' | 'baseAngle'>;
+const FRONT = 0;
+const PORT = -Math.PI / 2;
+const STARBOARD = Math.PI / 2;
+const PORT_FORE = -Math.PI / 4;
+const STARBOARD_FORE = Math.PI / 4;
+const PORT_AFT = -3 * Math.PI / 4;
+const STARBOARD_AFT = 3 * Math.PI / 4;
+
+export type PylonCategory = 'forward' | 'side' | 'back';
+
+export type EmptyTurretMount = Pick<TurretMount, 'x' | 'z' | 'baseAngle'> & {
+	readonly category: PylonCategory;
+};
+
+const PYLON_ARC_RANGES = {
+	forward: [FRONT, STARBOARD_AFT],
+	side: [STARBOARD_FORE, STARBOARD_AFT],
+	back: [STARBOARD_FORE, Math.PI],
+} as const;
+
+export function pylonArc(mount: EmptyTurretMount): { readonly min: number; readonly max: number } {
+	const [lo, hi] = PYLON_ARC_RANGES[mount.category];
+	return mount.x >= 0 ? { min: lo, max: hi } : { min: -hi, max: -lo };
+}
 
 export interface ShipSpec {
 	readonly hullLength: number;
@@ -89,14 +112,6 @@ export interface ShipSpec {
 	readonly emptyTurretMounts?: readonly EmptyTurretMount[];
 	readonly flatBow?: true;
 }
-
-const FRONT = 0;
-const PORT = -Math.PI / 2;
-const STARBOARD = Math.PI / 2;
-const PORT_FORE = -Math.PI / 4;
-const STARBOARD_FORE = Math.PI / 4;
-const PORT_AFT = -3 * Math.PI / 4;
-const STARBOARD_AFT = 3 * Math.PI / 4;
 
 export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 	carrier: {
@@ -119,10 +134,10 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 			{ x: -1.0, z: 0, baseAngle: PORT },
 		],
 		emptyTurretMounts: [
-			{ x: 1.0, z: 3.0, baseAngle: STARBOARD_FORE },
-			{ x: 1.0, z: -3.0, baseAngle: STARBOARD_AFT },
-			{ x: -1.0, z: 3.0, baseAngle: PORT_FORE },
-			{ x: -1.0, z: -3.0, baseAngle: PORT_AFT },
+			{ x: 1.0, z: 3.0, baseAngle: STARBOARD_FORE, category: 'forward' },
+			{ x: 1.0, z: -3.0, baseAngle: STARBOARD_AFT, category: 'back' },
+			{ x: -1.0, z: 3.0, baseAngle: PORT_FORE, category: 'forward' },
+			{ x: -1.0, z: -3.0, baseAngle: PORT_AFT, category: 'back' },
 		],
 		flatBow: true,
 	},
