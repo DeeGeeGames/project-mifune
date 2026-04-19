@@ -1,4 +1,4 @@
-import { FORMATION_SPACING } from './constants';
+import { FORMATION_SPACING, FORMATION_ROW_SPACING } from './constants';
 import type { PlayerState } from './types';
 
 // row 1 has 3 positions but only 2 summoned slots — the command vessel occupies col 1.
@@ -30,7 +30,7 @@ export const slotLocalXZ = (slotIndex: number): { x: number; z: number } => {
 	const rowCenterCol = (fullRowWidth - 1) / 2;
 	return {
 		x: (colInFullRow - rowCenterCol) * FORMATION_SPACING,
-		z: (1 - row) * FORMATION_SPACING,
+		z: (1 - row) * FORMATION_ROW_SPACING,
 	};
 };
 
