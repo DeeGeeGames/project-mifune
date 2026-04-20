@@ -1,19 +1,9 @@
 import ECSpresso from 'ecspresso';
 import { createRenderer3DPlugin } from 'ecspresso/plugins/rendering/renderer3D';
-import type {
-	Renderer3DComponentTypes,
-	Renderer3DEventTypes,
-	Renderer3DResourceTypes,
-} from 'ecspresso/plugins/rendering/renderer3D';
 import { createCamera3DPlugin } from 'ecspresso/plugins/spatial/camera3D';
-import type { Camera3DResourceTypes } from 'ecspresso/plugins/spatial/camera3D';
 import { createInputPlugin, gamepadButtonsOn } from 'ecspresso/plugins/input/input';
-import type { InputResourceTypes, ActionMap } from 'ecspresso/plugins/input/input';
+import type { ActionMap } from 'ecspresso/plugins/input/input';
 import { createBehaviorTreePlugin } from 'ecspresso/plugins/ai/behavior-tree';
-import type {
-	BehaviorTreeComponentTypes,
-	BehaviorTreeEventTypes,
-} from 'ecspresso/plugins/ai/behavior-tree';
 import type { ScreenEvents } from 'ecspresso';
 import {
 	CAMERA_DISTANCE,
@@ -358,30 +348,24 @@ export const builder = ECSpresso.create()
 		enableOrbit: false,
 	}))
 	.withPlugin(createBehaviorTreePlugin({ priority: 240 }))
-	.withComponentTypes<
-		Renderer3DComponentTypes &
-		BehaviorTreeComponentTypes &
-		{
-			ship: ShipComponent;
-			kinematic: KinematicState;
-			burstFire: BurstFireState;
-			commandVessel: true;
-			formationSlot: FormationSlotComponent;
-			turret: TurretComponent;
-			missileTurret: MissileTurretComponent;
-			beamTurret: BeamTurretComponent;
-			projectile: ProjectileComponent;
-			missile: MissileComponent;
-			enemy: EnemyComponent;
-			healthBar: HealthBarComponent;
-			pickup: PickupComponent;
-			summonAnim: SummonAnimComponent;
-			blast: BlastComponent;
-		}
-	>()
+	.withComponentTypes<{
+		ship: ShipComponent;
+		kinematic: KinematicState;
+		burstFire: BurstFireState;
+		commandVessel: true;
+		formationSlot: FormationSlotComponent;
+		turret: TurretComponent;
+		missileTurret: MissileTurretComponent;
+		beamTurret: BeamTurretComponent;
+		projectile: ProjectileComponent;
+		missile: MissileComponent;
+		enemy: EnemyComponent;
+		healthBar: HealthBarComponent;
+		pickup: PickupComponent;
+		summonAnim: SummonAnimComponent;
+		blast: BlastComponent;
+	}>()
 	.withEventTypes<
-		Renderer3DEventTypes &
-		BehaviorTreeEventTypes &
 		ScreenEvents<AppScreenName> &
 		{
 			'ship:summoned': ShipSummonedEvent;
@@ -392,18 +376,13 @@ export const builder = ECSpresso.create()
 			'summon:request': SummonRequestEvent;
 		}
 	>()
-	.withResourceTypes<
-		Renderer3DResourceTypes &
-		Camera3DResourceTypes &
-		InputResourceTypes<GameAction> &
-		{
-			playerState: PlayerState;
-			cursorState: CursorState;
-			hudRefs: HudRefs;
-			threatMap: ThreatMap;
-			carrierLoadout: CarrierLoadout;
-		}
-	>()
+	.withResourceTypes<{
+		playerState: PlayerState;
+		cursorState: CursorState;
+		hudRefs: HudRefs;
+		threatMap: ThreatMap;
+		carrierLoadout: CarrierLoadout;
+	}>()
 	.withScreens(screens => screens
 		.add('title', {
 			initialState: (): TitleScreenState => ({
