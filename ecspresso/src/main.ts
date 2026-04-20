@@ -24,6 +24,7 @@ import { createHealthBarsPlugin } from './plugins/healthBars';
 import { createWaveSummaryPlugin } from './plugins/waveSummary';
 import { createTitleScreenPlugin } from './plugins/titleScreen';
 import { createLoadoutSelectPlugin } from './plugins/loadoutSelect';
+import { createMarketPlugin } from './plugins/market';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -46,6 +47,7 @@ const game = builder
 	.withPlugin(createWaveSummaryPlugin())
 	.withPlugin(createTitleScreenPlugin())
 	.withPlugin(createLoadoutSelectPlugin())
+	.withPlugin(createMarketPlugin())
 	.build();
 
 const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-help', 'hud-wave'] as const;
@@ -78,6 +80,9 @@ game.addResource('hudRefs', {
 	titleMenuEl: requireEl('hud-title-menu'),
 	loadoutEl: requireEl('hud-loadout'),
 	loadoutMenuEl: requireEl('hud-loadout-menu'),
+	marketEl: requireEl('hud-market'),
+	marketTitleEl: requireEl('hud-market-title'),
+	marketMenuEl: requireEl('hud-market-menu'),
 });
 
 game.getResource('hudRefs').gameHudEls.forEach((el) => { el.style.display = 'none'; });

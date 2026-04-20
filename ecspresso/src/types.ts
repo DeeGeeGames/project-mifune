@@ -33,6 +33,7 @@ import type { Group, Mesh, MeshBasicMaterial, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
 import type { BurstFireState } from './weapons';
+import type { ShopOffer } from './shop';
 import { waveDuration, waveSpawnInterval } from './waveMath';
 
 export type GameAction =
@@ -244,7 +245,23 @@ export type LoadoutScreenState = {
 	selectedIndex: number;
 };
 
-export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'waveSummary';
+export type MarketScreenConfig = {
+	waveNumber: number;
+};
+
+export type MarketMode =
+	| { kind: 'browse' }
+	| { kind: 'assignPylon'; offerIdx: number };
+
+export type MarketScreenState = {
+	waveNumber: number;
+	offers: ShopOffer[];
+	rerollCount: number;
+	mode: MarketMode;
+	selectedIndex: number;
+};
+
+export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'waveSummary' | 'market';
 
 export interface CursorState {
 	x: number;
@@ -267,6 +284,9 @@ export interface HudRefs {
 	titleMenuEl: HTMLElement;
 	loadoutEl: HTMLElement;
 	loadoutMenuEl: HTMLElement;
+	marketEl: HTMLElement;
+	marketTitleEl: HTMLElement;
+	marketMenuEl: HTMLElement;
 }
 
 export interface ShipSummonedEvent {
@@ -395,6 +415,15 @@ export const builder = ECSpresso.create()
 		.add('waveSummary', {
 			initialState: (config: WaveSummaryConfig): WaveSummaryScreenState => ({
 				...config,
+				selectedIndex: 0,
+			}),
+		})
+		.add('market', {
+			initialState: (config: MarketScreenConfig): MarketScreenState => ({
+				waveNumber: config.waveNumber,
+				offers: [],
+				rerollCount: 0,
+				mode: { kind: 'browse' },
 				selectedIndex: 0,
 			}),
 		}),

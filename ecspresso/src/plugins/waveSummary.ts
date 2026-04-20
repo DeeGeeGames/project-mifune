@@ -10,7 +10,7 @@ type MenuId = typeof MENU_ITEMS[number]['id'];
 const MENU_ACTIONS: Record<MenuId, (ecs: World) => void> = {
 	continue: (ecs) => {
 		const state = ecs.getScreenState('waveSummary');
-		void ecs.setScreen('playing', { waveNumber: state.waveNumber + 1 });
+		void ecs.setScreen('market', { waveNumber: state.waveNumber });
 	},
 };
 

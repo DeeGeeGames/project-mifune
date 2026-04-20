@@ -186,6 +186,20 @@ export const PICKUP_MAGNET_RADIUS = 6;
 export const PICKUP_MAGNET_SPEED = 14;
 export const PICKUP_COLLECT_RADIUS = 1;
 
+export const WEAPON_COSTS = {
+	turret:  50,
+	pd:      90,
+	cannon:  120,
+	missile: 140,
+	beam:    170,
+	railgun: 200,
+} as const;
+
+export const MARKET_OFFER_COUNT = 4;
+export const REROLL_BASE_COST = 10;
+export const REROLL_PER_WAVE = 2;
+export const REROLL_PER_REROLL = 5;
+
 export const FORMATION_SPACING = 12;
 export const FORMATION_ROW_SPACING = FORMATION_SPACING * 2;
 export const FORMATION_SLOWING_RADIUS = FORMATION_SPACING * 1.5;

@@ -28,7 +28,7 @@
 		#hud-help { bottom: 12px; right: 12px; color: #98a7be; }
 		#hud-thrust { top: 48px; right: 12px; min-width: 160px; }
 		#hud-wave { top: 12px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: 600; letter-spacing: 0.08em; color: #e8f0ff; }
-		#hud-summary, #hud-title {
+		#hud-summary, #hud-title, #hud-market {
 			position: fixed;
 			inset: 0;
 			display: none;
@@ -149,6 +149,12 @@ Keyboard: LMB heading • W/S thrust • 1-4 summon • Wheel/Q/E zoom</div>
 		<div class="loadout-panel">
 			<div class="summary-title">WEAPON LOADOUT</div>
 			<div id="hud-loadout-menu"></div>
+		</div>
+	</div>
+	<div id="hud-market">
+		<div class="summary-card">
+			<div id="hud-market-title" class="summary-title">MARKET</div>
+			<div id="hud-market-menu" class="summary-menu"></div>
 		</div>
 	</div>
 	<script type="module" src="/src/main.ts"></script>

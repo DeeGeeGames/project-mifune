@@ -14,6 +14,7 @@ import {
 } from '../ships';
 import { forwardXZ } from '../math';
 import { ISO_AZIMUTH, ISO_ELEVATION, CAMERA_DISTANCE } from '../constants';
+import { WEAPON_KINDS, WEAPON_LABELS, WEAPON_LABEL_WIDTH, PYLON_LABELS } from '../loadoutLabels';
 
 const OVERHEAD_ELEVATION = Math.PI / 2 - 0.0001;
 const OVERHEAD_ZOOM = 1.8;
@@ -25,28 +26,7 @@ type MenuRow =
 	| { kind: 'back' }
 	| { kind: 'start' };
 
-const WEAPON_CYCLE: readonly (WeaponKind | null)[] = [null, 'turret', 'cannon', 'beam', 'missile', 'railgun', 'pd'];
-
-const WEAPON_LABELS: Record<WeaponKind | 'none', string> = {
-	none: 'None',
-	turret: 'Turret',
-	cannon: 'Cannon',
-	beam: 'Beam',
-	missile: 'Missile',
-	railgun: 'Railgun',
-	pd: 'Point Defense',
-};
-
-const WEAPON_LABEL_WIDTH = Math.max(...Object.values(WEAPON_LABELS).map((l) => l.length));
-
-const PYLON_LABELS: readonly string[] = [
-	'Starboard Fore',
-	'Starboard Mid',
-	'Starboard Aft',
-	'Port Fore',
-	'Port Mid',
-	'Port Aft',
-];
+const WEAPON_CYCLE: readonly (WeaponKind | null)[] = [null, ...WEAPON_KINDS];
 
 const FACING_STEP = Math.PI / 4;
 const FACING_EPS = 1e-6;
