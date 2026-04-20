@@ -33,6 +33,10 @@ import {
 	PD_TURRET_RANGE,
 	PD_TURRET_CONE_HALF,
 	WEAPON_COSTS,
+	MAIN_GUN_DAMAGE_PER_SEC,
+	MAIN_GUN_DETECTION_RANGE,
+	MAIN_GUN_DURATION_MS,
+	MAIN_GUN_COOLDOWN_MS,
 } from './constants';
 
 export interface WeaponStatRow {
@@ -53,6 +57,12 @@ const rpsText = (fireIntervalMs: number, burst: number = 1): string => {
 const beamFireText = (): string => {
 	const duration = BEAM_TURRET_DURATION_MS / 1000;
 	const cooldown = BEAM_TURRET_COOLDOWN_MS / 1000;
+	return `${duration}s beam · ${cooldown}s cd`;
+};
+
+const mainGunFireText = (): string => {
+	const duration = MAIN_GUN_DURATION_MS / 1000;
+	const cooldown = MAIN_GUN_COOLDOWN_MS / 1000;
 	return `${duration}s beam · ${cooldown}s cd`;
 };
 
@@ -100,6 +110,13 @@ const WEAPON_STATS: Record<WeaponKind, readonly WeaponStatRow[]> = {
 		{ label: 'Range',     value: rangeText(PD_TURRET_RANGE) },
 		{ label: 'Arc',       value: arcText(PD_TURRET_CONE_HALF) },
 		{ label: 'Cost',      value: cost('pd') },
+	],
+	mainGun: [
+		{ label: 'Damage',    value: `${MAIN_GUN_DAMAGE_PER_SEC} dps (pierce all)` },
+		{ label: 'Fire Rate', value: mainGunFireText() },
+		{ label: 'Range',     value: `${MAIN_GUN_DETECTION_RANGE}+ (unlimited)` },
+		{ label: 'Arc',       value: 'fixed (2 pylons)' },
+		{ label: 'Cost',      value: cost('mainGun') },
 	],
 };
 

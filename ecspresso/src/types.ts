@@ -149,6 +149,23 @@ export interface BeamTurretComponent {
 	beamMesh: Mesh;
 }
 
+export interface MainGunBeamComponent {
+	ownerId: number;
+	faction: Faction;
+	mountX: number;
+	mountZ: number;
+	facing: number;
+	detectionRange: number;
+	visualLength: number;
+	beamRadius: number;
+	damagePerSecond: number;
+	beamDurationMs: number;
+	beamCooldownMs: number;
+	state: BeamTurretState;
+	stateTimerMs: number;
+	beamMesh: Mesh;
+}
+
 export interface EnemyComponent {
 	hp: number;
 	maxHp: number;
@@ -357,6 +374,7 @@ export const builder = ECSpresso.create()
 		turret: TurretComponent;
 		missileTurret: MissileTurretComponent;
 		beamTurret: BeamTurretComponent;
+		mainGunBeam: MainGunBeamComponent;
 		projectile: ProjectileComponent;
 		missile: MissileComponent;
 		enemy: EnemyComponent;

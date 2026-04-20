@@ -62,6 +62,13 @@ import {
 	PD_SHELL_LIFE_SEC,
 	PD_SPREAD_HALF,
 	MUZZLE_OFFSET,
+	MAIN_GUN_BEAM_RADIUS,
+	MAIN_GUN_COLOR,
+	MAIN_GUN_COOLDOWN_MS,
+	MAIN_GUN_DAMAGE_PER_SEC,
+	MAIN_GUN_DETECTION_RANGE,
+	MAIN_GUN_DURATION_MS,
+	MAIN_GUN_VISUAL_LENGTH,
 } from './constants';
 import type { Faction, World } from './types';
 import { ENEMY_SPECS, type EnemyKind } from './enemies';
@@ -121,15 +128,49 @@ export type EmptyTurretMount = Pick<TurretMount, 'x' | 'z' | 'baseAngle'> & {
 	readonly category: PylonCategory;
 };
 
-export type WeaponKind = 'turret' | 'cannon' | 'beam' | 'missile' | 'railgun' | 'pd';
+export type WeaponKind = 'turret' | 'cannon' | 'beam' | 'missile' | 'railgun' | 'pd' | 'mainGun';
 
 export interface CarrierLoadoutPylon {
 	weaponKind: WeaponKind | null;
 	facing: number;
 }
 
+export type PairSlotId =
+	| 'forePair'
+	| 'aftPair'
+	| 'stbdForeSide'
+	| 'stbdSideAft'
+	| 'portForeSide'
+	| 'portSideAft';
+
+export interface PairSlotDef {
+	readonly slot: PairSlotId;
+	readonly pylonA: number;
+	readonly pylonB: number;
+}
+
+export interface CarrierLoadoutPair {
+	readonly slot: PairSlotId;
+	readonly pylonA: number;
+	readonly pylonB: number;
+	weaponKind: 'mainGun' | null;
+}
+
+export const PAIR_SLOTS: readonly PairSlotDef[] = [
+	{ slot: 'forePair',     pylonA: 0, pylonB: 3 },
+	{ slot: 'aftPair',      pylonA: 2, pylonB: 5 },
+	{ slot: 'stbdForeSide', pylonA: 0, pylonB: 1 },
+	{ slot: 'stbdSideAft',  pylonA: 1, pylonB: 2 },
+	{ slot: 'portForeSide', pylonA: 3, pylonB: 4 },
+	{ slot: 'portSideAft',  pylonA: 4, pylonB: 5 },
+];
+
+export const emptyLoadoutPairs = (): CarrierLoadoutPair[] =>
+	PAIR_SLOTS.map((p) => ({ ...p, weaponKind: null }));
+
 export interface CarrierLoadout {
 	pylons: CarrierLoadoutPylon[];
+	pairs: CarrierLoadoutPair[];
 }
 
 const PYLON_ARC_RANGES = {
@@ -392,6 +433,106 @@ export interface BeamMountBuild {
 	readonly mount: Group;
 	readonly beamMesh: Mesh;
 }
+
+export interface MainGunMountBuild {
+	readonly slot: PairSlotId;
+	readonly pylonA: number;
+	readonly pylonB: number;
+	readonly midX: number;
+	readonly midZ: number;
+	readonly facing: number;
+	readonly group: Group;
+	readonly beamMesh: Mesh;
+}
+
+export const pairMidpoint = (pa: { x: number; z: number }, pb: { x: number; z: number }): Vec2Lite => ({
+	x: (pa.x + pb.x) / 2,
+	z: (pa.z + pb.z) / 2,
+});
+
+export const pairDirection = (pa: { x: number; z: number }, pb: { x: number; z: number }): number => {
+	const ldx = pb.x - pa.x;
+	const ldz = pb.z - pa.z;
+	const perpX = -ldz;
+	const perpZ = ldx;
+	const mid = pairMidpoint(pa, pb);
+	const sign = perpX * mid.x + perpZ * mid.z >= 0 ? 1 : -1;
+	return Math.atan2(perpX * sign, perpZ * sign);
+};
+
+type Vec2Lite = { readonly x: number; readonly z: number };
+
+const MAIN_GUN_EMITTER_HEIGHT = 0.45;
+const MAIN_GUN_EMITTER_DEPTH = 0.9;
+
+const buildMainGunBeamGroup = (
+	pairDef: PairSlotDef,
+	mountA: EmptyTurretMount,
+	mountB: EmptyTurretMount,
+	hullHeight: number,
+	accentMat: MeshStandardMaterial,
+): MainGunMountBuild => {
+	const mid = pairMidpoint(mountA, mountB);
+	const facing = pairDirection(mountA, mountB);
+
+	const group = new Group();
+	group.position.set(mid.x, hullHeight, mid.z);
+	group.rotation.y = facing;
+
+	const emitterWidth = MAIN_GUN_BEAM_RADIUS * 2 * 0.9;
+	const emitter = new Mesh(
+		new BoxGeometry(emitterWidth, MAIN_GUN_EMITTER_HEIGHT, MAIN_GUN_EMITTER_DEPTH),
+		accentMat,
+	);
+	emitter.position.set(0, MAIN_GUN_EMITTER_HEIGHT / 2, MAIN_GUN_EMITTER_DEPTH / 2);
+	group.add(emitter);
+
+	const beamGeo = new CylinderGeometry(MAIN_GUN_BEAM_RADIUS, MAIN_GUN_BEAM_RADIUS, 1, 16);
+	beamGeo.rotateX(Math.PI / 2);
+	beamGeo.translate(0, 0, 0.5);
+	const beamMat = new MeshStandardMaterial({
+		color: MAIN_GUN_COLOR,
+		emissive: MAIN_GUN_COLOR,
+		emissiveIntensity: 1.6,
+		transparent: true,
+		opacity: 0.75,
+	});
+	const beamMesh = new Mesh(beamGeo, beamMat);
+	beamMesh.position.set(0, MAIN_GUN_EMITTER_HEIGHT / 2, MAIN_GUN_EMITTER_DEPTH);
+	beamMesh.scale.z = MAIN_GUN_VISUAL_LENGTH;
+	beamMesh.visible = false;
+	group.add(beamMesh);
+
+	return {
+		slot: pairDef.slot,
+		pylonA: pairDef.pylonA,
+		pylonB: pairDef.pylonB,
+		midX: mid.x,
+		midZ: mid.z,
+		facing,
+		group,
+		beamMesh,
+	};
+};
+
+export const mainGunBeamFromMount = (ownerId: number, faction: Faction, build: MainGunMountBuild) => ({
+	mainGunBeam: {
+		ownerId,
+		faction,
+		mountX: build.midX,
+		mountZ: build.midZ,
+		facing: build.facing,
+		detectionRange: MAIN_GUN_DETECTION_RANGE,
+		visualLength: MAIN_GUN_VISUAL_LENGTH,
+		beamRadius: MAIN_GUN_BEAM_RADIUS,
+		damagePerSecond: MAIN_GUN_DAMAGE_PER_SEC,
+		beamDurationMs: MAIN_GUN_DURATION_MS,
+		beamCooldownMs: MAIN_GUN_COOLDOWN_MS,
+		state: 'idle' as const,
+		stateTimerMs: 0,
+		beamMesh: build.beamMesh,
+	},
+});
 
 export interface BuiltShip {
 	readonly group: Group;
@@ -681,6 +822,7 @@ const materializeLoadoutMount = (
 	pylon: CarrierLoadoutPylon,
 ): MaterializedMount | null => {
 	if (pylon.weaponKind === null) return null;
+	if (pylon.weaponKind === 'mainGun') return null;
 	const placeholder = built.emptyTurretMountGroups[idx];
 	if (placeholder) built.group.remove(placeholder);
 	const mountSpec = { x: emptyMount.x, z: emptyMount.z, baseAngle: pylon.facing };
@@ -700,12 +842,53 @@ const materializeLoadoutMount = (
 	return { kind: pylon.weaponKind, mount, mountSpec };
 };
 
+export const pylonsConsumedByPairs = (loadout: CarrierLoadout): ReadonlySet<number> => {
+	const consumed = new Set<number>();
+	loadout.pairs.forEach((p) => {
+		if (p.weaponKind === 'mainGun') {
+			consumed.add(p.pylonA);
+			consumed.add(p.pylonB);
+		}
+	});
+	return consumed;
+};
+
+const materializeMainGunPair = (
+	spec: ShipSpec,
+	built: BuiltShip,
+	emptyMounts: readonly EmptyTurretMount[],
+	pair: CarrierLoadoutPair,
+): MainGunMountBuild | null => {
+	const mountA = emptyMounts[pair.pylonA];
+	const mountB = emptyMounts[pair.pylonB];
+	if (!mountA || !mountB) return null;
+	[pair.pylonA, pair.pylonB].forEach((idx) => {
+		const placeholder = built.emptyTurretMountGroups[idx];
+		if (placeholder) placeholder.visible = false;
+	});
+	const build = buildMainGunBeamGroup(
+		{ slot: pair.slot, pylonA: pair.pylonA, pylonB: pair.pylonB },
+		mountA,
+		mountB,
+		spec.hullHeight,
+		CARRIER_ACCENT_MAT,
+	);
+	built.group.add(build.group);
+	return build;
+};
+
 export function buildCarrierLoadoutVisual(
 	spec: ShipSpec,
 	built: BuiltShip,
 	loadout: CarrierLoadout,
 ): void {
-	(spec.emptyTurretMounts ?? []).forEach((emptyMount, idx) => {
+	const emptyMounts = spec.emptyTurretMounts ?? [];
+	const consumed = pylonsConsumedByPairs(loadout);
+	loadout.pairs.forEach((pair) => {
+		if (pair.weaponKind === 'mainGun') materializeMainGunPair(spec, built, emptyMounts, pair);
+	});
+	emptyMounts.forEach((emptyMount, idx) => {
+		if (consumed.has(idx)) return;
 		const pylon = loadout.pylons[idx];
 		if (pylon) materializeLoadoutMount(spec, built, emptyMount, idx, pylon);
 	});
@@ -727,7 +910,16 @@ export function applyCarrierLoadout(
 	built: BuiltShip,
 	loadout: CarrierLoadout,
 ): void {
-	(spec.emptyTurretMounts ?? []).forEach((emptyMount, idx) => {
+	const emptyMounts = spec.emptyTurretMounts ?? [];
+	const consumed = pylonsConsumedByPairs(loadout);
+	loadout.pairs.forEach((pair) => {
+		if (pair.weaponKind !== 'mainGun') return;
+		const build = materializeMainGunPair(spec, built, emptyMounts, pair);
+		if (!build) return;
+		ecs.spawn({ ...mainGunBeamFromMount(ownerId, 'ally', build) });
+	});
+	emptyMounts.forEach((emptyMount, idx) => {
+		if (consumed.has(idx)) return;
 		const pylon = loadout.pylons[idx];
 		if (!pylon) return;
 		const result = materializeLoadoutMount(spec, built, emptyMount, idx, pylon);

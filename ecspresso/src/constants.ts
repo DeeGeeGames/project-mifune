@@ -115,6 +115,14 @@ export const PD_SHELL_SPEED = 50;
 export const PD_SHELL_LIFE_SEC = 0.6;
 export const PD_SPREAD_HALF = Math.PI / 24;
 
+export const MAIN_GUN_DETECTION_RANGE = RAILGUN_TURRET_RANGE;
+export const MAIN_GUN_VISUAL_LENGTH = 1000;
+export const MAIN_GUN_DAMAGE_PER_SEC = 120;
+export const MAIN_GUN_DURATION_MS = 2000;
+export const MAIN_GUN_COOLDOWN_MS = 8000;
+export const MAIN_GUN_BEAM_RADIUS = 1.2;
+export const MAIN_GUN_COLOR = 0xffaa33;
+
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;
 export const ENEMY_SPAWN_DISTANCE_SCALE = 0.5;
@@ -206,6 +214,7 @@ export const WEAPON_COSTS = {
 	missile: 140,
 	beam:    170,
 	railgun: 200,
+	mainGun: 400,
 } as const;
 
 export const MARKET_OFFER_COUNT = 4;

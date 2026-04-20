@@ -1,5 +1,5 @@
 import type { World } from './types';
-import type { WeaponKind } from './ships';
+import { pylonsConsumedByPairs, type WeaponKind } from './ships';
 import {
 	WEAPON_COSTS,
 	REROLL_BASE_COST,
@@ -38,8 +38,11 @@ type HandlerMap = {
 	readonly [K in ShopItemPayload['kind']]: ShopItemHandler<Extract<ShopItemPayload, { kind: K }>>;
 };
 
-const hasEmptyPylon = (world: World): boolean =>
-	world.getResource('carrierLoadout').pylons.some((p) => p.weaponKind === null);
+const hasEmptyPylon = (world: World): boolean => {
+	const loadout = world.getResource('carrierLoadout');
+	const consumed = pylonsConsumedByPairs(loadout);
+	return loadout.pylons.some((p, idx) => p.weaponKind === null && !consumed.has(idx));
+};
 
 const pickRandom = <T>(rng: Rng, items: readonly T[]): T | null => {
 	if (items.length === 0) return null;

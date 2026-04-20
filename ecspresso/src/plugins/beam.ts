@@ -3,26 +3,7 @@ import { angleDiff, bearingXZ, distanceXZ, forwardXZ, mountToWorld, normalizeAng
 import { BEAM_RADIUS, MUZZLE_OFFSET, SHIP_HIT_RADIUS, TURRET_TURN_RATE } from '../constants';
 import { getOwnerState } from './turret';
 import { killEnemyAndDrop } from './combat';
-
-const segmentHitDistance = (
-	originX: number,
-	originZ: number,
-	dirX: number,
-	dirZ: number,
-	range: number,
-	targetX: number,
-	targetZ: number,
-	targetRadius: number,
-): number => {
-	const rx = targetX - originX;
-	const rz = targetZ - originZ;
-	const t = rx * dirX + rz * dirZ;
-	if (t < 0 || t > range) return Infinity;
-	const px = rx - dirX * t;
-	const pz = rz - dirZ * t;
-	const reach = targetRadius + BEAM_RADIUS;
-	return px * px + pz * pz <= reach * reach ? t : Infinity;
-};
+import { segmentHitDistance } from '../hit';
 
 export const createBeamPlugin = () => definePlugin({
 	id: 'beam',
@@ -148,7 +129,7 @@ export const createBeamPlugin = () => definePlugin({
 						if (turret.faction === 'ally') {
 							let closestEnemyId = -1;
 							for (const { id, components: { enemy, localTransform3D: et } } of queries.enemies) {
-								const d = segmentHitDistance(originX, originZ, fwd.x, fwd.z, beamLen, et.x, et.z, enemy.radius);
+								const d = segmentHitDistance(originX, originZ, fwd.x, fwd.z, beamLen, et.x, et.z, enemy.radius, BEAM_RADIUS);
 								if (d >= closestDist) continue;
 								closestDist = d;
 								closestEnemyId = id;
@@ -165,7 +146,7 @@ export const createBeamPlugin = () => definePlugin({
 						} else {
 							let closestShipId = -1;
 							for (const { id, components: { localTransform3D: st } } of queries.ships) {
-								const d = segmentHitDistance(originX, originZ, fwd.x, fwd.z, beamLen, st.x, st.z, SHIP_HIT_RADIUS);
+								const d = segmentHitDistance(originX, originZ, fwd.x, fwd.z, beamLen, st.x, st.z, SHIP_HIT_RADIUS, BEAM_RADIUS);
 								if (d >= closestDist) continue;
 								closestDist = d;
 								closestShipId = id;

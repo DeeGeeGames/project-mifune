@@ -8,7 +8,7 @@ import {
 	offerOnPurchase,
 	type ShopOffer,
 } from '../shop';
-import { SHIP_SPECS, type WeaponKind } from '../ships';
+import { SHIP_SPECS, pylonsConsumedByPairs, type WeaponKind } from '../ships';
 import { PYLON_LABELS } from '../loadoutLabels';
 import { MARKET_OFFER_COUNT } from '../constants';
 import {
@@ -23,11 +23,14 @@ type AssignRow =
 	| { kind: 'pylon'; pylonIdx: number }
 	| { kind: 'cancel' };
 
-const emptyPylonIndices = (world: World): readonly number[] =>
-	world.getResource('carrierLoadout').pylons
+const emptyPylonIndices = (world: World): readonly number[] => {
+	const loadout = world.getResource('carrierLoadout');
+	const consumed = pylonsConsumedByPairs(loadout);
+	return loadout.pylons
 		.map((pylon, idx) => ({ pylon, idx }))
-		.filter(({ pylon }) => pylon.weaponKind === null)
+		.filter(({ pylon, idx }) => pylon.weaponKind === null && !consumed.has(idx))
 		.map(({ idx }) => idx);
+};
 
 const buildAssignRows = (world: World): readonly AssignRow[] => [
 	...emptyPylonIndices(world).map((pylonIdx): AssignRow => ({ kind: 'pylon', pylonIdx })),
@@ -223,7 +226,7 @@ export const createMarketPlugin = () => definePlugin({
 				hudRefs.marketResourcesEl.textContent = `Resources: ${playerState.resources}`;
 
 				if (mode === 'browse') {
-					const hasEmptyPylon = carrierLoadout.pylons.some((p) => p.weaponKind === null);
+					const hasEmptyPylon = emptyPylonIndices(ecs).length > 0;
 					const selectedIdx = state.selectedIndex;
 					const gk = gridKey(state.offers, selectedIdx, playerState.resources, hasEmptyPylon);
 					if (gk !== lastGridKey) {

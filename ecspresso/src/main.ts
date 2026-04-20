@@ -1,7 +1,7 @@
 import { AmbientLight, BufferAttribute, BufferGeometry, DirectionalLight, Mesh, MeshStandardMaterial, PlaneGeometry, Points, PointsMaterial } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder, type World } from './types';
-import { SHIP_SPECS, createShipGroup, spawnShipTurrets, applyCarrierLoadout } from './ships';
+import { SHIP_SPECS, createShipGroup, spawnShipTurrets, applyCarrierLoadout, emptyLoadoutPairs } from './ships';
 import { createKinematicState } from './kinematic';
 import {
 	GROUND_COLOR,
@@ -21,6 +21,7 @@ import { createFormationPlugin } from './plugins/formation';
 import { createTurretPlugin } from './plugins/turret';
 import { createMissilePlugin } from './plugins/missile';
 import { createBeamPlugin } from './plugins/beam';
+import { createMainGunPlugin } from './plugins/mainGun';
 import { createCombatPlugin } from './plugins/combat';
 import { createBlastPlugin } from './plugins/blast';
 import { createEnemyPlugin } from './plugins/enemy';
@@ -45,6 +46,7 @@ const game = builder
 	.withPlugin(createTurretPlugin())
 	.withPlugin(createMissilePlugin())
 	.withPlugin(createBeamPlugin())
+	.withPlugin(createMainGunPlugin())
 	.withPlugin(createCombatPlugin())
 	.withPlugin(createBlastPlugin())
 	.withPlugin(createThreatPlugin())
@@ -75,6 +77,7 @@ game.addResource('playerState', {
 
 game.addResource('carrierLoadout', {
 	pylons: (SHIP_SPECS.carrier.emptyTurretMounts ?? []).map((m) => ({ weaponKind: null, facing: m.baseAngle })),
+	pairs: emptyLoadoutPairs(),
 });
 
 game.addResource('hudRefs', {
@@ -121,7 +124,7 @@ scene.add(ground);
 
 scene.add(createStarfield());
 
-const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'beamTurret', 'summonAnim', 'blast', 'enemy', 'ship'] as const;
+const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'beamTurret', 'mainGunBeam', 'summonAnim', 'blast', 'enemy', 'ship'] as const;
 
 const spawnCarrier = (ecs: World): void => {
 	const spec = SHIP_SPECS.carrier;
