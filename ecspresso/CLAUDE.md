@@ -36,6 +36,7 @@ Coordinate conventions:
 - `src/main.ts` — install plugins, build hud refs, subscribe to `screenEnter`/`screenExit` to spawn carrier / tear down sim between waves, boot into `title` screen
 - `src/plugins/` — feature plugins:
   - `cursor.ts` — mouse → ground-plane raycast; wheel → ortho zoom (TODO-noted shim until camera3D gains wheel-zoom for ortho)
+  - `cameraLead.ts` — writes `camera3DState.followOffsetX/Z` each frame so the camera leads the carrier. Lead direction = `heading_unit + velocity/maxSpeed`; base magnitude scales with |sum|, then a `charge` value (0..1) creeps the magnitude toward `CAMERA_LEAD_MAX` while aligned, bleeding off proportional to misalignment. Runs at priority 410 in `postUpdate` (before `camera3d-follow`).
   - `control.ts` — gamepad + keyboard/mouse → command-vessel `headingTarget` / `throttle`, summon events
   - `movement.ts` — per-ship rotation + thrust + drag + position integration (delegates to `kinematic.ts`)
   - `formation.ts` — non-flagship ships arrive-steer toward their V-formation slot (from `slotLocalXZ`)

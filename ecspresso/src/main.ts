@@ -35,6 +35,7 @@ import { createWaveSummaryPlugin } from './plugins/waveSummary';
 import { createTitleScreenPlugin } from './plugins/titleScreen';
 import { createLoadoutSelectPlugin } from './plugins/loadoutSelect';
 import { createMarketPlugin } from './plugins/market';
+import { createCameraLeadPlugin } from './plugins/cameraLead';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -58,6 +59,7 @@ const game = builder
 	.withPlugin(createTitleScreenPlugin())
 	.withPlugin(createLoadoutSelectPlugin())
 	.withPlugin(createMarketPlugin())
+	.withPlugin(createCameraLeadPlugin())
 	.build();
 
 const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-help', 'hud-wave'] as const;

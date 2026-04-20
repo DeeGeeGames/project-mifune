@@ -8,6 +8,19 @@ export const CAMERA_ZOOM_STEP = 1.1;
 export const CAMERA_FOLLOW_SMOOTHING = 6;
 export const CAMERA_DISTANCE = 60;
 
+// Camera lead: pans the follow offset ahead of the carrier based on heading + velocity.
+// direction = heading_unit + velocity / maxSpeed (sum; cancels under full reverse)
+// baseMag = min(|sum|, 2) * CAMERA_LEAD_BASE_PER_SUM
+//   -> stationary ≈ 3, full forward ≈ 6 (~quarter of view size when zoom=1)
+// target magnitude creeps from base toward CAMERA_LEAD_MAX while lead stays aligned,
+// bleeding off proportional to misalignment when direction changes.
+export const CAMERA_LEAD_BASE_PER_SUM = 3;
+export const CAMERA_LEAD_MAX = 9;
+export const CAMERA_LEAD_CHARGE_RATE = 0.25;
+export const CAMERA_LEAD_DECAY_RATE = 2.5;
+export const CAMERA_LEAD_SMOOTHING = 4;
+export const CAMERA_LEAD_ALIGN_THRESHOLD = 0.5;
+
 export const TRIGGER_DEADZONE = 0.05;
 export const STICK_ACTIVE_THRESHOLD = 0.25;
 
