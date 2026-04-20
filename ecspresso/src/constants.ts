@@ -223,6 +223,15 @@ export const SUMMON_ANIM_SEC = 1.0;
 export const SUMMON_OFFSCREEN_RING = 35;
 
 export const GROUND_SIZE = 1600;
+export const GROUND_COLOR = 0x04060d;
+
+export const STAR_COUNT = 2500;
+export const STAR_FIELD_RADIUS = 400;
+export const STAR_FIELD_Y_MIN = 20;
+export const STAR_FIELD_Y_MAX = 80;
+export const STAR_SIZE = 2;
+export const STAR_BRIGHTNESS_MIN = 0.35;
+export const STAR_BRIGHTNESS_RANGE = 0.65;
 
 export const AIM_ARC_RADIUS = 12;
 export const AIM_ARC_SEGMENTS = 24;

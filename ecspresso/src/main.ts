@@ -1,9 +1,19 @@
-import { AmbientLight, DirectionalLight, Mesh, PlaneGeometry, MeshStandardMaterial, GridHelper } from 'three';
+import { AmbientLight, BufferAttribute, BufferGeometry, DirectionalLight, Mesh, MeshStandardMaterial, PlaneGeometry, Points, PointsMaterial } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder, type World } from './types';
 import { SHIP_SPECS, createShipGroup, spawnShipTurrets, applyCarrierLoadout } from './ships';
 import { createKinematicState } from './kinematic';
-import { GROUND_SIZE } from './constants';
+import {
+	GROUND_COLOR,
+	GROUND_SIZE,
+	STAR_BRIGHTNESS_MIN,
+	STAR_BRIGHTNESS_RANGE,
+	STAR_COUNT,
+	STAR_FIELD_RADIUS,
+	STAR_FIELD_Y_MAX,
+	STAR_FIELD_Y_MIN,
+	STAR_SIZE,
+} from './constants';
 import { createCursorPlugin } from './plugins/cursor';
 import { createControlPlugin } from './plugins/control';
 import { createMovementPlugin } from './plugins/movement';
@@ -102,14 +112,12 @@ scene.add(sun);
 
 const ground = new Mesh(
 	new PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
-	new MeshStandardMaterial({ color: 0x1a2030, roughness: 0.95 }),
+	new MeshStandardMaterial({ color: GROUND_COLOR, roughness: 0.95 }),
 );
 ground.rotation.x = -Math.PI / 2;
 scene.add(ground);
 
-const grid = new GridHelper(GROUND_SIZE, 100, 0x2a3550, 0x1a2535);
-grid.position.y = 0.01;
-scene.add(grid);
+scene.add(createStarfield());
 
 const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'beamTurret', 'summonAnim', 'blast', 'enemy', 'ship'] as const;
 
@@ -159,4 +167,37 @@ function requireEl(id: string): HTMLElement {
 	const el = document.getElementById(id);
 	if (!el) throw new Error(`HUD element #${id} not found`);
 	return el;
+}
+
+function createStarfield(): Points {
+	const tints: readonly (readonly [number, number, number])[] = [
+		[1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0],
+		[1.0, 1.0, 1.0],
+		[0.75, 0.85, 1.0],
+		[0.75, 0.85, 1.0],
+		[1.0, 0.88, 0.72],
+	];
+	const vertices = Array.from({ length: STAR_COUNT }, () => {
+		const x = (Math.random() * 2 - 1) * STAR_FIELD_RADIUS;
+		const z = (Math.random() * 2 - 1) * STAR_FIELD_RADIUS;
+		const y = STAR_FIELD_Y_MIN + Math.random() * (STAR_FIELD_Y_MAX - STAR_FIELD_Y_MIN);
+		const [tr, tg, tb] = tints[Math.floor(Math.random() * tints.length)];
+		const brightness = STAR_BRIGHTNESS_MIN + Math.random() * STAR_BRIGHTNESS_RANGE;
+		return [x, y, z, tr * brightness, tg * brightness, tb * brightness] as const;
+	});
+	const positions = new Float32Array(vertices.flatMap(([x, y, z]) => [x, y, z]));
+	const colors = new Float32Array(vertices.flatMap(([, , , r, g, b]) => [r, g, b]));
+	const geometry = new BufferGeometry();
+	geometry.setAttribute('position', new BufferAttribute(positions, 3));
+	geometry.setAttribute('color', new BufferAttribute(colors, 3));
+	return new Points(geometry, new PointsMaterial({
+		size: STAR_SIZE,
+		sizeAttenuation: false,
+		vertexColors: true,
+		transparent: true,
+		depthWrite: false,
+	}));
 }
