@@ -9,6 +9,7 @@ import {
 	MeshStandardMaterial,
 	DoubleSide,
 } from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import {
 	ENEMY_HULL_LENGTH,
 	ENEMY_HULL_WIDTH,
@@ -884,7 +885,10 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		}),
 	};
 
-	const hull = new Mesh(new BoxGeometry(spec.hullWidth, spec.hullHeight, spec.hullLength), mats.hull);
+	const hullGeo = spec.flatBow
+		? new RoundedBoxGeometry(spec.hullWidth, spec.hullHeight, spec.hullLength, 4, Math.min(spec.hullWidth, spec.hullHeight) * 0.45)
+		: new BoxGeometry(spec.hullWidth, spec.hullHeight, spec.hullLength);
+	const hull = new Mesh(hullGeo, mats.hull);
 	hull.position.y = spec.hullHeight / 2;
 	group.add(hull);
 
