@@ -63,12 +63,14 @@ Coordinate conventions:
 
 ## Controls
 
+**Design principle: gamepad is the primary input.** Keyboard/mouse is a secondary fallback. When adding or modifying input-facing features, design the gamepad binding first and ensure the full game is playable on a controller alone; keyboard/mouse mappings come after and must not enable any interaction the gamepad can't reach. New `GameAction`s should always have a gamepad binding.
+
 Player commands a carrier — slow, with four configurable weapon pylons chosen on the `loadoutSelect` screen before the run (no default weapons). Depends on its escort wing for most firepower. Losing the carrier ends the run (loss-condition wiring pending). Pylon positions and per-category firing-arc restrictions live in `SHIP_SPECS.carrier.emptyTurretMounts` + `pylonArc()` in `src/ships.ts`. The chosen loadout persists across waves in the `carrierLoadout` resource but resets on page reload.
 
 Heading is gated: the ship only turns when the aim-gate is held. While held, stick/cursor drives `playerState.pendingHeading` (visualized as a dashed arc); release commits it to `ship.headingTarget`.
 
 **Gamepad (primary):** LB held = aim gate (LS sets pending heading) · RT = forward · LT = reverse · A = summon selected · D-pad ◀▶ = cycle summon selection.
 
-**Keyboard / mouse:** Left-mouse held = aim gate (mouse sets pending heading) · W/S = thrust · 1-4 = summon by class · Mouse wheel / Q-E = zoom.
+**Keyboard / mouse (secondary):** Left-mouse held = aim gate (mouse sets pending heading) · W/S = thrust · 1-4 = summon by class · Mouse wheel / Q-E = zoom.
 
 **Wave summary screen:** D-pad / arrow keys = `menuUp`/`menuDown` navigate · A button / Enter / Space = `menuConfirm` activate.
