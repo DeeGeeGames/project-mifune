@@ -80,9 +80,14 @@ game.addResource('hudRefs', {
 	titleMenuEl: requireEl('hud-title-menu'),
 	loadoutEl: requireEl('hud-loadout'),
 	loadoutMenuEl: requireEl('hud-loadout-menu'),
+	loadoutStatCardEl: requireEl('hud-loadout-stat-card'),
 	marketEl: requireEl('hud-market'),
 	marketTitleEl: requireEl('hud-market-title'),
-	marketMenuEl: requireEl('hud-market-menu'),
+	marketResourcesEl: requireEl('hud-market-resources'),
+	marketGridEl: requireEl('hud-market-grid'),
+	marketFooterEl: requireEl('hud-market-footer'),
+	marketAssignEl: requireEl('hud-market-assign'),
+	marketStatCardEl: requireEl('hud-market-stat-card'),
 });
 
 game.getResource('hudRefs').gameHudEls.forEach((el) => { el.style.display = 'none'; });

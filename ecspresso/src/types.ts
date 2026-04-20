@@ -51,7 +51,9 @@ export type GameAction =
 	| 'menuDown'
 	| 'menuLeft'
 	| 'menuRight'
-	| 'menuConfirm';
+	| 'menuConfirm'
+	| 'pylonFacingLeft'
+	| 'pylonFacingRight';
 
 const actions: ActionMap<GameAction> = {
 	fwd:           { keys: ['w'] },
@@ -69,6 +71,8 @@ const actions: ActionMap<GameAction> = {
 	menuLeft:      { keys: ['ArrowLeft'],  gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_LEFT) },
 	menuRight:     { keys: ['ArrowRight'], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_RIGHT) },
 	menuConfirm:   { keys: ['Enter', ' '], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
+	pylonFacingLeft:  { keys: ['q'] },
+	pylonFacingRight: { keys: ['e'] },
 };
 
 export interface ShipComponent {
@@ -284,9 +288,14 @@ export interface HudRefs {
 	titleMenuEl: HTMLElement;
 	loadoutEl: HTMLElement;
 	loadoutMenuEl: HTMLElement;
+	loadoutStatCardEl: HTMLElement;
 	marketEl: HTMLElement;
 	marketTitleEl: HTMLElement;
-	marketMenuEl: HTMLElement;
+	marketResourcesEl: HTMLElement;
+	marketGridEl: HTMLElement;
+	marketFooterEl: HTMLElement;
+	marketAssignEl: HTMLElement;
+	marketStatCardEl: HTMLElement;
 }
 
 export interface ShipSummonedEvent {

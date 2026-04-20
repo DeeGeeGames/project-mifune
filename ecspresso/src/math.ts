@@ -31,6 +31,10 @@ export function clamp(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, value));
 }
 
+export function degreesRounded(rad: number): number {
+	return Math.round((rad * 180) / Math.PI);
+}
+
 export type LeadResult = { readonly x: number; readonly z: number };
 
 export function leadTarget(

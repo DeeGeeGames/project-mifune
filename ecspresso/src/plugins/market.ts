@@ -1,5 +1,5 @@
 import { definePlugin, type World } from '../types';
-import { wrapIndex, menuAxisDelta, renderMenuText } from '../menu';
+import { wrapIndex, menuAxisDelta, menuCursor } from '../menu';
 import {
 	rollOffers,
 	rerollCost,
@@ -8,24 +8,20 @@ import {
 	offerOnPurchase,
 	type ShopOffer,
 } from '../shop';
-import { SHIP_SPECS } from '../ships';
+import { SHIP_SPECS, type WeaponKind } from '../ships';
 import { PYLON_LABELS } from '../loadoutLabels';
 import { MARKET_OFFER_COUNT } from '../constants';
-
-type BrowseRow =
-	| { kind: 'offer'; offerIdx: number }
-	| { kind: 'reroll' }
-	| { kind: 'continue' };
+import {
+	renderMarketGrid,
+	renderMarketFooter,
+	gridLeftRight,
+	type FooterAction,
+} from './marketCardsDom';
+import { renderStatCard } from './statCardDom';
 
 type AssignRow =
 	| { kind: 'pylon'; pylonIdx: number }
 	| { kind: 'cancel' };
-
-const buildBrowseRows = (offers: readonly ShopOffer[]): readonly BrowseRow[] => [
-	...offers.map((_, offerIdx): BrowseRow => ({ kind: 'offer', offerIdx })),
-	{ kind: 'reroll' },
-	{ kind: 'continue' },
-];
 
 const emptyPylonIndices = (world: World): readonly number[] =>
 	world.getResource('carrierLoadout').pylons
@@ -38,73 +34,28 @@ const buildAssignRows = (world: World): readonly AssignRow[] => [
 	{ kind: 'cancel' },
 ];
 
-interface BrowseContext {
-	readonly offers: readonly ShopOffer[];
-	readonly resources: number;
-	readonly rerollCostNow: number;
-	readonly waveNumber: number;
-	readonly hasEmptyPylon: boolean;
-}
-
-const offerStatus = (offer: ShopOffer, ctx: BrowseContext): string => {
-	if (offer.sold) return 'SOLD';
-	if (!ctx.hasEmptyPylon) return 'NO PYLON';
-	if (offer.cost > ctx.resources) return 'NEED RES';
-	return '';
-};
-
-const renderOfferRow = (offer: ShopOffer, ctx: BrowseContext): string => {
-	const status = offerStatus(offer, ctx);
-	const statusText = status === '' ? '' : `  [${status}]`;
-	return `${offerLabel(offer).padEnd(14)} — ${String(offer.cost).padStart(4)} res${statusText}`;
-};
-
-const browseRowLabel = (row: BrowseRow, ctx: BrowseContext): string => {
-	if (row.kind === 'offer') {
-		const offer = ctx.offers[row.offerIdx];
-		return offer ? renderOfferRow(offer, ctx) : '?';
-	}
-	if (row.kind === 'reroll') {
-		const afford = ctx.resources >= ctx.rerollCostNow ? '' : '  [NEED RES]';
-		return `Re-roll        — ${String(ctx.rerollCostNow).padStart(4)} res${afford}`;
-	}
-	return `Continue to Wave ${ctx.waveNumber + 1}`;
-};
-
-const renderBrowse = (
-	rows: readonly BrowseRow[],
-	selectedIndex: number,
-	ctx: BrowseContext,
-): string => `Resources: ${ctx.resources}\n\n${renderMenuText(rows, selectedIndex, (row) => browseRowLabel(row, ctx))}`;
-
 const assignRowLabel = (row: AssignRow): string =>
 	row.kind === 'cancel' ? 'Cancel' : (PYLON_LABELS[row.pylonIdx] ?? `Pylon ${row.pylonIdx + 1}`);
 
 const renderAssign = (
+	el: HTMLElement,
 	rows: readonly AssignRow[],
 	selectedIndex: number,
 	offer: ShopOffer,
-): string => `Assign ${offerLabel(offer)} (${offer.cost} res) to pylon:\n\n${renderMenuText(rows, selectedIndex, assignRowLabel)}`;
+): void => {
+	const header = `Assign ${offerLabel(offer)} (${offer.cost} res) to pylon:\n\n`;
+	const lines = rows.map((row, idx) => menuCursor(idx === selectedIndex) + assignRowLabel(row)).join('\n');
+	el.textContent = header + lines;
+};
 
-const confirmBrowse = (world: World, rows: readonly BrowseRow[]): void => {
+const offerWeaponKind = (offer: ShopOffer | undefined): WeaponKind | null =>
+	offer && offer.payload.kind === 'weapon' ? offer.payload.weaponKind : null;
+
+const confirmBrowse = (world: World, offerIdx: number): void => {
 	const state = world.getScreenState('market');
-	const row = rows[state.selectedIndex];
-	if (!row) return;
-	if (row.kind === 'continue') {
-		void world.setScreen('playing', { waveNumber: state.waveNumber + 1 });
-		return;
-	}
-	const playerState = world.getResource('playerState');
-	if (row.kind === 'reroll') {
-		const cost = rerollCost(state.waveNumber, state.rerollCount);
-		if (playerState.resources < cost) return;
-		playerState.resources -= cost;
-		state.rerollCount += 1;
-		state.offers = rollOffers(world, MARKET_OFFER_COUNT, Math.random);
-		return;
-	}
-	const offer = state.offers[row.offerIdx];
+	const offer = state.offers[offerIdx];
 	if (!offer || offer.sold) return;
+	const playerState = world.getResource('playerState');
 	if (offer.cost > playerState.resources) return;
 	if (!offerCanPurchase(offer, world)) return;
 	const followUp = offerOnPurchase(offer, world);
@@ -113,8 +64,23 @@ const confirmBrowse = (world: World, rows: readonly BrowseRow[]): void => {
 		offer.sold = true;
 		return;
 	}
-	state.mode = { kind: 'assignPylon', offerIdx: row.offerIdx };
+	state.mode = { kind: 'assignPylon', offerIdx };
 	state.selectedIndex = 0;
+};
+
+const confirmReroll = (world: World): void => {
+	const state = world.getScreenState('market');
+	const playerState = world.getResource('playerState');
+	const cost = rerollCost(state.waveNumber, state.rerollCount);
+	if (playerState.resources < cost) return;
+	playerState.resources -= cost;
+	state.rerollCount += 1;
+	state.offers = rollOffers(world, MARKET_OFFER_COUNT, Math.random);
+};
+
+const confirmContinue = (world: World): void => {
+	const state = world.getScreenState('market');
+	void world.setScreen('playing', { waveNumber: state.waveNumber + 1 });
 };
 
 const confirmAssign = (world: World, rows: readonly AssignRow[]): void => {
@@ -147,10 +113,61 @@ const confirmAssign = (world: World, rows: readonly AssignRow[]): void => {
 	resetToBrowse();
 };
 
+const totalBrowseRows = (offerCount: number): number => offerCount + 2;
+const rerollIndex = (offerCount: number): number => offerCount;
+const continueIndex = (offerCount: number): number => offerCount + 1;
+
+const offerFingerprint = (offer: ShopOffer): string => {
+	const id = offer.payload.kind === 'weapon' ? offer.payload.weaponKind : offer.payload.kind;
+	return `${id}:${offer.cost}:${offer.sold ? 's' : 'a'}`;
+};
+
+const gridKey = (offers: readonly ShopOffer[], selectedIdx: number, resources: number, hasEmpty: boolean): string =>
+	`${selectedIdx}|${resources}|${hasEmpty ? 1 : 0}|${offers.map(offerFingerprint).join(',')}`;
+
+const footerKey = (selectedIdx: number, cost: number, resources: number, nextWave: number): string =>
+	`${selectedIdx}|${cost}|${resources}|${nextWave}`;
+
 export const createMarketPlugin = () => definePlugin({
 	id: 'market',
 	install: (world) => {
-		let lastRenderedText = '';
+		let lastGridKey = '';
+		let lastFooterKey = '';
+		let lastStatCardKind: WeaponKind | null = null;
+		let lastAssignText = '';
+		let lastMode: 'browse' | 'assignPylon' | null = null;
+
+		const setBrowseVisibility = (visible: boolean) => {
+			const hudRefs = world.getResource('hudRefs');
+			hudRefs.marketGridEl.style.display = visible ? '' : 'none';
+			hudRefs.marketFooterEl.style.display = visible ? '' : 'none';
+			hudRefs.marketAssignEl.style.display = visible ? 'none' : '';
+		};
+
+		const confirmByIndex = (offerCount: number, idx: number) => {
+			if (idx < offerCount) { confirmBrowse(world, idx); return; }
+			if (idx === rerollIndex(offerCount)) { confirmReroll(world); return; }
+			if (idx === continueIndex(offerCount)) { confirmContinue(world); return; }
+		};
+
+		const handleFooterAction = (action: FooterAction, offerCount: number) => {
+			const state = world.getScreenState('market');
+			if (action === 'reroll') {
+				state.selectedIndex = rerollIndex(offerCount);
+				confirmReroll(world);
+			} else {
+				state.selectedIndex = continueIndex(offerCount);
+				confirmContinue(world);
+			}
+		};
+
+		const resetCaches = () => {
+			lastGridKey = '';
+			lastFooterKey = '';
+			lastStatCardKind = null;
+			lastAssignText = '';
+			lastMode = null;
+		};
 
 		world.eventBus.subscribe('screenEnter', ({ screen }) => {
 			if (screen !== 'market') return;
@@ -162,7 +179,8 @@ export const createMarketPlugin = () => definePlugin({
 			state.mode = { kind: 'browse' };
 			state.selectedIndex = 0;
 			hudRefs.marketTitleEl.textContent = `MARKET — WAVE ${state.waveNumber} COMPLETE`;
-			lastRenderedText = '';
+			resetCaches();
+			setBrowseVisibility(true);
 		});
 
 		world.eventBus.subscribe('screenExit', ({ screen }) => {
@@ -177,39 +195,86 @@ export const createMarketPlugin = () => definePlugin({
 			.withResources(['inputState', 'hudRefs', 'playerState', 'carrierLoadout'])
 			.setProcess(({ ecs, resources: { inputState, hudRefs, playerState, carrierLoadout } }) => {
 				const state = ecs.getScreenState('market');
+				const offerCount = state.offers.length;
 
-				const browseRows = state.mode.kind === 'browse' ? buildBrowseRows(state.offers) : null;
-				const assignRows = state.mode.kind === 'assignPylon' ? buildAssignRows(ecs) : null;
-				const rowCount = browseRows?.length ?? assignRows?.length ?? 0;
-
-				const delta = menuAxisDelta(inputState, 'menuUp', 'menuDown');
-				if (delta !== 0 && rowCount > 0) {
-					state.selectedIndex = wrapIndex(state.selectedIndex + delta, rowCount);
+				if (state.mode.kind === 'browse') {
+					const total = totalBrowseRows(offerCount);
+					const dy = menuAxisDelta(inputState, 'menuUp', 'menuDown');
+					if (dy !== 0) state.selectedIndex = wrapIndex(state.selectedIndex + dy, total);
+					const dx = menuAxisDelta(inputState, 'menuLeft', 'menuRight');
+					if (dx !== 0) state.selectedIndex = gridLeftRight(offerCount, state.selectedIndex, dx);
+					if (inputState.actions.justActivated('menuConfirm')) {
+						confirmByIndex(offerCount, state.selectedIndex);
+					}
+				} else {
+					const assignRows = buildAssignRows(ecs);
+					const dy = menuAxisDelta(inputState, 'menuUp', 'menuDown');
+					if (dy !== 0 && assignRows.length > 0) {
+						state.selectedIndex = wrapIndex(state.selectedIndex + dy, assignRows.length);
+					}
+					if (inputState.actions.justActivated('menuConfirm')) confirmAssign(ecs, assignRows);
 				}
 
-				if (inputState.actions.justActivated('menuConfirm')) {
-					if (browseRows) confirmBrowse(ecs, browseRows);
-					else if (assignRows) confirmAssign(ecs, assignRows);
+				const mode = state.mode.kind;
+				if (mode !== lastMode) {
+					setBrowseVisibility(mode === 'browse');
+					lastMode = mode;
 				}
+				hudRefs.marketResourcesEl.textContent = `Resources: ${playerState.resources}`;
 
-				const text = browseRows
-					? renderBrowse(browseRows, state.selectedIndex, {
-						offers: state.offers,
-						resources: playerState.resources,
-						rerollCostNow: rerollCost(state.waveNumber, state.rerollCount),
-						waveNumber: state.waveNumber,
-						hasEmptyPylon: carrierLoadout.pylons.some((p) => p.weaponKind === null),
-					})
-					: assignRows && state.mode.kind === 'assignPylon'
-						? (() => {
-							const offer = state.offers[state.mode.offerIdx];
-							return offer ? renderAssign(assignRows, state.selectedIndex, offer) : '';
-						})()
-						: '';
-
-				if (text !== lastRenderedText) {
-					hudRefs.marketMenuEl.textContent = text;
-					lastRenderedText = text;
+				if (mode === 'browse') {
+					const hasEmptyPylon = carrierLoadout.pylons.some((p) => p.weaponKind === null);
+					const selectedIdx = state.selectedIndex;
+					const gk = gridKey(state.offers, selectedIdx, playerState.resources, hasEmptyPylon);
+					if (gk !== lastGridKey) {
+						renderMarketGrid(
+							hudRefs.marketGridEl,
+							state.offers,
+							selectedIdx,
+							{ resources: playerState.resources, hasEmptyPylon },
+							(offerIdx) => {
+								state.selectedIndex = offerIdx;
+								confirmByIndex(offerCount, offerIdx);
+							},
+						);
+						lastGridKey = gk;
+					}
+					const rCost = rerollCost(state.waveNumber, state.rerollCount);
+					const fk = footerKey(selectedIdx, rCost, playerState.resources, state.waveNumber + 1);
+					if (fk !== lastFooterKey) {
+						renderMarketFooter(
+							hudRefs.marketFooterEl,
+							rerollIndex(offerCount),
+							continueIndex(offerCount),
+							selectedIdx,
+							{ rerollCost: rCost, resources: playerState.resources, nextWaveNumber: state.waveNumber + 1 },
+							(action) => handleFooterAction(action, offerCount),
+						);
+						lastFooterKey = fk;
+					}
+					const focusedOffer = selectedIdx < offerCount ? state.offers[selectedIdx] : undefined;
+					const kind = offerWeaponKind(focusedOffer);
+					if (kind !== lastStatCardKind) {
+						renderStatCard(hudRefs.marketStatCardEl, kind, '— hover an offer —');
+						lastStatCardKind = kind;
+					}
+				} else if (state.mode.kind === 'assignPylon') {
+					const offerIdx = state.mode.offerIdx;
+					const offer = state.offers[offerIdx];
+					const assignRows = buildAssignRows(ecs);
+					state.selectedIndex = Math.min(state.selectedIndex, assignRows.length - 1);
+					if (offer) {
+						const assignText = `${offerIdx}|${state.selectedIndex}|${assignRows.length}|${offer.cost}`;
+						if (assignText !== lastAssignText) {
+							renderAssign(hudRefs.marketAssignEl, assignRows, state.selectedIndex, offer);
+							lastAssignText = assignText;
+						}
+						const kind = offerWeaponKind(offer);
+						if (kind !== lastStatCardKind) {
+							renderStatCard(hudRefs.marketStatCardEl, kind, '');
+							lastStatCardKind = kind;
+						}
+					}
 				}
 			});
 	},
