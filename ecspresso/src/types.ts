@@ -20,6 +20,7 @@ import {
 	CAMERA_VIEW_SIZE,
 	CAMERA_FOLLOW_SMOOTHING,
 	GP_BUTTON_A,
+	GP_BUTTON_B,
 	GP_BUTTON_LB,
 	GP_BUTTON_DPAD_UP,
 	GP_BUTTON_DPAD_DOWN,
@@ -52,8 +53,7 @@ export type GameAction =
 	| 'menuLeft'
 	| 'menuRight'
 	| 'menuConfirm'
-	| 'pylonFacingLeft'
-	| 'pylonFacingRight';
+	| 'menuCancel';
 
 const actions: ActionMap<GameAction> = {
 	fwd:           { keys: ['w'] },
@@ -71,8 +71,7 @@ const actions: ActionMap<GameAction> = {
 	menuLeft:      { keys: ['ArrowLeft'],  gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_LEFT) },
 	menuRight:     { keys: ['ArrowRight'], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_RIGHT) },
 	menuConfirm:   { keys: ['Enter', ' '], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
-	pylonFacingLeft:  { keys: ['q'] },
-	pylonFacingRight: { keys: ['e'] },
+	menuCancel:    { keys: ['Escape'],     gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_B) },
 };
 
 export interface ShipComponent {
@@ -245,8 +244,13 @@ export type TitleScreenState = {
 	selectedIndex: number;
 };
 
+export type LoadoutMode =
+	| { kind: 'menu' }
+	| { kind: 'facing'; pylonIdx: number; initialFacing: number };
+
 export type LoadoutScreenState = {
 	selectedIndex: number;
+	mode: LoadoutMode;
 };
 
 export type MarketScreenConfig = {
@@ -409,6 +413,7 @@ export const builder = ECSpresso.create()
 		.add('loadoutSelect', {
 			initialState: (): LoadoutScreenState => ({
 				selectedIndex: 0,
+				mode: { kind: 'menu' },
 			}),
 		})
 		.add('playing', {

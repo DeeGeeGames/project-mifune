@@ -1,7 +1,7 @@
 import { BufferAttribute, BufferGeometry, Group, Line, LineBasicMaterial, Mesh } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
-import { definePlugin, type World } from '../types';
-import { wrapIndex, menuAxisDelta, menuCursor } from '../menu';
+import { definePlugin, type World, type LoadoutMode } from '../types';
+import { wrapIndex, menuAxisDelta, renderMenuText } from '../menu';
 import {
 	SHIP_SPECS,
 	createShipGroup,
@@ -38,6 +38,9 @@ const ARC_BRIGHT_COLOR = 0xffd55a;
 const FACING_DIM_COLOR = 0x6aa5ff;
 const FACING_BRIGHT_COLOR = 0xffee66;
 
+const MENU_HINT = '\n[←→] weapon   [↑↓] pylon   [A] configure / start';
+const FACING_HINT = '\n[←→] facing   [A] confirm   [B] cancel';
+
 const cycleWeapon = (current: WeaponKind | null, dir: 1 | -1): WeaponKind | null => {
 	const idx = WEAPON_CYCLE.indexOf(current);
 	return WEAPON_CYCLE[wrapIndex((idx < 0 ? 0 : idx) + dir, WEAPON_CYCLE.length)] ?? null;
@@ -58,23 +61,42 @@ const buildMenuRows = (loadout: CarrierLoadout): readonly MenuRow[] => [
 	{ kind: 'start' },
 ];
 
-const renderPylonRow = (pylon: CarrierLoadoutPylon, pylonIdx: number): string => {
+const renderPylonRow = (
+	pylon: CarrierLoadoutPylon,
+	pylonIdx: number,
+	isFacingFocus: boolean,
+): string => {
 	const label = PYLON_LABELS[pylonIdx] ?? `Pylon ${pylonIdx + 1}`;
 	const weaponText = WEAPON_LABELS[pylon.weaponKind ?? 'none'].padEnd(WEAPON_LABEL_WIDTH);
 	if (pylon.weaponKind === null) return `${label}: ◀ ${weaponText} ▶`;
-	return `${label}: ◀ ${weaponText} ▶   ${formatFacingDeg(pylon.facing).padStart(5)}`;
+	const facingText = formatFacingDeg(pylon.facing).padStart(5);
+	const wrapped = isFacingFocus ? `◀ ${facingText} ▶` : `  ${facingText}  `;
+	return `${label}: ◀ ${weaponText} ▶   ${wrapped}`;
 };
 
-const renderRow = (row: MenuRow, loadout: CarrierLoadout): string => {
+const renderRow = (
+	row: MenuRow,
+	loadout: CarrierLoadout,
+	facingPylonIdx: number,
+): string => {
 	if (row.kind === 'back') return 'Back';
 	if (row.kind === 'start') return 'Start Game';
 	const pylon = loadout.pylons[row.pylonIdx];
 	if (!pylon) return PYLON_LABELS[row.pylonIdx] ?? `Pylon ${row.pylonIdx + 1}`;
-	return renderPylonRow(pylon, row.pylonIdx);
+	return renderPylonRow(pylon, row.pylonIdx, row.pylonIdx === facingPylonIdx);
 };
 
-const renderRows = (rows: readonly MenuRow[], loadout: CarrierLoadout, selectedIdx: number): string =>
-	rows.map((row, idx) => menuCursor(idx === selectedIdx) + renderRow(row, loadout)).join('\n');
+const renderRows = (
+	rows: readonly MenuRow[],
+	loadout: CarrierLoadout,
+	selectedIdx: number,
+	mode: LoadoutMode,
+): string => {
+	const facingIdx = mode.kind === 'facing' ? mode.pylonIdx : -1;
+	const cursorIdx = mode.kind === 'facing' ? facingIdx : selectedIdx;
+	const body = renderMenuText(rows, cursorIdx, (row) => renderRow(row, loadout, facingIdx));
+	return body + (mode.kind === 'facing' ? FACING_HINT : MENU_HINT);
+};
 
 const buildArcLine = (angle: number, length: number, color: number, yOffset: number): Line => {
 	const fwd = forwardXZ(angle);
@@ -106,6 +128,12 @@ const selectedPylonFromRow = (rows: readonly MenuRow[], selectedIdx: number): nu
 	return row?.kind === 'pylon' ? row.pylonIdx : -1;
 };
 
+const focusedPylonIdx = (
+	mode: LoadoutMode,
+	rows: readonly MenuRow[],
+	selectedIdx: number,
+): number => (mode.kind === 'facing' ? mode.pylonIdx : selectedPylonFromRow(rows, selectedIdx));
+
 interface PreviewHandle {
 	readonly carrierId: number;
 	readonly group: Group;
@@ -129,15 +157,21 @@ const tearDownPreview = (ecs: World, handle: PreviewHandle | null): void => {
 	disposePreviewGraph(handle.group);
 };
 
-const buildPreview = (ecs: World, loadout: CarrierLoadout, selectedPylonIdx: number): PreviewHandle => {
+const buildPreview = (
+	ecs: World,
+	loadout: CarrierLoadout,
+	focusedPylon: number,
+	showArcs: boolean,
+): PreviewHandle => {
 	const spec = SHIP_SPECS.carrier;
 	const built = createShipGroup('carrier');
 	buildCarrierLoadoutVisual(spec, built, loadout);
 	const mounts = spec.emptyTurretMounts ?? [];
-	loadout.pylons.forEach((pylon, idx) => {
-		const mount = mounts[idx];
-		if (mount) built.group.add(buildPylonArcGroup(mount, pylon, idx === selectedPylonIdx, spec.hullHeight));
-	});
+	if (showArcs) {
+		const pylon = loadout.pylons[focusedPylon];
+		const mount = mounts[focusedPylon];
+		if (pylon && mount) built.group.add(buildPylonArcGroup(mount, pylon, true, spec.hullHeight));
+	}
 	const entity = ecs.spawn({
 		...createGroupComponents(built.group, { x: 0, y: 0, z: 0 }, { rotation: { y: -Math.PI / 2 }, scale: 0.5 }),
 	});
@@ -161,7 +195,8 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 	install: (world) => {
 		let preview: PreviewHandle | null = null;
 		let dirty = false;
-		let lastSelectedPylon = -2;
+		let lastFocusedPylon = -2;
+		let lastModeKind: LoadoutMode['kind'] | null = null;
 		let lastRenderedText = '';
 		let lastStatCardKind: WeaponKind | null = null;
 
@@ -181,15 +216,18 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 
 			const loadout = world.getResource('carrierLoadout');
 			const state = world.getScreenState('loadoutSelect');
+			state.mode = { kind: 'menu' };
 			const rows = buildMenuRows(loadout);
 			state.selectedIndex = Math.min(state.selectedIndex, rows.length - 1);
 
-			lastSelectedPylon = selectedPylonFromRow(rows, state.selectedIndex);
-			preview = buildPreview(world, loadout, lastSelectedPylon);
+			const focused = focusedPylonIdx(state.mode, rows, state.selectedIndex);
+			preview = buildPreview(world, loadout, focused, false);
 			dirty = false;
-			lastRenderedText = renderRows(rows, loadout, state.selectedIndex);
+			lastFocusedPylon = focused;
+			lastModeKind = state.mode.kind;
+			lastRenderedText = renderRows(rows, loadout, state.selectedIndex, state.mode);
 			hudRefs.loadoutMenuEl.textContent = lastRenderedText;
-			lastStatCardKind = pylonWeaponKind(loadout, lastSelectedPylon);
+			lastStatCardKind = pylonWeaponKind(loadout, focused);
 			renderStatCard(hudRefs.loadoutStatCardEl, lastStatCardKind);
 		});
 
@@ -212,52 +250,71 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 			.setProcess(({ ecs, resources: { inputState, hudRefs, carrierLoadout } }) => {
 				const state = ecs.getScreenState('loadoutSelect');
 				const emptyMounts = SHIP_SPECS.carrier.emptyTurretMounts ?? [];
-
 				const rows = buildMenuRows(carrierLoadout);
 				state.selectedIndex = Math.min(state.selectedIndex, rows.length - 1);
 
-				const dy = menuAxisDelta(inputState, 'menuUp', 'menuDown');
-				if (dy !== 0) state.selectedIndex = wrapIndex(state.selectedIndex + dy, rows.length);
-
-				const row = rows[state.selectedIndex];
-				const pylonIdx = row?.kind === 'pylon' ? row.pylonIdx : -1;
-				const focusedPylon = pylonIdx >= 0 ? carrierLoadout.pylons[pylonIdx] : undefined;
-				const focusedMount = pylonIdx >= 0 ? emptyMounts[pylonIdx] : undefined;
-
 				const dx = menuAxisDelta(inputState, 'menuLeft', 'menuRight');
-				if (dx !== 0 && focusedPylon && focusedMount) {
-					if (inputState.actions.isActive('aimGate')) applyFacingStep(focusedPylon, focusedMount, dx);
-					else applyWeaponCycle(focusedPylon, focusedMount, dx);
-					dirty = true;
-				}
+				const dy = menuAxisDelta(inputState, 'menuUp', 'menuDown');
 
-				const dFacing = menuAxisDelta(inputState, 'pylonFacingLeft', 'pylonFacingRight');
-				if (dFacing !== 0 && focusedPylon && focusedMount) {
-					applyFacingStep(focusedPylon, focusedMount, dFacing);
-					dirty = true;
-				}
+				if (state.mode.kind === 'menu') {
+					if (dy !== 0) state.selectedIndex = wrapIndex(state.selectedIndex + dy, rows.length);
 
-				if (inputState.actions.justActivated('menuConfirm')) {
 					const row = rows[state.selectedIndex];
-					if (row?.kind === 'back') { void ecs.setScreen('title', {}); return; }
-					if (row?.kind === 'start') { void ecs.setScreen('playing', { waveNumber: 1 }); return; }
+					const pylonIdx = row?.kind === 'pylon' ? row.pylonIdx : -1;
+					const focusedPylon = pylonIdx >= 0 ? carrierLoadout.pylons[pylonIdx] : undefined;
+					const focusedMount = pylonIdx >= 0 ? emptyMounts[pylonIdx] : undefined;
+
+					if (dx !== 0 && focusedPylon && focusedMount) {
+						applyWeaponCycle(focusedPylon, focusedMount, dx);
+						dirty = true;
+					}
+
+					if (inputState.actions.justActivated('menuConfirm')) {
+						if (row?.kind === 'back') { void ecs.setScreen('title', {}); return; }
+						if (row?.kind === 'start') { void ecs.setScreen('playing', { waveNumber: 1 }); return; }
+						if (row?.kind === 'pylon' && focusedPylon && focusedPylon.weaponKind !== null) {
+							state.mode = { kind: 'facing', pylonIdx: row.pylonIdx, initialFacing: focusedPylon.facing };
+						}
+					}
+				} else {
+					const pylonIdx = state.mode.pylonIdx;
+					const focusedPylon = carrierLoadout.pylons[pylonIdx];
+					const focusedMount = emptyMounts[pylonIdx];
+					if (!focusedPylon || !focusedMount || focusedPylon.weaponKind === null) {
+						state.mode = { kind: 'menu' };
+					} else {
+						if (dx !== 0) {
+							applyFacingStep(focusedPylon, focusedMount, dx);
+							dirty = true;
+						}
+						if (inputState.actions.justActivated('menuConfirm')) {
+							state.selectedIndex = pylonIdx;
+							state.mode = { kind: 'menu' };
+						} else if (inputState.actions.justActivated('menuCancel')) {
+							focusedPylon.facing = state.mode.initialFacing;
+							state.selectedIndex = pylonIdx;
+							state.mode = { kind: 'menu' };
+							dirty = true;
+						}
+					}
 				}
 
-				const selectedPylon = selectedPylonFromRow(rows, state.selectedIndex);
-				if (dirty || selectedPylon !== lastSelectedPylon) {
+				const focused = focusedPylonIdx(state.mode, rows, state.selectedIndex);
+				if (dirty || focused !== lastFocusedPylon || state.mode.kind !== lastModeKind) {
 					tearDownPreview(ecs, preview);
-					preview = buildPreview(ecs, carrierLoadout, selectedPylon);
-					lastSelectedPylon = selectedPylon;
+					preview = buildPreview(ecs, carrierLoadout, focused, state.mode.kind === 'facing');
+					lastFocusedPylon = focused;
+					lastModeKind = state.mode.kind;
 					dirty = false;
 				}
 
-				const text = renderRows(rows, carrierLoadout, state.selectedIndex);
+				const text = renderRows(rows, carrierLoadout, state.selectedIndex, state.mode);
 				if (text !== lastRenderedText) {
 					hudRefs.loadoutMenuEl.textContent = text;
 					lastRenderedText = text;
 				}
 
-				const kind = pylonWeaponKind(carrierLoadout, selectedPylon);
+				const kind = pylonWeaponKind(carrierLoadout, focused);
 				if (kind !== lastStatCardKind) {
 					renderStatCard(hudRefs.loadoutStatCardEl, kind);
 					lastStatCardKind = kind;
