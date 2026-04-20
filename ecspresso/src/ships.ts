@@ -42,6 +42,24 @@ import {
 	BEAM_TURRET_COOLDOWN_MS,
 	BEAM_RADIUS,
 	BEAM_COLOR,
+	RAILGUN_TURRET_CONE_HALF,
+	RAILGUN_TURRET_FIRE_INTERVAL_MS,
+	RAILGUN_TURRET_RANGE,
+	RAILGUN_TURRET_BURST_COUNT,
+	RAILGUN_TURRET_BURST_SHOT_DELAY_MS,
+	RAILGUN_DAMAGE,
+	RAILGUN_SHELL_SPEED,
+	RAILGUN_SHELL_LIFE_SEC,
+	RAILGUN_MAX_PIERCE,
+	PD_TURRET_CONE_HALF,
+	PD_TURRET_FIRE_INTERVAL_MS,
+	PD_TURRET_RANGE,
+	PD_TURRET_BURST_COUNT,
+	PD_TURRET_BURST_SHOT_DELAY_MS,
+	PD_DAMAGE,
+	PD_SHELL_SPEED,
+	PD_SHELL_LIFE_SEC,
+	PD_SPREAD_HALF,
 	MUZZLE_OFFSET,
 } from './constants';
 import type { Faction, World } from './types';
@@ -102,7 +120,7 @@ export type EmptyTurretMount = Pick<TurretMount, 'x' | 'z' | 'baseAngle'> & {
 	readonly category: PylonCategory;
 };
 
-export type WeaponKind = 'turret' | 'cannon' | 'beam' | 'missile';
+export type WeaponKind = 'turret' | 'cannon' | 'beam' | 'missile' | 'railgun' | 'pd';
 
 export interface CarrierLoadoutPylon {
 	weaponKind: WeaponKind | null;
@@ -650,7 +668,7 @@ const CARRIER_ACCENT_MAT = new MeshStandardMaterial({ color: 0x222833, roughness
 CARRIER_ACCENT_MAT.userData.shared = true;
 
 type MaterializedMount =
-	| { kind: 'turret' | 'cannon'; mount: Group; mountSpec: TurretMount }
+	| { kind: 'turret' | 'cannon' | 'railgun' | 'pd'; mount: Group; mountSpec: TurretMount }
 	| { kind: 'beam'; mount: Group; beamMesh: Mesh; mountSpec: BeamTurretMount }
 	| { kind: 'missile'; mount: Group; mountSpec: MissileTurretMount };
 
@@ -696,6 +714,8 @@ const loadoutComponentsFor = (ownerId: number, result: MaterializedMount) => {
 	if (result.kind === 'beam') return beamTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount, result.beamMesh);
 	if (result.kind === 'cannon') return cannonTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
 	if (result.kind === 'missile') return missileTurretFromMount(ownerId, result.mountSpec, result.mount);
+	if (result.kind === 'railgun') return railgunTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
+	if (result.kind === 'pd') return pdTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
 	return turretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
 };
 
@@ -790,6 +810,60 @@ export function cannonTurretFromMount(ownerId: number, faction: Faction, mountSp
 			fireIntervalMs: mountSpec.fireIntervalMs ?? CANNON_TURRET_FIRE_INTERVAL_MS,
 			burstCount: mountSpec.burstCount ?? CANNON_TURRET_BURST_COUNT,
 			burstShotDelayMs: mountSpec.burstShotDelayMs ?? CANNON_TURRET_BURST_SHOT_DELAY_MS,
+		}),
+	};
+}
+
+export function railgunTurretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
+	return {
+		turret: {
+			ownerId,
+			faction,
+			mountX: mountSpec.x,
+			mountZ: mountSpec.z,
+			baseAngle: mountSpec.baseAngle,
+			aimAngle: mountSpec.baseAngle,
+			coneHalf: mountSpec.coneHalf ?? RAILGUN_TURRET_CONE_HALF,
+			range: mountSpec.range ?? RAILGUN_TURRET_RANGE,
+			damage: mountSpec.damage ?? RAILGUN_DAMAGE,
+			projectileKind: 'railgun' as const,
+			projectileSpeed: RAILGUN_SHELL_SPEED,
+			projectileLife: RAILGUN_SHELL_LIFE_SEC,
+			pierce: RAILGUN_MAX_PIERCE,
+			hasTarget: false,
+			mount,
+		},
+		burstFire: createBurstFireState({
+			fireIntervalMs: mountSpec.fireIntervalMs ?? RAILGUN_TURRET_FIRE_INTERVAL_MS,
+			burstCount: mountSpec.burstCount ?? RAILGUN_TURRET_BURST_COUNT,
+			burstShotDelayMs: mountSpec.burstShotDelayMs ?? RAILGUN_TURRET_BURST_SHOT_DELAY_MS,
+		}),
+	};
+}
+
+export function pdTurretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
+	return {
+		turret: {
+			ownerId,
+			faction,
+			mountX: mountSpec.x,
+			mountZ: mountSpec.z,
+			baseAngle: mountSpec.baseAngle,
+			aimAngle: mountSpec.baseAngle,
+			coneHalf: mountSpec.coneHalf ?? PD_TURRET_CONE_HALF,
+			range: mountSpec.range ?? PD_TURRET_RANGE,
+			damage: mountSpec.damage ?? PD_DAMAGE,
+			projectileKind: 'pd' as const,
+			projectileSpeed: PD_SHELL_SPEED,
+			projectileLife: PD_SHELL_LIFE_SEC,
+			spreadHalf: PD_SPREAD_HALF,
+			hasTarget: false,
+			mount,
+		},
+		burstFire: createBurstFireState({
+			fireIntervalMs: mountSpec.fireIntervalMs ?? PD_TURRET_FIRE_INTERVAL_MS,
+			burstCount: mountSpec.burstCount ?? PD_TURRET_BURST_COUNT,
+			burstShotDelayMs: mountSpec.burstShotDelayMs ?? PD_TURRET_BURST_SHOT_DELAY_MS,
 		}),
 	};
 }
@@ -996,9 +1070,37 @@ const CANNON_SHELL_GEO = (() => {
 	return g;
 })();
 const CANNON_SHELL_MAT = new MeshStandardMaterial({ color: 0xff7733, emissive: 0xdd3300, emissiveIntensity: 1.2, roughness: 0.4, metalness: 0.3 });
+CANNON_SHELL_GEO.userData.shared = true;
+CANNON_SHELL_MAT.userData.shared = true;
 
 export function cannonShellMesh(): Mesh {
 	return new Mesh(CANNON_SHELL_GEO, CANNON_SHELL_MAT);
+}
+
+const RAILGUN_SHELL_GEO = (() => {
+	const g = new CylinderGeometry(0.05, 0.05, 1.2, 8);
+	g.rotateX(Math.PI / 2);
+	return g;
+})();
+const RAILGUN_SHELL_MAT = new MeshStandardMaterial({ color: 0xaaffff, emissive: 0x66ffff, emissiveIntensity: 2.0, roughness: 0.3, metalness: 0.5 });
+RAILGUN_SHELL_GEO.userData.shared = true;
+RAILGUN_SHELL_MAT.userData.shared = true;
+
+export function railgunMesh(): Mesh {
+	return new Mesh(RAILGUN_SHELL_GEO, RAILGUN_SHELL_MAT);
+}
+
+const PD_SHELL_GEO = (() => {
+	const g = new CylinderGeometry(0.06, 0.06, 0.3, 6);
+	g.rotateX(Math.PI / 2);
+	return g;
+})();
+const PD_SHELL_MAT = new MeshStandardMaterial({ color: 0xffee66, emissive: 0xffaa22, emissiveIntensity: 1.4, roughness: 0.35 });
+PD_SHELL_GEO.userData.shared = true;
+PD_SHELL_MAT.userData.shared = true;
+
+export function pdMesh(): Mesh {
+	return new Mesh(PD_SHELL_GEO, PD_SHELL_MAT);
 }
 
 interface BuiltBlast {

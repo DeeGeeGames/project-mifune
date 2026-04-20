@@ -25,7 +25,7 @@ type MenuRow =
 	| { kind: 'back' }
 	| { kind: 'start' };
 
-const WEAPON_CYCLE: readonly (WeaponKind | null)[] = [null, 'turret', 'cannon', 'beam', 'missile'];
+const WEAPON_CYCLE: readonly (WeaponKind | null)[] = [null, 'turret', 'cannon', 'beam', 'missile', 'railgun', 'pd'];
 
 const WEAPON_LABELS: Record<WeaponKind | 'none', string> = {
 	none: 'None',
@@ -33,6 +33,8 @@ const WEAPON_LABELS: Record<WeaponKind | 'none', string> = {
 	cannon: 'Cannon',
 	beam: 'Beam',
 	missile: 'Missile',
+	railgun: 'Railgun',
+	pd: 'Point Defense',
 };
 
 const WEAPON_LABEL_WIDTH = Math.max(...Object.values(WEAPON_LABELS).map((l) => l.length));

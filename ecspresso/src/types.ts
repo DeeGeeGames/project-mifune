@@ -77,7 +77,7 @@ export interface ShipComponent {
 
 export type Faction = 'ally' | 'enemy';
 
-export type ProjectileKind = 'bullet' | 'cannon';
+export type ProjectileKind = 'bullet' | 'cannon' | 'railgun' | 'pd';
 
 export interface TurretComponent {
 	ownerId: number;
@@ -96,6 +96,8 @@ export interface TurretComponent {
 	projectileLife?: number;
 	splashDamage?: number;
 	splashRadius?: number;
+	pierce?: number;
+	spreadHalf?: number;
 }
 
 export interface ProjectileComponent {
@@ -106,6 +108,8 @@ export interface ProjectileComponent {
 	damage: number;
 	splashDamage?: number;
 	splashRadius?: number;
+	pierce?: number;
+	hitTargets?: Set<number>;
 }
 
 export interface MissileTurretComponent {

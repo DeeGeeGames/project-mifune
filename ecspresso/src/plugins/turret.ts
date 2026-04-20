@@ -1,6 +1,6 @@
 import { definePlugin, type World } from '../types';
 import { angleDiff, bearingXZ, clamp, distanceXZ, forwardXZ, leadTarget, mountToWorld, normalizeAngle, stepAngle } from '../math';
-import { cannonShellMesh, projectileMesh } from '../ships';
+import { cannonShellMesh, pdMesh, projectileMesh, railgunMesh } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { canFire, recordShot } from '../weapons';
 import {
@@ -13,6 +13,8 @@ import {
 const PROJECTILE_MESH_FACTORY = {
 	bullet: projectileMesh,
 	cannon: cannonShellMesh,
+	railgun: railgunMesh,
+	pd: pdMesh,
 } as const;
 
 export interface OwnerState {
@@ -114,23 +116,28 @@ export const createTurretPlugin = () => definePlugin({
 						owner.x, owner.z, owner.heading, turret.mountX, turret.mountZ,
 					);
 
-					const fwd = forwardXZ(turret.aimAngle);
-					const muzzleX = mountWorldX + fwd.x * MUZZLE_OFFSET;
-					const muzzleZ = mountWorldZ + fwd.z * MUZZLE_OFFSET;
+					const aimFwd = forwardXZ(turret.aimAngle);
+					const muzzleX = mountWorldX + aimFwd.x * MUZZLE_OFFSET;
+					const muzzleZ = mountWorldZ + aimFwd.z * MUZZLE_OFFSET;
+					const spreadHalf = turret.spreadHalf ?? 0;
+					const fireAngle = turret.aimAngle + (Math.random() * 2 - 1) * spreadHalf;
+					const fireFwd = spreadHalf > 0 ? forwardXZ(fireAngle) : aimFwd;
 					const speed = turret.projectileSpeed ?? BULLET_SPEED;
 					const life = turret.projectileLife ?? BULLET_LIFE_SEC;
 					const mesh = PROJECTILE_MESH_FACTORY[turret.projectileKind ?? 'bullet']();
 
 					ecs.spawn({
-						...createMeshComponents(mesh, { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: turret.aimAngle } }),
+						...createMeshComponents(mesh, { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: fireAngle } }),
 						projectile: {
 							faction: turret.faction,
-							vx: fwd.x * speed,
-							vz: fwd.z * speed,
+							vx: fireFwd.x * speed,
+							vz: fireFwd.z * speed,
 							life,
 							damage: turret.damage,
 							splashDamage: turret.splashDamage,
 							splashRadius: turret.splashRadius,
+							pierce: turret.pierce,
+							hitTargets: turret.pierce !== undefined ? new Set<number>() : undefined,
 						},
 					});
 

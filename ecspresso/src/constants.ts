@@ -82,6 +82,26 @@ export const BEAM_TURRET_COOLDOWN_MS = 3000;
 export const BEAM_RADIUS = 0.12;
 export const BEAM_COLOR = 0x55eeff;
 
+export const RAILGUN_TURRET_CONE_HALF = Math.PI / 12;
+export const RAILGUN_TURRET_RANGE = 200;
+export const RAILGUN_TURRET_FIRE_INTERVAL_MS = 5000;
+export const RAILGUN_TURRET_BURST_COUNT = 1;
+export const RAILGUN_TURRET_BURST_SHOT_DELAY_MS = 0;
+export const RAILGUN_DAMAGE = 15;
+export const RAILGUN_SHELL_SPEED = 600;
+export const RAILGUN_SHELL_LIFE_SEC = 0.75;
+export const RAILGUN_MAX_PIERCE = 5;
+
+export const PD_TURRET_CONE_HALF = Math.PI / 2.5;
+export const PD_TURRET_RANGE = 25;
+export const PD_TURRET_FIRE_INTERVAL_MS = 50;
+export const PD_TURRET_BURST_COUNT = 1;
+export const PD_TURRET_BURST_SHOT_DELAY_MS = 0;
+export const PD_DAMAGE = 0.5;
+export const PD_SHELL_SPEED = 50;
+export const PD_SHELL_LIFE_SEC = 0.6;
+export const PD_SPREAD_HALF = Math.PI / 24;
+
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;
 export const ENEMY_SPAWN_DISTANCE_SCALE = 0.5;

@@ -66,14 +66,26 @@ export const createCombatPlugin = () => definePlugin({
 
 					if (projectile.faction === 'ally') {
 						for (const { id: enemyId, components: { enemy, localTransform3D: et } } of queries.enemies) {
+							const pierceRemaining = projectile.pierce;
+							if (pierceRemaining !== undefined && projectile.hitTargets?.has(enemyId)) continue;
 							const d = distanceXZ(pt.x, pt.z, et.x, et.z);
 							if (d > enemy.radius + PROJECTILE_RADIUS) continue;
 							enemy.hp -= projectile.damage;
 							enemy.hitEscalation += projectile.damage;
+							if (enemy.hp <= 0) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
+							if (pierceRemaining !== undefined) {
+								projectile.hitTargets?.add(enemyId);
+								const next = pierceRemaining - 1;
+								projectile.pierce = next;
+								if (next <= 0) {
+									ecs.removeEntity(projId);
+									break;
+								}
+								continue;
+							}
 							const impactX = pt.x;
 							const impactZ = pt.z;
 							ecs.removeEntity(projId);
-							if (enemy.hp <= 0) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
 							if (hasSplash) {
 								spawnBlast(ecs, impactX, impactZ, splashRadius);
 								for (const { id: otherId, components: { enemy: other, localTransform3D: ot } } of queries.enemies) {
