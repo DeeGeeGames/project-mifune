@@ -18,7 +18,8 @@ import { ISO_AZIMUTH, ISO_ELEVATION, CAMERA_DISTANCE } from '../constants';
 import { WEAPON_KINDS, WEAPON_LABELS, WEAPON_LABEL_WIDTH, PYLON_LABELS, PAIR_LABELS } from '../loadoutLabels';
 import { renderStatCard } from './statCardDom';
 
-const OVERHEAD_ELEVATION = Math.PI / 2 - 0.0001;
+const LOADOUT_AZIMUTH = -Math.PI / 5;
+const LOADOUT_ELEVATION = Math.PI / 8;
 const OVERHEAD_ZOOM = 1.8;
 const GAMEPLAY_ZOOM = 1;
 
@@ -281,7 +282,7 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 			const camera = world.getResource('camera3DState');
 			camera.unfollow();
 			camera.setTarget(0, 0, 0);
-			camera.setOrbit(0, OVERHEAD_ELEVATION, CAMERA_DISTANCE);
+			camera.setOrbit(LOADOUT_AZIMUTH, LOADOUT_ELEVATION, CAMERA_DISTANCE);
 			if (camera.projection === 'orthographic') camera.setZoom(OVERHEAD_ZOOM);
 
 			const loadout = world.getResource('carrierLoadout');
