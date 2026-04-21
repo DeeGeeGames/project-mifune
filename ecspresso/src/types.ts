@@ -12,6 +12,7 @@ import {
 	GP_BUTTON_A,
 	GP_BUTTON_B,
 	GP_BUTTON_LB,
+	GP_BUTTON_RB,
 	GP_BUTTON_DPAD_UP,
 	GP_BUTTON_DPAD_DOWN,
 	GP_BUTTON_DPAD_LEFT,
@@ -43,7 +44,9 @@ export type GameAction =
 	| 'menuLeft'
 	| 'menuRight'
 	| 'menuConfirm'
-	| 'menuCancel';
+	| 'menuCancel'
+	| 'facingCCW'
+	| 'facingCW';
 
 const actions: ActionMap<GameAction> = {
 	fwd:           { keys: ['w'] },
@@ -62,6 +65,8 @@ const actions: ActionMap<GameAction> = {
 	menuRight:     { keys: ['ArrowRight'], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_RIGHT) },
 	menuConfirm:   { keys: ['Enter', ' '], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
 	menuCancel:    { keys: ['Escape'],     gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_B) },
+	facingCCW:     { keys: ['q'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_LB) },
+	facingCW:      { keys: ['e'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_RB) },
 };
 
 export interface ShipComponent {
@@ -251,13 +256,8 @@ export type TitleScreenState = {
 	selectedIndex: number;
 };
 
-export type LoadoutMode =
-	| { kind: 'menu' }
-	| { kind: 'facing'; pylonIdx: number; initialFacing: number };
-
 export type LoadoutScreenState = {
-	selectedIndex: number;
-	mode: LoadoutMode;
+	selectedPylonIdx: number;
 };
 
 export type MarketScreenConfig = {
@@ -298,7 +298,6 @@ export interface HudRefs {
 	titleEl: HTMLElement;
 	titleMenuEl: HTMLElement;
 	loadoutEl: HTMLElement;
-	loadoutMenuEl: HTMLElement;
 	loadoutStatCardEl: HTMLElement;
 	marketEl: HTMLElement;
 	marketTitleEl: HTMLElement;
@@ -409,8 +408,7 @@ export const builder = ECSpresso.create()
 		})
 		.add('loadoutSelect', {
 			initialState: (): LoadoutScreenState => ({
-				selectedIndex: 0,
-				mode: { kind: 'menu' },
+				selectedPylonIdx: 0,
 			}),
 		})
 		.add('playing', {

@@ -94,7 +94,6 @@ game.addResource('hudRefs', {
 	titleEl: requireEl('hud-title'),
 	titleMenuEl: requireEl('hud-title-menu'),
 	loadoutEl: requireEl('hud-loadout'),
-	loadoutMenuEl: requireEl('hud-loadout-menu'),
 	loadoutStatCardEl: requireEl('hud-loadout-stat-card'),
 	marketEl: requireEl('hud-market'),
 	marketTitleEl: requireEl('hud-market-title'),

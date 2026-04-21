@@ -8,6 +8,8 @@ export const CAMERA_ZOOM_STEP = 1.1;
 export const CAMERA_FOLLOW_SMOOTHING = 6;
 export const CAMERA_DISTANCE = 60;
 
+export const LOADOUT_CARRIER_ROTATION_SMOOTHING = 6;
+
 // Camera lead: pans the follow offset ahead of the carrier based on heading + velocity.
 // direction = heading_unit + velocity / maxSpeed (sum; cancels under full reverse)
 // baseMag = min(|sum|, 2) * CAMERA_LEAD_BASE_PER_SUM
