@@ -462,6 +462,7 @@ export const pairDirection = (pa: { x: number; z: number }, pb: { x: number; z: 
 
 type Vec2Lite = { readonly x: number; readonly z: number };
 
+const MAIN_GUN_EMITTER_WIDTH = 2.16;
 const MAIN_GUN_EMITTER_HEIGHT = 0.45;
 const MAIN_GUN_EMITTER_DEPTH = 0.9;
 
@@ -479,9 +480,8 @@ const buildMainGunBeamGroup = (
 	group.position.set(mid.x, hullHeight, mid.z);
 	group.rotation.y = facing;
 
-	const emitterWidth = MAIN_GUN_BEAM_RADIUS * 2 * 0.9;
 	const emitter = new Mesh(
-		new BoxGeometry(emitterWidth, MAIN_GUN_EMITTER_HEIGHT, MAIN_GUN_EMITTER_DEPTH),
+		new BoxGeometry(MAIN_GUN_EMITTER_WIDTH, MAIN_GUN_EMITTER_HEIGHT, MAIN_GUN_EMITTER_DEPTH),
 		accentMat,
 	);
 	emitter.position.set(0, MAIN_GUN_EMITTER_HEIGHT / 2, MAIN_GUN_EMITTER_DEPTH / 2);

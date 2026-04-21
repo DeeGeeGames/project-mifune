@@ -117,10 +117,10 @@ export const PD_SPREAD_HALF = Math.PI / 24;
 
 export const MAIN_GUN_DETECTION_RANGE = RAILGUN_TURRET_RANGE;
 export const MAIN_GUN_VISUAL_LENGTH = 1000;
-export const MAIN_GUN_DAMAGE_PER_SEC = 120;
+export const MAIN_GUN_DAMAGE_PER_SEC = 240;
 export const MAIN_GUN_DURATION_MS = 2000;
 export const MAIN_GUN_COOLDOWN_MS = 8000;
-export const MAIN_GUN_BEAM_RADIUS = 1.2;
+export const MAIN_GUN_BEAM_RADIUS = 2;
 export const MAIN_GUN_COLOR = 0xffaa33;
 
 export const ENEMY_RADIUS = 0.6;
