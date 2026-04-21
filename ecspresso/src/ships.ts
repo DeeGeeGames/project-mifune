@@ -130,6 +130,17 @@ export type EmptyTurretMount = Pick<TurretMount, 'x' | 'z' | 'baseAngle'> & {
 
 export type WeaponKind = 'turret' | 'cannon' | 'beam' | 'missile' | 'railgun' | 'pd' | 'mainGun';
 
+export type AuxiliaryKind = 'shield';
+
+export interface AuxiliaryMount {
+	readonly x: number;
+	readonly z: number;
+}
+
+export interface CarrierLoadoutAux {
+	systemKind: AuxiliaryKind | null;
+}
+
 export interface CarrierLoadoutPylon {
 	weaponKind: WeaponKind | null;
 	facing: number;
@@ -168,9 +179,13 @@ export const PAIR_SLOTS: readonly PairSlotDef[] = [
 export const emptyLoadoutPairs = (): CarrierLoadoutPair[] =>
 	PAIR_SLOTS.map((p) => ({ ...p, weaponKind: null }));
 
+export const emptyLoadoutAuxSlots = (spec: ShipSpec): CarrierLoadoutAux[] =>
+	(spec.auxiliaryMounts ?? []).map(() => ({ systemKind: null }));
+
 export interface CarrierLoadout {
 	pylons: CarrierLoadoutPylon[];
 	pairs: CarrierLoadoutPair[];
+	auxSlots: CarrierLoadoutAux[];
 }
 
 const PYLON_ARC_RANGES = {
@@ -201,6 +216,7 @@ export interface ShipSpec {
 	readonly beamTurrets?: readonly BeamTurretMount[];
 	readonly missileTurrets?: readonly MissileTurretMount[];
 	readonly emptyTurretMounts?: readonly EmptyTurretMount[];
+	readonly auxiliaryMounts?: readonly AuxiliaryMount[];
 	readonly flatBow?: true;
 }
 
@@ -225,6 +241,10 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 			{ x: -1.0, z: 3.0, baseAngle: PORT_FORE, category: 'forward' },
 			{ x: -1.0, z: 0, baseAngle: PORT, category: 'side' },
 			{ x: -1.0, z: -3.0, baseAngle: PORT_AFT, category: 'back' },
+		],
+		auxiliaryMounts: [
+			{ x: 1.0, z: 2.2 }, { x: 1.0, z: -0.8 }, { x: 1.0, z: -3.8 },
+			{ x: -1.0, z: 2.2 }, { x: -1.0, z: -0.8 }, { x: -1.0, z: -3.8 },
 		],
 		flatBow: true,
 	},
@@ -350,6 +370,38 @@ function buildEmptyMountGroup(
 	mount.add(base);
 
 	return mount;
+}
+
+const AUX_PLACEHOLDER_GEO = new BoxGeometry(0.06, 0.22, 0.9);
+AUX_PLACEHOLDER_GEO.userData.shared = true;
+
+function buildAuxMountGroup(
+	mountSpec: AuxiliaryMount,
+	spec: ShipSpec,
+	accentMat: MeshStandardMaterial,
+): Group {
+	const group = new Group();
+	const sign = mountSpec.x >= 0 ? 1 : -1;
+	group.position.set(sign * (spec.hullWidth / 2 + 0.02), spec.hullHeight * 0.55, mountSpec.z);
+	const placeholder = new Mesh(AUX_PLACEHOLDER_GEO, accentMat);
+	group.add(placeholder);
+	return group;
+}
+
+const SHIELD_AUX_GEO = new BoxGeometry(0.12, 0.3, 0.5);
+SHIELD_AUX_GEO.userData.shared = true;
+const SHIELD_AUX_MAT = new MeshStandardMaterial({
+	color: 0x3a9bff,
+	emissive: 0x1a5fbf,
+	emissiveIntensity: 0.8,
+	roughness: 0.4,
+	metalness: 0.3,
+});
+SHIELD_AUX_MAT.userData.shared = true;
+
+function buildAuxSystemVisual(kind: AuxiliaryKind): Mesh {
+	if (kind === 'shield') return new Mesh(SHIELD_AUX_GEO, SHIELD_AUX_MAT);
+	throw new Error(`Unhandled auxiliary kind: ${kind satisfies never}`);
 }
 
 const LAUNCHER_BODY_W = 0.5;
@@ -541,6 +593,7 @@ export interface BuiltShip {
 	readonly beamTurretMounts: readonly BeamMountBuild[];
 	readonly missileTurretMounts: readonly Group[];
 	readonly emptyTurretMountGroups: readonly Group[];
+	readonly emptyAuxMountGroups: readonly Group[];
 }
 
 interface ShipMaterials {
@@ -734,15 +787,6 @@ const addCarrierDetails: ShipDetailBuilder = (group, spec, mats) => {
 	group.add(mast);
 
 	SIDES.forEach((side) => {
-		const hangarStripe = new Mesh(
-			new BoxGeometry(0.04, spec.hullHeight * 0.45, spec.hullLength * 0.6),
-			mats.accent,
-		);
-		hangarStripe.position.set(side * (spec.hullWidth / 2 + 0.02), spec.hullHeight * 0.55, 0);
-		group.add(hangarStripe);
-	});
-
-	SIDES.forEach((side) => {
 		const eng = new Mesh(
 			new BoxGeometry(spec.hullWidth * 0.35, spec.hullHeight * 0.55, 0.18),
 			mats.engine,
@@ -891,6 +935,13 @@ export function buildCarrierLoadoutVisual(
 		if (consumed.has(idx)) return;
 		const pylon = loadout.pylons[idx];
 		if (pylon) materializeLoadoutMount(spec, built, emptyMount, idx, pylon);
+	});
+	loadout.auxSlots.forEach((aux, idx) => {
+		const auxGroup = built.emptyAuxMountGroups[idx];
+		if (!auxGroup) return;
+		if (aux.systemKind === null) return;
+		auxGroup.clear();
+		auxGroup.add(buildAuxSystemVisual(aux.systemKind));
 	});
 }
 
@@ -1123,7 +1174,13 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		return emptyGroup;
 	});
 
-	return { group, turretMounts, cannonTurretMounts, beamTurretMounts, missileTurretMounts, emptyTurretMountGroups };
+	const emptyAuxMountGroups: Group[] = (spec.auxiliaryMounts ?? []).map((mount) => {
+		const auxGroup = buildAuxMountGroup(mount, spec, mats.accent);
+		group.add(auxGroup);
+		return auxGroup;
+	});
+
+	return { group, turretMounts, cannonTurretMounts, beamTurretMounts, missileTurretMounts, emptyTurretMountGroups, emptyAuxMountGroups };
 }
 
 const ENEMY_ACCENT_MAT = new MeshStandardMaterial({ color: 0x2a1418, roughness: 0.6, metalness: 0.2 });

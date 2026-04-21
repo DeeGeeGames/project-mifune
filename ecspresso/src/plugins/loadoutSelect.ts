@@ -1,6 +1,6 @@
 import { BufferAttribute, BufferGeometry, Group, Line, LineBasicMaterial, Mesh } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
-import { definePlugin, type World } from '../types';
+import { definePlugin, type LoadoutCategory, type LoadoutScreenState, type World } from '../types';
 import { menuAxisDelta, wrapIndex } from '../menu';
 import {
 	SHIP_SPECS,
@@ -8,15 +8,18 @@ import {
 	buildCarrierLoadoutVisual,
 	pylonArc,
 	type EmptyTurretMount,
+	type AuxiliaryMount,
 	type CarrierLoadout,
 	type CarrierLoadoutPylon,
 	type CarrierLoadoutPair,
+	type CarrierLoadoutAux,
 	type WeaponKind,
+	type AuxiliaryKind,
 } from '../ships';
 import { angleDiff, clamp, forwardXZ, normalizeAngle } from '../math';
 import { ISO_AZIMUTH, ISO_ELEVATION, CAMERA_DISTANCE, LOADOUT_CARRIER_ROTATION_SMOOTHING } from '../constants';
-import { WEAPON_KINDS } from '../loadoutLabels';
-import { renderStatCard } from './statCardDom';
+import { WEAPON_KINDS, AUXILIARY_KINDS } from '../loadoutLabels';
+import { renderAuxStatCard, renderStatCard } from './statCardDom';
 
 const LOADOUT_AZIMUTH = -Math.PI / 5;
 const LOADOUT_ELEVATION = Math.PI / 8;
@@ -31,12 +34,19 @@ const GAMEPLAY_ZOOM = 1;
 const CAMERA_FOREGROUND_BEARING = LOADOUT_AZIMUTH;
 
 const CARRIER_MOUNTS: readonly EmptyTurretMount[] = SHIP_SPECS.carrier.emptyTurretMounts ?? [];
+const CARRIER_AUX_MOUNTS: readonly AuxiliaryMount[] = SHIP_SPECS.carrier.auxiliaryMounts ?? [];
 
 // Clockwise loop around the ship (viewed from above, bow up). Right advances, Left retreats.
 const NEXT_PYLON: readonly number[] = [3, 0, 1, 4, 5, 2];
 const PREV_PYLON: readonly number[] = [1, 2, 5, 0, 3, 4];
 
+// Aux slots mirror the pylon layout (3 per side, stbd indices 0–2, port indices 3–5),
+// so the same clockwise traversal applies.
+const NEXT_AUX: readonly number[] = NEXT_PYLON;
+const PREV_AUX: readonly number[] = PREV_PYLON;
+
 const WEAPON_CYCLE: readonly (WeaponKind | null)[] = [null, ...WEAPON_KINDS];
+const AUX_CYCLE: readonly (AuxiliaryKind | null)[] = [null, ...AUXILIARY_KINDS];
 
 const FACING_STEP = Math.PI / 4;
 const FACING_EPS = 1e-6;
@@ -201,9 +211,17 @@ const buildPylonArcGroup = (
 	return group;
 };
 
-const targetRyForPylon = (pylonIdx: number, fallback: number): number => {
-	const m = CARRIER_MOUNTS[pylonIdx];
-	return m ? CAMERA_FOREGROUND_BEARING - Math.atan2(m.x, m.z) : fallback;
+const targetRyForMount = (m: { x: number; z: number } | undefined, fallback: number): number =>
+	m ? CAMERA_FOREGROUND_BEARING - Math.atan2(m.x, m.z) : fallback;
+
+const applyAuxCycle = (loadout: CarrierLoadout, auxIdx: number, dir: 1 | -1): boolean => {
+	const aux = loadout.auxSlots[auxIdx];
+	if (!aux) return false;
+	const idx = AUX_CYCLE.indexOf(aux.systemKind);
+	const next = AUX_CYCLE[wrapIndex((idx < 0 ? 0 : idx) + dir, AUX_CYCLE.length)] ?? null;
+	if (next === aux.systemKind) return false;
+	aux.systemKind = next;
+	return true;
 };
 
 interface PreviewHandle {
@@ -235,20 +253,67 @@ const pylonIndicesToHighlight = (loadout: CarrierLoadout, selectedIdx: number): 
 	return [consumingPair.pylonA, consumingPair.pylonB];
 };
 
+const AUX_HIGHLIGHT_COLOR = 0xffd55a;
+const AUX_HIGHLIGHT_SIZE = 1.2;
+
+const AUX_HIGHLIGHT_GEO: BufferGeometry = (() => {
+	const half = AUX_HIGHLIGHT_SIZE / 2;
+	const top = AUX_HIGHLIGHT_SIZE * 0.4;
+	const positions = new Float32Array([
+		0, 0, -half,
+		0, 0,  half,
+		0, top, half,
+		0, top, -half,
+		0, 0, -half,
+	]);
+	const geo = new BufferGeometry();
+	geo.setAttribute('position', new BufferAttribute(positions, 3));
+	geo.userData.shared = true;
+	return geo;
+})();
+
+const AUX_HIGHLIGHT_MAT = new LineBasicMaterial({ color: AUX_HIGHLIGHT_COLOR });
+AUX_HIGHLIGHT_MAT.userData.shared = true;
+
+const buildAuxHighlight = (mount: AuxiliaryMount, spec: { hullWidth: number; hullHeight: number }): Group => {
+	const group = new Group();
+	const sign = mount.x >= 0 ? 1 : -1;
+	group.position.set(sign * (spec.hullWidth / 2 + 0.02), spec.hullHeight * 0.55, mount.z);
+	group.add(new Line(AUX_HIGHLIGHT_GEO, AUX_HIGHLIGHT_MAT));
+	return group;
+};
+
+interface LoadoutFocus {
+	readonly category: LoadoutCategory;
+	readonly pylonIdx: number;
+	readonly auxIdx: number;
+}
+
+const focusKey = (f: LoadoutFocus): string =>
+	f.category === 'weapon' ? `w:${f.pylonIdx}` : `a:${f.auxIdx}`;
+
+const focusMount = (f: LoadoutFocus): { x: number; z: number } | undefined =>
+	f.category === 'weapon' ? CARRIER_MOUNTS[f.pylonIdx] : CARRIER_AUX_MOUNTS[f.auxIdx];
+
 const buildPreview = (
 	ecs: World,
 	loadout: CarrierLoadout,
-	selectedIdx: number,
+	focus: LoadoutFocus,
 	initialRy: number,
 ): PreviewHandle => {
 	const spec = SHIP_SPECS.carrier;
 	const built = createShipGroup('carrier');
 	buildCarrierLoadoutVisual(spec, built, loadout);
-	pylonIndicesToHighlight(loadout, selectedIdx).forEach((idx) => {
-		const pylon = loadout.pylons[idx];
-		const mount = CARRIER_MOUNTS[idx];
-		if (pylon && mount) built.group.add(buildPylonArcGroup(mount, pylon, true, spec.hullHeight));
-	});
+	if (focus.category === 'weapon') {
+		pylonIndicesToHighlight(loadout, focus.pylonIdx).forEach((idx) => {
+			const pylon = loadout.pylons[idx];
+			const mount = CARRIER_MOUNTS[idx];
+			if (pylon && mount) built.group.add(buildPylonArcGroup(mount, pylon, true, spec.hullHeight));
+		});
+	} else {
+		const mount = CARRIER_AUX_MOUNTS[focus.auxIdx];
+		if (mount) built.group.add(buildAuxHighlight(mount, spec));
+	}
 	const entity = ecs.spawn({
 		...createGroupComponents(built.group, { x: 0, y: 0, z: 0 }, { rotation: { y: initialRy }, scale: 0.5 }),
 	});
@@ -258,18 +323,41 @@ const buildPreview = (
 const snapshotLoadout = (loadout: CarrierLoadout): string => {
 	const pylons = loadout.pylons.map((p) => `${p.weaponKind ?? '_'}@${p.facing.toFixed(3)}`).join('|');
 	const pairs = loadout.pairs.map((p) => `${p.slot}:${p.weaponKind ?? '_'}`).join('|');
-	return `${pylons}#${pairs}`;
+	const aux = loadout.auxSlots.map((a) => a.systemKind ?? '_').join('|');
+	return `${pylons}#${pairs}#${aux}`;
+};
+
+type StatCardFocus =
+	| { type: 'weapon'; kind: WeaponKind | null }
+	| { type: 'aux'; kind: AuxiliaryKind | null };
+
+const statCardFor = (loadout: CarrierLoadout, focus: LoadoutFocus): StatCardFocus =>
+	focus.category === 'weapon'
+		? { type: 'weapon', kind: effectiveWeapon(loadout, focus.pylonIdx) }
+		: { type: 'aux', kind: loadout.auxSlots[focus.auxIdx]?.systemKind ?? null };
+
+const statCardKey = (card: StatCardFocus): string => `${card.type}:${card.kind ?? 'none'}`;
+
+const applyStatCard = (el: HTMLElement, card: StatCardFocus): void => {
+	if (card.type === 'weapon') renderStatCard(el, card.kind);
+	else renderAuxStatCard(el, card.kind);
 };
 
 export const createLoadoutSelectPlugin = () => definePlugin({
 	id: 'loadoutSelect',
 	install: (world) => {
 		let preview: PreviewHandle | null = null;
-		let lastSelectedIdx = -1;
+		let lastFocusKey = '';
 		let lastSnapshot = '';
-		let lastStatCardKind: WeaponKind | null = null;
+		let lastStatCardKey = '';
 		let previewRy = 0;
 		let targetRy = 0;
+
+		const currentFocus = (state: LoadoutScreenState): LoadoutFocus => ({
+			category: state.category,
+			pylonIdx: state.selectedPylonIdx,
+			auxIdx: state.selectedAuxIdx,
+		});
 
 		world.eventBus.subscribe('screenEnter', ({ screen }) => {
 			if (screen !== 'loadoutSelect') return;
@@ -285,14 +373,17 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 			const loadout = world.getResource('carrierLoadout');
 			const state = world.getScreenState('loadoutSelect');
 			state.selectedPylonIdx = clamp(state.selectedPylonIdx, 0, CARRIER_MOUNTS.length - 1);
+			state.selectedAuxIdx = clamp(state.selectedAuxIdx, 0, CARRIER_AUX_MOUNTS.length - 1);
 
-			targetRy = targetRyForPylon(state.selectedPylonIdx, 0);
+			const focus = currentFocus(state);
+			targetRy = targetRyForMount(focusMount(focus), 0);
 			previewRy = targetRy;
-			preview = buildPreview(world, loadout, state.selectedPylonIdx, previewRy);
-			lastSelectedIdx = state.selectedPylonIdx;
+			preview = buildPreview(world, loadout, focus, previewRy);
+			lastFocusKey = focusKey(focus);
 			lastSnapshot = snapshotLoadout(loadout);
-			lastStatCardKind = effectiveWeapon(loadout, state.selectedPylonIdx);
-			renderStatCard(hudRefs.loadoutStatCardEl, lastStatCardKind);
+			const card = statCardFor(loadout, focus);
+			lastStatCardKey = statCardKey(card);
+			applyStatCard(hudRefs.loadoutStatCardEl, card);
 		});
 
 		world.eventBus.subscribe('screenExit', ({ screen }) => {
@@ -322,35 +413,49 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 					void ecs.setScreen('title', {});
 					return;
 				}
+				if (inputState.actions.justActivated('loadoutToggle')) {
+					state.category = state.category === 'weapon' ? 'auxiliary' : 'weapon';
+				}
 
 				const dx = menuAxisDelta(inputState, 'menuLeft', 'menuRight');
-				if (dx > 0) state.selectedPylonIdx = NEXT_PYLON[state.selectedPylonIdx] ?? state.selectedPylonIdx;
-				else if (dx < 0) state.selectedPylonIdx = PREV_PYLON[state.selectedPylonIdx] ?? state.selectedPylonIdx;
-
 				const dy = menuAxisDelta(inputState, 'menuUp', 'menuDown');
-				if (dy !== 0) applyWeaponCycle(carrierLoadout, state.selectedPylonIdx, dy);
-
 				const facingDir: 1 | -1 | 0 =
 					inputState.actions.justActivated('facingCW') ? 1
 					: inputState.actions.justActivated('facingCCW') ? -1
 					: 0;
-				if (facingDir !== 0) applyFacingStep(carrierLoadout, state.selectedPylonIdx, facingDir);
 
-				targetRy = targetRyForPylon(state.selectedPylonIdx, targetRy);
-
-				const snapshot = snapshotLoadout(carrierLoadout);
-				const changed = snapshot !== lastSnapshot || state.selectedPylonIdx !== lastSelectedIdx;
-				if (changed) {
-					tearDownPreview(ecs, preview);
-					preview = buildPreview(ecs, carrierLoadout, state.selectedPylonIdx, previewRy);
-					lastSelectedIdx = state.selectedPylonIdx;
-					lastSnapshot = snapshot;
+				let loadoutMutated = false;
+				if (state.category === 'weapon') {
+					if (dx > 0) state.selectedPylonIdx = NEXT_PYLON[state.selectedPylonIdx] ?? state.selectedPylonIdx;
+					else if (dx < 0) state.selectedPylonIdx = PREV_PYLON[state.selectedPylonIdx] ?? state.selectedPylonIdx;
+					if (dy !== 0) loadoutMutated = applyWeaponCycle(carrierLoadout, state.selectedPylonIdx, dy) || loadoutMutated;
+					if (facingDir !== 0) loadoutMutated = applyFacingStep(carrierLoadout, state.selectedPylonIdx, facingDir) || loadoutMutated;
+				} else {
+					if (dx > 0) state.selectedAuxIdx = NEXT_AUX[state.selectedAuxIdx] ?? state.selectedAuxIdx;
+					else if (dx < 0) state.selectedAuxIdx = PREV_AUX[state.selectedAuxIdx] ?? state.selectedAuxIdx;
+					if (dy !== 0) loadoutMutated = applyAuxCycle(carrierLoadout, state.selectedAuxIdx, dy) || loadoutMutated;
 				}
 
-				const kind = effectiveWeapon(carrierLoadout, state.selectedPylonIdx);
-				if (kind !== lastStatCardKind) {
-					renderStatCard(hudRefs.loadoutStatCardEl, kind);
-					lastStatCardKind = kind;
+				const focus = currentFocus(state);
+				targetRy = targetRyForMount(focusMount(focus), targetRy);
+
+				const currentFocusKey = focusKey(focus);
+				const focusChanged = currentFocusKey !== lastFocusKey;
+				if (loadoutMutated || focusChanged) {
+					const snapshot = loadoutMutated ? snapshotLoadout(carrierLoadout) : lastSnapshot;
+					if (focusChanged || snapshot !== lastSnapshot) {
+						tearDownPreview(ecs, preview);
+						preview = buildPreview(ecs, carrierLoadout, focus, previewRy);
+						lastFocusKey = currentFocusKey;
+						lastSnapshot = snapshot;
+					}
+				}
+
+				const card = statCardFor(carrierLoadout, focus);
+				const key = statCardKey(card);
+				if (key !== lastStatCardKey) {
+					applyStatCard(hudRefs.loadoutStatCardEl, card);
+					lastStatCardKey = key;
 				}
 			});
 

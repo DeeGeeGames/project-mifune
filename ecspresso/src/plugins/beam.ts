@@ -3,6 +3,7 @@ import { angleDiff, bearingXZ, distanceXZ, forwardXZ, mountToWorld, normalizeAng
 import { BEAM_RADIUS, MUZZLE_OFFSET, SHIP_HIT_RADIUS, TURRET_TURN_RATE } from '../constants';
 import { getOwnerState } from './turret';
 import { killEnemyAndDrop } from './combat';
+import { applyDamageToShip } from './shield';
 import { segmentHitDistance } from '../hit';
 
 export const createBeamPlugin = () => definePlugin({
@@ -154,7 +155,7 @@ export const createBeamPlugin = () => definePlugin({
 							if (closestShipId !== -1) {
 								const ship = ecs.getComponent(closestShipId, 'ship');
 								if (ship) {
-									ship.hp -= damageThisFrame;
+									applyDamageToShip(ecs, closestShipId, damageThisFrame, ship);
 									if (ship.hp <= 0) {
 										ecs.eventBus.publish('ship:destroyed', { entityId: closestShipId, shipClass: ship.class });
 										if (ship.class === 'carrier') ecs.eventBus.publish('carrier:destroyed', { entityId: closestShipId });

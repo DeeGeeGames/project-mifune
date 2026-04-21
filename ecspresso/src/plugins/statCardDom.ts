@@ -1,5 +1,11 @@
-import type { WeaponKind } from '../ships';
+import type { WeaponKind, AuxiliaryKind } from '../ships';
 import { weaponStats, weaponDisplayName } from '../weaponStats';
+import { AUXILIARY_LABELS } from '../loadoutLabels';
+import {
+	SHIELD_DEPLETED_DELAY_SEC,
+	SHIELD_HP_PER_GENERATOR,
+	SHIELD_REGEN_PER_GENERATOR_PER_SEC,
+} from '../constants';
 
 export const buildLabeledRow = (rowClass: string, label: string, value: string): HTMLElement => {
 	const row = document.createElement('div');
@@ -35,4 +41,27 @@ export const renderStatCard = (
 	}
 	const rows = weaponStats(kind).map(({ label, value }) => buildLabeledRow('stat-card-row', label, value));
 	el.replaceChildren(buildSingle('stat-card-title', weaponDisplayName(kind)), ...rows);
+};
+
+const auxStats = (kind: AuxiliaryKind): readonly { label: string; value: string }[] => {
+	if (kind === 'shield') {
+		return [
+			{ label: 'Max (per gen)', value: `${SHIELD_HP_PER_GENERATOR}` },
+			{ label: 'Regen (per gen)', value: `${SHIELD_REGEN_PER_GENERATOR_PER_SEC}/s` },
+			{ label: 'Depleted lockout', value: `${SHIELD_DEPLETED_DELAY_SEC}s` },
+		];
+	}
+	return [];
+};
+
+export const renderAuxStatCard = (el: HTMLElement, kind: AuxiliaryKind | null): void => {
+	if (kind === null) {
+		el.replaceChildren(
+			buildSingle('stat-card-title', 'Empty Aux Slot'),
+			buildSingle('stat-card-empty', '— no system installed —'),
+		);
+		return;
+	}
+	const rows = auxStats(kind).map(({ label, value }) => buildLabeledRow('stat-card-row', label, value));
+	el.replaceChildren(buildSingle('stat-card-title', AUXILIARY_LABELS[kind]), ...rows);
 };

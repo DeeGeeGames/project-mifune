@@ -3,6 +3,7 @@ import { distanceXZ } from '../math';
 import { PROJECTILE_RADIUS, PICKUP_VALUE, SHIP_HIT_RADIUS, BLAST_LIFE_SEC } from '../constants';
 import { pickupMesh, createBlast, type ShipClass } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
+import { applyDamageToShip } from './shield';
 
 export function killEnemyAndDrop(ecs: World, enemyId: number, x: number, z: number): void {
 	ecs.eventBus.publish('enemy:killed', { entityId: enemyId, x, z });
@@ -105,7 +106,7 @@ export const createCombatPlugin = () => definePlugin({
 					for (const { id: shipId, components: { ship, localTransform3D: st } } of queries.ships) {
 						const d = distanceXZ(pt.x, pt.z, st.x, st.z);
 						if (d > shipHitRadius) continue;
-						ship.hp -= projectile.damage;
+						applyDamageToShip(ecs, shipId, projectile.damage, ship);
 						const impactX = pt.x;
 						const impactZ = pt.z;
 						ecs.removeEntity(projId);
@@ -116,7 +117,7 @@ export const createCombatPlugin = () => definePlugin({
 								if (otherId === shipId) continue;
 								const sd = distanceXZ(impactX, impactZ, ot.x, ot.z);
 								if (sd > splashRadius + SHIP_HIT_RADIUS) continue;
-								other.hp -= splashDamage;
+								applyDamageToShip(ecs, otherId, splashDamage, other);
 								if (other.hp <= 0) destroyShip(ecs, otherId, other.class);
 							}
 						}

@@ -1,7 +1,7 @@
 import { AmbientLight, BufferAttribute, BufferGeometry, DirectionalLight, Mesh, MeshStandardMaterial, PlaneGeometry, Points, PointsMaterial } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder, type World } from './types';
-import { SHIP_SPECS, createShipGroup, spawnShipTurrets, applyCarrierLoadout, emptyLoadoutPairs } from './ships';
+import { SHIP_SPECS, createShipGroup, spawnShipTurrets, applyCarrierLoadout, emptyLoadoutPairs, emptyLoadoutAuxSlots } from './ships';
 import { createKinematicState } from './kinematic';
 import {
 	GROUND_COLOR,
@@ -37,6 +37,7 @@ import { createTitleScreenPlugin } from './plugins/titleScreen';
 import { createLoadoutSelectPlugin } from './plugins/loadoutSelect';
 import { createMarketPlugin } from './plugins/market';
 import { createCameraLeadPlugin } from './plugins/cameraLead';
+import { buildShieldComponent, createShieldBubble, createShieldPlugin } from './plugins/shield';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -62,6 +63,7 @@ const game = builder
 	.withPlugin(createLoadoutSelectPlugin())
 	.withPlugin(createMarketPlugin())
 	.withPlugin(createCameraLeadPlugin())
+	.withPlugin(createShieldPlugin())
 	.build();
 
 const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-help', 'hud-wave'] as const;
@@ -78,6 +80,7 @@ game.addResource('playerState', {
 game.addResource('carrierLoadout', {
 	pylons: (SHIP_SPECS.carrier.emptyTurretMounts ?? []).map((m) => ({ weaponKind: null, facing: m.baseAngle })),
 	pairs: emptyLoadoutPairs(),
+	auxSlots: emptyLoadoutAuxSlots(SHIP_SPECS.carrier),
 });
 
 game.addResource('hudRefs', {
@@ -128,6 +131,7 @@ const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missi
 const spawnCarrier = (ecs: World): void => {
 	const spec = SHIP_SPECS.carrier;
 	const built = createShipGroup('carrier');
+	const loadout = ecs.getResource('carrierLoadout');
 	const carrier = ecs.spawn({
 		...createGroupComponents(built.group, { x: 0, y: 0, z: 0 }),
 		ship: { class: 'carrier', hp: spec.hp },
@@ -135,7 +139,14 @@ const spawnCarrier = (ecs: World): void => {
 		commandVessel: true,
 	});
 	spawnShipTurrets(ecs, carrier.id, spec, built);
-	applyCarrierLoadout(ecs, carrier.id, spec, built, ecs.getResource('carrierLoadout'));
+	applyCarrierLoadout(ecs, carrier.id, spec, built, loadout);
+
+	const shieldCount = loadout.auxSlots.filter((s) => s.systemKind === 'shield').length;
+	if (shieldCount > 0) {
+		const shieldBuild = createShieldBubble(spec);
+		built.group.add(shieldBuild.mesh);
+		ecs.addComponent(carrier.id, 'shield', buildShieldComponent(shieldBuild, shieldCount));
+	}
 
 	const playerState = ecs.getResource('playerState');
 	playerState.ownedShipIds = [carrier.id];

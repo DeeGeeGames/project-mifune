@@ -273,3 +273,10 @@ export const HEALTH_BAR_BG_COLOR = 0x222222;
 export const HEALTH_BAR_COLOR_FULL = 0x33cc33;
 export const HEALTH_BAR_COLOR_MID = 0xccaa33;
 export const HEALTH_BAR_COLOR_LOW = 0xcc3333;
+
+export const SHIELD_HP_PER_GENERATOR = 50;
+export const SHIELD_REGEN_PER_GENERATOR_PER_SEC = 25;
+export const SHIELD_DEPLETED_DELAY_SEC = 3;
+export const SHIELD_OPACITY_FULL = 0.18;
+export const SHIELD_OPACITY_LOW = 0.35;
+export const SHIELD_COLOR = 0x3a9bff;

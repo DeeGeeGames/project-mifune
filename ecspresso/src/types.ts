@@ -11,6 +11,7 @@ import {
 	CAMERA_FOLLOW_SMOOTHING,
 	GP_BUTTON_A,
 	GP_BUTTON_B,
+	GP_BUTTON_Y,
 	GP_BUTTON_LB,
 	GP_BUTTON_RB,
 	GP_BUTTON_DPAD_UP,
@@ -46,7 +47,8 @@ export type GameAction =
 	| 'menuConfirm'
 	| 'menuCancel'
 	| 'facingCCW'
-	| 'facingCW';
+	| 'facingCW'
+	| 'loadoutToggle';
 
 const actions: ActionMap<GameAction> = {
 	fwd:           { keys: ['w'] },
@@ -67,6 +69,7 @@ const actions: ActionMap<GameAction> = {
 	menuCancel:    { keys: ['Escape'],     gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_B) },
 	facingCCW:     { keys: ['q'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_LB) },
 	facingCW:      { keys: ['e'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_RB) },
+	loadoutToggle: { keys: ['Tab'],        gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_Y) },
 };
 
 export interface ShipComponent {
@@ -220,6 +223,16 @@ export interface BlastComponent {
 	material: MeshBasicMaterial;
 }
 
+export interface ShieldComponent {
+	current: number;
+	max: number;
+	regenPerSec: number;
+	depletedDelaySec: number;
+	depletedTimer: number;
+	mesh: Mesh;
+	material: MeshBasicMaterial;
+}
+
 export interface PlayerState {
 	resources: number;
 	ownedShipIds: number[];
@@ -256,8 +269,12 @@ export type TitleScreenState = {
 	selectedIndex: number;
 };
 
+export type LoadoutCategory = 'weapon' | 'auxiliary';
+
 export type LoadoutScreenState = {
+	category: LoadoutCategory;
 	selectedPylonIdx: number;
+	selectedAuxIdx: number;
 };
 
 export type MarketScreenConfig = {
@@ -381,6 +398,7 @@ export const builder = ECSpresso.create()
 		pickup: PickupComponent;
 		summonAnim: SummonAnimComponent;
 		blast: BlastComponent;
+		shield: ShieldComponent;
 	}>()
 	.withEventTypes<
 		ScreenEvents<AppScreenName> &
@@ -408,7 +426,9 @@ export const builder = ECSpresso.create()
 		})
 		.add('loadoutSelect', {
 			initialState: (): LoadoutScreenState => ({
+				category: 'weapon',
 				selectedPylonIdx: 0,
+				selectedAuxIdx: 0,
 			}),
 		})
 		.add('playing', {
