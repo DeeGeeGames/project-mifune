@@ -1,10 +1,13 @@
 import { definePlugin } from '../types';
 import { angleDiff, bearingXZ, distanceXZ, forwardXZ, mountToWorld, normalizeAngle, stepAngle } from '../math';
-import { BEAM_RADIUS, MUZZLE_OFFSET, SHIP_HIT_RADIUS, TURRET_TURN_RATE } from '../constants';
+import { BEAM_IMPACT_COOLDOWN_SEC, BEAM_RADIUS, MUZZLE_OFFSET, SHIP_HIT_RADIUS, TURRET_TURN_RATE } from '../constants';
 import { getOwnerState } from './turret';
-import { killEnemyAndDrop } from './combat';
+import { destroyShip, killEnemyAndDrop } from './combat';
 import { applyDamageToShip } from './shield';
 import { segmentHitDistance } from '../hit';
+import { spawnImpactSpark } from './vfx';
+
+const beamImpactCooldowns = new Map<number, number>();
 
 export const createBeamPlugin = () => definePlugin({
 	id: 'beam',
@@ -94,7 +97,7 @@ export const createBeamPlugin = () => definePlugin({
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.addQuery('ships', { with: ['ship', 'localTransform3D'] })
 			.setProcess(({ queries, dt, ecs }) => {
-				for (const { components: { beamTurret: turret } } of queries.turrets) {
+				for (const { id: turretId, components: { beamTurret: turret } } of queries.turrets) {
 					if (turret.state === 'idle') {
 						if (!turret.hasTarget) continue;
 						turret.state = 'firing';
@@ -156,16 +159,23 @@ export const createBeamPlugin = () => definePlugin({
 								const ship = ecs.getComponent(closestShipId, 'ship');
 								if (ship) {
 									applyDamageToShip(ecs, closestShipId, damageThisFrame, ship);
-									if (ship.hp <= 0) {
-										ecs.eventBus.publish('ship:destroyed', { entityId: closestShipId, shipClass: ship.class });
-										if (ship.class === 'carrier') ecs.eventBus.publish('carrier:destroyed', { entityId: closestShipId });
-										ecs.removeEntity(closestShipId);
-									}
+									if (ship.hp <= 0) destroyShip(ecs, closestShipId, ship.class);
 								}
 							}
 						}
 
 						turret.beamMesh.scale.z = closestDist === Infinity ? beamLen : closestDist;
+
+						const prevCooldown = beamImpactCooldowns.get(turretId) ?? 0;
+						const nextCooldown = prevCooldown - dt;
+						if (closestDist !== Infinity && nextCooldown <= 0) {
+							const impactX = originX + fwd.x * closestDist;
+							const impactZ = originZ + fwd.z * closestDist;
+							spawnImpactSpark(ecs, impactX, impactZ, 'railgun');
+							beamImpactCooldowns.set(turretId, BEAM_IMPACT_COOLDOWN_SEC);
+						} else {
+							beamImpactCooldowns.set(turretId, Math.max(0, nextCooldown));
+						}
 					}
 
 					if (turret.stateTimerMs <= 0) {

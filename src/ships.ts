@@ -1,10 +1,12 @@
 import {
+	AdditiveBlending,
 	Group,
 	Mesh,
 	BoxGeometry,
 	ConeGeometry,
 	CylinderGeometry,
 	RingGeometry,
+	SphereGeometry,
 	MeshBasicMaterial,
 	MeshStandardMaterial,
 	DoubleSide,
@@ -594,6 +596,7 @@ export interface BuiltShip {
 	readonly missileTurretMounts: readonly Group[];
 	readonly emptyTurretMountGroups: readonly Group[];
 	readonly emptyAuxMountGroups: readonly Group[];
+	readonly engineMaterial: MeshStandardMaterial;
 }
 
 interface ShipMaterials {
@@ -1180,7 +1183,16 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		return auxGroup;
 	});
 
-	return { group, turretMounts, cannonTurretMounts, beamTurretMounts, missileTurretMounts, emptyTurretMountGroups, emptyAuxMountGroups };
+	return {
+		group,
+		turretMounts,
+		cannonTurretMounts,
+		beamTurretMounts,
+		missileTurretMounts,
+		emptyTurretMountGroups,
+		emptyAuxMountGroups,
+		engineMaterial: mats.engine,
+	};
 }
 
 const ENEMY_ACCENT_MAT = new MeshStandardMaterial({ color: 0x2a1418, roughness: 0.6, metalness: 0.2 });
@@ -1385,4 +1397,56 @@ export function pickupMesh(): Mesh {
 	const mesh = new Mesh(geo, mat);
 	mesh.position.y = 0.25;
 	return mesh;
+}
+
+export interface BuiltVfx {
+	readonly mesh: Mesh;
+	readonly material: MeshBasicMaterial;
+}
+
+const EXPLOSION_GEO = new SphereGeometry(1, 16, 10);
+EXPLOSION_GEO.userData.shared = true;
+
+export function createExplosionMesh(tint: number, opacity: number): BuiltVfx {
+	const material = new MeshBasicMaterial({
+		color: tint,
+		transparent: true,
+		opacity,
+		blending: AdditiveBlending,
+		depthWrite: false,
+	});
+	return { mesh: new Mesh(EXPLOSION_GEO, material), material };
+}
+
+const MUZZLE_FLASH_GEO = (() => {
+	const g = new CylinderGeometry(0.05, 0.22, 0.9, 10);
+	g.rotateX(Math.PI / 2);
+	g.translate(0, 0, 0.3);
+	return g;
+})();
+MUZZLE_FLASH_GEO.userData.shared = true;
+
+export function createMuzzleFlashMesh(tint: number): BuiltVfx {
+	const material = new MeshBasicMaterial({
+		color: tint,
+		transparent: true,
+		opacity: 0.95,
+		blending: AdditiveBlending,
+		depthWrite: false,
+	});
+	return { mesh: new Mesh(MUZZLE_FLASH_GEO, material), material };
+}
+
+const IMPACT_SPARK_GEO = new SphereGeometry(0.35, 10, 6);
+IMPACT_SPARK_GEO.userData.shared = true;
+
+export function createImpactSparkMesh(tint: number): BuiltVfx {
+	const material = new MeshBasicMaterial({
+		color: tint,
+		transparent: true,
+		opacity: 0.9,
+		blending: AdditiveBlending,
+		depthWrite: false,
+	});
+	return { mesh: new Mesh(IMPACT_SPARK_GEO, material), material };
 }

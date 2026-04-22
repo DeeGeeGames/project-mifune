@@ -3,6 +3,10 @@ import { forwardXZ, mountToWorld, normalizeAngle } from '../math';
 import { segmentHitDistance } from '../hit';
 import { getOwnerState } from './turret';
 import { killEnemyAndDrop } from './combat';
+import { spawnImpactSpark } from './vfx';
+import { BEAM_IMPACT_COOLDOWN_SEC } from '../constants';
+
+const mainGunImpactCooldowns = new Map<number, number>();
 
 export const createMainGunPlugin = () => definePlugin({
 	id: 'mainGun',
@@ -55,7 +59,20 @@ export const createMainGunPlugin = () => definePlugin({
 						if (d === Infinity) continue;
 						enemy.hp -= damageThisFrame;
 						enemy.hitEscalation += damageThisFrame;
-						if (enemy.hp <= 0) killEnemyAndDrop(ecs, id, et.x, et.z);
+						const willKill = enemy.hp <= 0;
+						if (!willKill) {
+							const prevCooldown = mainGunImpactCooldowns.get(id) ?? 0;
+							const nextCooldown = prevCooldown - dt;
+							if (nextCooldown <= 0) {
+								spawnImpactSpark(ecs, et.x, et.z, 'railgun');
+								mainGunImpactCooldowns.set(id, BEAM_IMPACT_COOLDOWN_SEC);
+							} else {
+								mainGunImpactCooldowns.set(id, nextCooldown);
+							}
+						} else {
+							mainGunImpactCooldowns.delete(id);
+							killEnemyAndDrop(ecs, id, et.x, et.z);
+						}
 					}
 
 					if (gun.stateTimerMs <= 0) {

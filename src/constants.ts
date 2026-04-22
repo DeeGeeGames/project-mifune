@@ -280,6 +280,35 @@ export const HEALTH_BAR_COLOR_FULL = 0x33cc33;
 export const HEALTH_BAR_COLOR_MID = 0xccaa33;
 export const HEALTH_BAR_COLOR_LOW = 0xcc3333;
 
+// VFX — transient muzzle/impact/death effects + engine glow
+export const MUZZLE_FLASH_LIFE_SEC = 0.08;
+export const IMPACT_SPARK_LIFE_SEC = 0.18;
+export const DEATH_EXPLOSION_LIFE_SEC = 0.5;
+export const SHIP_DEATH_EXPLOSION_LIFE_SEC = 0.9;
+export const DEATH_EXPLOSION_SCALE_MULT = 2.6;
+export const SHIP_DEATH_EXPLOSION_SCALE_MULT = 2.2;
+export const DEATH_EXPLOSION_CORE_LIFE_RATIO = 0.4;
+export const DEATH_EXPLOSION_COLOR_ENEMY = 0xff6633;
+export const DEATH_EXPLOSION_COLOR_SHIP = 0xffaa33;
+export const DEATH_EXPLOSION_CORE_COLOR = 0xfff2cc;
+export const ENGINE_EMISSIVE_IDLE = 0.4;
+export const ENGINE_EMISSIVE_MAX = 2.2;
+export const BEAM_IMPACT_COOLDOWN_SEC = 0.08;
+export const MUZZLE_TINT = {
+	bullet: 0xffcc66,
+	cannon: 0xff8844,
+	railgun: 0x88ddff,
+	pd: 0xffffff,
+	missile: 0xffaa44,
+} as const;
+export const IMPACT_TINT = {
+	bullet: 0xffd88a,
+	cannon: 0xff9955,
+	railgun: 0xaaeeff,
+	pd: 0xffffff,
+	missile: 0xff9955,
+} as const;
+
 export const SHIELD_HP_PER_GENERATOR = 50;
 export const SHIELD_REGEN_PER_GENERATOR_PER_SEC = 25;
 export const SHIELD_DEPLETED_DELAY_SEC = 3;

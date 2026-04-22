@@ -3,6 +3,7 @@ import { angleDiff, bearingXZ, clamp, distanceXZ, forwardXZ, leadTarget, mountTo
 import { cannonShellMesh, pdMesh, projectileMesh, railgunMesh } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { canFire, recordShot } from '../weapons';
+import { spawnMuzzleFlash } from './vfx';
 import {
 	BULLET_LIFE_SEC,
 	BULLET_SPEED,
@@ -124,7 +125,8 @@ export const createTurretPlugin = () => definePlugin({
 					const fireFwd = spreadHalf > 0 ? forwardXZ(fireAngle) : aimFwd;
 					const speed = turret.projectileSpeed ?? BULLET_SPEED;
 					const life = turret.projectileLife ?? BULLET_LIFE_SEC;
-					const mesh = PROJECTILE_MESH_FACTORY[turret.projectileKind ?? 'bullet']();
+					const kind = turret.projectileKind ?? 'bullet';
+					const mesh = PROJECTILE_MESH_FACTORY[kind]();
 
 					ecs.spawn({
 						...createMeshComponents(mesh, { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: fireAngle } }),
@@ -138,9 +140,11 @@ export const createTurretPlugin = () => definePlugin({
 							splashRadius: turret.splashRadius,
 							pierce: turret.pierce,
 							hitTargets: turret.pierce !== undefined ? new Set<number>() : undefined,
+							kind,
 						},
 					});
 
+					spawnMuzzleFlash(ecs, muzzleX, muzzleZ, fireAngle, kind);
 					recordShot(burstFire, now);
 				}
 			});

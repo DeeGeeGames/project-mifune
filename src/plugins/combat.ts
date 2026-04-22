@@ -1,11 +1,15 @@
 import { definePlugin, type World } from '../types';
 import { distanceXZ } from '../math';
 import { PROJECTILE_RADIUS, PICKUP_VALUE, SHIP_HIT_RADIUS, BLAST_LIFE_SEC } from '../constants';
-import { pickupMesh, createBlast, type ShipClass } from '../ships';
+import { pickupMesh, createBlast, SHIP_SPECS, type ShipClass } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { applyDamageToShip } from './shield';
+import { spawnDeathExplosion, spawnImpactSpark, type FxKind } from './vfx';
 
 export function killEnemyAndDrop(ecs: World, enemyId: number, x: number, z: number): void {
+	const enemy = ecs.getComponent(enemyId, 'enemy');
+	const radius = enemy?.radius ?? 0.6;
+	spawnDeathExplosion(ecs, x, z, radius, 'enemy');
 	ecs.eventBus.publish('enemy:killed', { entityId: enemyId, x, z });
 	ecs.spawn({
 		...createMeshComponents(pickupMesh(), { x, y: 0.25, z }),
@@ -14,7 +18,13 @@ export function killEnemyAndDrop(ecs: World, enemyId: number, x: number, z: numb
 	ecs.removeEntity(enemyId);
 }
 
-function destroyShip(ecs: World, shipId: number, shipClass: ShipClass): void {
+export function destroyShip(ecs: World, shipId: number, shipClass: ShipClass): void {
+	const transform = ecs.getComponent(shipId, 'localTransform3D');
+	if (transform) {
+		const spec = SHIP_SPECS[shipClass];
+		const radius = Math.max(spec.hullWidth, spec.hullLength) * 0.5;
+		spawnDeathExplosion(ecs, transform.x, transform.z, radius, 'ship');
+	}
 	ecs.eventBus.publish('ship:destroyed', { entityId: shipId, shipClass });
 	if (shipClass === 'carrier') {
 		ecs.eventBus.publish('carrier:destroyed', { entityId: shipId });
@@ -65,6 +75,8 @@ export const createCombatPlugin = () => definePlugin({
 					const splashRadius = projectile.splashRadius ?? 0;
 					const hasSplash = splashDamage > 0 && splashRadius > 0;
 
+					const projectileKind: FxKind = projectile.kind ?? 'bullet';
+
 					if (projectile.faction === 'ally') {
 						for (const { id: enemyId, components: { enemy, localTransform3D: et } } of queries.enemies) {
 							const pierceRemaining = projectile.pierce;
@@ -73,7 +85,9 @@ export const createCombatPlugin = () => definePlugin({
 							if (d > enemy.radius + PROJECTILE_RADIUS) continue;
 							enemy.hp -= projectile.damage;
 							enemy.hitEscalation += projectile.damage;
-							if (enemy.hp <= 0) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
+							const willKill = enemy.hp <= 0;
+							if (!willKill) spawnImpactSpark(ecs, pt.x, pt.z, projectileKind);
+							if (willKill) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
 							if (pierceRemaining !== undefined) {
 								projectile.hitTargets?.add(enemyId);
 								const next = pierceRemaining - 1;
@@ -110,7 +124,9 @@ export const createCombatPlugin = () => definePlugin({
 						const impactX = pt.x;
 						const impactZ = pt.z;
 						ecs.removeEntity(projId);
-						if (ship.hp <= 0) destroyShip(ecs, shipId, ship.class);
+						const willDestroy = ship.hp <= 0;
+						if (!willDestroy) spawnImpactSpark(ecs, impactX, impactZ, projectileKind);
+						if (willDestroy) destroyShip(ecs, shipId, ship.class);
 						if (hasSplash) {
 							spawnBlast(ecs, impactX, impactZ, splashRadius);
 							for (const { id: otherId, components: { ship: other, localTransform3D: ot } } of queries.ships) {

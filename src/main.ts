@@ -38,6 +38,7 @@ import { createCameraLeadPlugin } from './plugins/cameraLead';
 import { buildShieldComponent, createShieldBubble, createShieldPlugin } from './plugins/shield';
 import { createLegendPlugin } from './plugins/legend';
 import { createBackdropPlugin } from './plugins/backdrop';
+import { createVfxPlugin } from './plugins/vfx';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -66,6 +67,7 @@ const game = builder
 	.withPlugin(createShieldPlugin())
 	.withPlugin(createLegendPlugin())
 	.withPlugin(createBackdropPlugin())
+	.withPlugin(createVfxPlugin())
 	.build();
 
 const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-wave'] as const;
@@ -128,7 +130,7 @@ scene.add(sun);
 
 scene.add(createStarfield());
 
-const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'beamTurret', 'mainGunBeam', 'summonAnim', 'blast', 'enemy', 'ship'] as const;
+const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'beamTurret', 'mainGunBeam', 'summonAnim', 'blast', 'vfx', 'enemy', 'ship'] as const;
 
 const spawnCarrier = (ecs: World): void => {
 	const spec = SHIP_SPECS.carrier;
@@ -139,6 +141,7 @@ const spawnCarrier = (ecs: World): void => {
 		ship: { class: 'carrier', hp: spec.hp },
 		kinematic: createKinematicState(spec, 0),
 		commandVessel: true,
+		engineGlow: { material: built.engineMaterial },
 	});
 	spawnShipTurrets(ecs, carrier.id, spec, built);
 	applyCarrierLoadout(ecs, carrier.id, spec, built, loadout);

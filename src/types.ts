@@ -22,7 +22,7 @@ import {
 	ISO_ELEVATION,
 } from './constants';
 import type { ShipClass, CarrierLoadout } from './ships';
-import type { Group, Mesh, MeshBasicMaterial, Sprite } from 'three';
+import type { Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
 import type { BurstFireState } from './weapons';
@@ -114,6 +114,7 @@ export interface ProjectileComponent {
 	splashRadius?: number;
 	pierce?: number;
 	hitTargets?: Set<number>;
+	kind?: ProjectileKind;
 }
 
 export interface MissileTurretComponent {
@@ -223,6 +224,19 @@ export interface BlastComponent {
 	life: number;
 	maxLife: number;
 	material: MeshBasicMaterial;
+}
+
+export interface VfxComponent {
+	life: number;
+	maxLife: number;
+	material: MeshBasicMaterial;
+	scaleStart: number;
+	scaleEnd: number;
+	opacityStart: number;
+}
+
+export interface EngineGlowComponent {
+	material: MeshStandardMaterial;
 }
 
 export interface ShieldComponent {
@@ -418,6 +432,8 @@ export const builder = ECSpresso.create()
 		summonAnim: SummonAnimComponent;
 		blast: BlastComponent;
 		shield: ShieldComponent;
+		vfx: VfxComponent;
+		engineGlow: EngineGlowComponent;
 	}>()
 	.withEventTypes<
 		ScreenEvents<AppScreenName> &

@@ -5,6 +5,7 @@ import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { canFire, recordShot } from '../weapons';
 import { getOwnerState } from './turret';
 import { killEnemyAndDrop } from './combat';
+import { spawnImpactSpark, spawnMuzzleFlash } from './vfx';
 import {
 	MISSILE_LAUNCH_SPEED,
 	MISSILE_LIFE_SEC,
@@ -68,6 +69,7 @@ export const createMissilePlugin = () => definePlugin({
 						},
 					});
 
+					spawnMuzzleFlash(ecs, muzzleX, muzzleZ, launchWorld, 'missile');
 					recordShot(burstFire, now);
 				}
 			});
@@ -121,9 +123,11 @@ export const createMissilePlugin = () => definePlugin({
 
 						enemy.hp -= missile.damage;
 						enemy.hitEscalation += missile.damage;
+						const willKill = enemy.hp <= 0;
+						if (!willKill) spawnImpactSpark(ecs, mt.x, mt.z, 'missile');
 						ecs.removeEntity(missileId);
 
-						if (enemy.hp <= 0) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
+						if (willKill) killEnemyAndDrop(ecs, enemyId, et.x, et.z);
 						break;
 					}
 				}
