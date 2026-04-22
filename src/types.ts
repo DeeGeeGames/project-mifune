@@ -12,7 +12,6 @@ import {
 	GP_BUTTON_A,
 	GP_BUTTON_B,
 	GP_BUTTON_X,
-	GP_BUTTON_LB,
 	GP_BUTTON_START,
 	GP_BUTTON_BACK,
 	GP_BUTTON_DPAD_UP,
@@ -37,7 +36,6 @@ export type GameAction =
 	| 'summon2'
 	| 'summon3'
 	| 'summon4'
-	| 'confirmSummon'
 	| 'aimGate'
 	| 'zoomIn'
 	| 'zoomOut'
@@ -60,8 +58,7 @@ const actions: ActionMap<GameAction> = {
 	summon2:       { keys: ['2'] },
 	summon3:       { keys: ['3'] },
 	summon4:       { keys: ['4'] },
-	confirmSummon: { gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
-	aimGate:       { pointerButtons: [0], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_LB) },
+	aimGate:       { pointerButtons: [0], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
 	zoomIn:        { keys: ['e'] },
 	zoomOut:       { keys: ['q'] },
 	menuUp:        { keys: ['ArrowUp'],    gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_UP) },
