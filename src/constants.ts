@@ -248,7 +248,12 @@ export const SUMMON_ANIM_SEC = 1.0;
 export const SUMMON_OFFSCREEN_RING = 35;
 
 export const GROUND_SIZE = 1600;
-export const GROUND_COLOR = 0x04060d;
+
+// Backdrop nebula shader — kept low-saturation/low-brightness so gameplay
+// elements (projectiles, ships, pickups) always read brighter than the ground.
+export const BACKDROP_BASE_COLOR: readonly [number, number, number] = [0.012, 0.018, 0.040];
+export const BACKDROP_NEBULA_COLOR_A: readonly [number, number, number] = [0.065, 0.050, 0.125];
+export const BACKDROP_NEBULA_COLOR_B: readonly [number, number, number] = [0.040, 0.080, 0.120];
 
 export const STAR_COUNT = 2500;
 export const STAR_FIELD_RADIUS = 400;

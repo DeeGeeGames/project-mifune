@@ -1,11 +1,9 @@
-import { AmbientLight, BufferAttribute, BufferGeometry, DirectionalLight, Mesh, MeshStandardMaterial, PlaneGeometry, Points, PointsMaterial } from 'three';
+import { AmbientLight, BufferAttribute, BufferGeometry, DirectionalLight, Points, PointsMaterial } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder, type World } from './types';
 import { SHIP_SPECS, createShipGroup, spawnShipTurrets, applyCarrierLoadout, emptyLoadoutPairs, emptyLoadoutAuxSlots } from './ships';
 import { createKinematicState } from './kinematic';
 import {
-	GROUND_COLOR,
-	GROUND_SIZE,
 	STAR_BRIGHTNESS_MIN,
 	STAR_BRIGHTNESS_RANGE,
 	STAR_COUNT,
@@ -39,6 +37,7 @@ import { createMarketPlugin } from './plugins/market';
 import { createCameraLeadPlugin } from './plugins/cameraLead';
 import { buildShieldComponent, createShieldBubble, createShieldPlugin } from './plugins/shield';
 import { createLegendPlugin } from './plugins/legend';
+import { createBackdropPlugin } from './plugins/backdrop';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -66,6 +65,7 @@ const game = builder
 	.withPlugin(createCameraLeadPlugin())
 	.withPlugin(createShieldPlugin())
 	.withPlugin(createLegendPlugin())
+	.withPlugin(createBackdropPlugin())
 	.build();
 
 const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-wave'] as const;
@@ -125,13 +125,6 @@ scene.add(new AmbientLight(0xffffff, 0.55));
 const sun = new DirectionalLight(0xffffff, 0.8);
 sun.position.set(30, 50, 20);
 scene.add(sun);
-
-const ground = new Mesh(
-	new PlaneGeometry(GROUND_SIZE, GROUND_SIZE),
-	new MeshStandardMaterial({ color: GROUND_COLOR, roughness: 0.95 }),
-);
-ground.rotation.x = -Math.PI / 2;
-scene.add(ground);
 
 scene.add(createStarfield());
 
