@@ -23,24 +23,35 @@ import { renderAuxStatCard, renderStatCard } from './statCardDom';
 import { setScreenLegend, dpadVertical, dpadHorizontal, type LegendSpec } from './legend';
 
 const LEGEND_WEAPON: readonly LegendSpec[] = [
-	dpadVertical('Weapon'),
+	dpadVertical('Category'),
 	dpadHorizontal('Pylon'),
-	{ action: 'facingCCW',     label: 'Facing',   keyboardOverride: 'Q/E', gamepadOverride: 'LB/RB' },
-	{ action: 'loadoutToggle', label: 'Auxiliary' },
-	{ action: 'menuConfirm',   label: 'Start' },
-	{ action: 'menuCancel',    label: 'Back' },
+	{ action: 'loadoutCycleNext', label: 'Cycle ▶' },
+	{ action: 'loadoutCyclePrev', label: 'Cycle ◀' },
+	{ action: 'loadoutFacing',    label: 'Facing' },
+	{ action: 'loadoutStart',     label: 'Start' },
+	{ action: 'loadoutBack',      label: 'Back' },
+];
+
+const LEGEND_WEAPON_FACING: readonly LegendSpec[] = [
+	dpadHorizontal('Facing'),
+	{ action: 'loadoutFacing', label: 'Done' },
+	{ action: 'loadoutStart',  label: 'Start' },
+	{ action: 'loadoutBack',   label: 'Back' },
 ];
 
 const LEGEND_AUX: readonly LegendSpec[] = [
-	dpadVertical('System'),
+	dpadVertical('Category'),
 	dpadHorizontal('Slot'),
-	{ action: 'loadoutToggle', label: 'Weapons' },
-	{ action: 'menuConfirm',   label: 'Start' },
-	{ action: 'menuCancel',    label: 'Back' },
+	{ action: 'loadoutCycleNext', label: 'Cycle ▶' },
+	{ action: 'loadoutCyclePrev', label: 'Cycle ◀' },
+	{ action: 'loadoutStart',     label: 'Start' },
+	{ action: 'loadoutBack',      label: 'Back' },
 ];
 
-const legendForCategory = (category: LoadoutCategory): readonly LegendSpec[] =>
-	category === 'weapon' ? LEGEND_WEAPON : LEGEND_AUX;
+const legendForState = (category: LoadoutCategory, facingMode: boolean): readonly LegendSpec[] => {
+	if (category === 'auxiliary') return LEGEND_AUX;
+	return facingMode ? LEGEND_WEAPON_FACING : LEGEND_WEAPON;
+};
 
 const LOADOUT_AZIMUTH = -Math.PI / 5;
 const LOADOUT_ELEVATION = Math.PI / 8;
@@ -384,7 +395,8 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 			if (screen !== 'loadoutSelect') return;
 			const hudRefs = world.getResource('hudRefs');
 			hudRefs.loadoutEl.style.display = 'block';
-			setScreenLegend(world, 'loadoutSelect', legendForCategory(world.getScreenState('loadoutSelect').category));
+			const initState = world.getScreenState('loadoutSelect');
+				setScreenLegend(world, 'loadoutSelect', legendForState(initState.category, initState.facingMode));
 
 			const camera = world.getResource('camera3DState');
 			camera.unfollow();
@@ -427,36 +439,67 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 			.setProcess(({ ecs, resources: { inputState, hudRefs, carrierLoadout } }) => {
 				const state = ecs.getScreenState('loadoutSelect');
 
-				if (inputState.actions.justActivated('menuConfirm')) {
+				if (inputState.actions.justActivated('loadoutStart')) {
 					void ecs.setScreen('playing', { waveNumber: 1 });
 					return;
 				}
-				if (inputState.actions.justActivated('menuCancel')) {
+				if (inputState.actions.justActivated('loadoutBack')) {
 					void ecs.setScreen('title', {});
 					return;
-				}
-				if (inputState.actions.justActivated('loadoutToggle')) {
-					state.category = state.category === 'weapon' ? 'auxiliary' : 'weapon';
-					setScreenLegend(ecs, 'loadoutSelect', legendForCategory(state.category));
 				}
 
 				const dx = menuAxisDelta(inputState, 'menuLeft', 'menuRight');
 				const dy = menuAxisDelta(inputState, 'menuUp', 'menuDown');
-				const facingDir: 1 | -1 | 0 =
-					inputState.actions.justActivated('facingCW') ? 1
-					: inputState.actions.justActivated('facingCCW') ? -1
-					: 0;
 
 				let loadoutMutated = false;
-				if (state.category === 'weapon') {
-					if (dx > 0) state.selectedPylonIdx = NEXT_PYLON[state.selectedPylonIdx] ?? state.selectedPylonIdx;
-					else if (dx < 0) state.selectedPylonIdx = PREV_PYLON[state.selectedPylonIdx] ?? state.selectedPylonIdx;
-					if (dy !== 0) loadoutMutated = applyWeaponCycle(carrierLoadout, state.selectedPylonIdx, dy) || loadoutMutated;
-					if (facingDir !== 0) loadoutMutated = applyFacingStep(carrierLoadout, state.selectedPylonIdx, facingDir) || loadoutMutated;
+				let legendChanged = false;
+
+				if (state.facingMode) {
+					if (inputState.actions.justActivated('loadoutFacing')) {
+						state.facingMode = false;
+						legendChanged = true;
+					} else if (dx !== 0) {
+						loadoutMutated = applyFacingStep(carrierLoadout, state.selectedPylonIdx, dx > 0 ? 1 : -1) || loadoutMutated;
+					}
+				} else if (state.category === 'weapon') {
+					if (dy !== 0) {
+						state.category = 'auxiliary';
+						state.selectedAuxIdx = state.selectedPylonIdx;
+						state.facingMode = false;
+						legendChanged = true;
+					} else if (dx > 0) {
+						state.selectedPylonIdx = NEXT_PYLON[state.selectedPylonIdx] ?? state.selectedPylonIdx;
+					} else if (dx < 0) {
+						state.selectedPylonIdx = PREV_PYLON[state.selectedPylonIdx] ?? state.selectedPylonIdx;
+					} else if (inputState.actions.justActivated('loadoutCycleNext')) {
+						loadoutMutated = applyWeaponCycle(carrierLoadout, state.selectedPylonIdx, 1) || loadoutMutated;
+					} else if (inputState.actions.justActivated('loadoutCyclePrev')) {
+						loadoutMutated = applyWeaponCycle(carrierLoadout, state.selectedPylonIdx, -1) || loadoutMutated;
+					} else if (inputState.actions.justActivated('loadoutFacing')) {
+						const hasWeapon = effectiveWeapon(carrierLoadout, state.selectedPylonIdx) !== null;
+						if (hasWeapon) {
+							state.facingMode = true;
+							legendChanged = true;
+						}
+					}
 				} else {
-					if (dx > 0) state.selectedAuxIdx = NEXT_AUX[state.selectedAuxIdx] ?? state.selectedAuxIdx;
-					else if (dx < 0) state.selectedAuxIdx = PREV_AUX[state.selectedAuxIdx] ?? state.selectedAuxIdx;
-					if (dy !== 0) loadoutMutated = applyAuxCycle(carrierLoadout, state.selectedAuxIdx, dy) || loadoutMutated;
+					if (dy !== 0) {
+						state.category = 'weapon';
+						state.selectedPylonIdx = state.selectedAuxIdx;
+						legendChanged = true;
+					} else if (dx > 0) {
+						state.selectedAuxIdx = NEXT_AUX[state.selectedAuxIdx] ?? state.selectedAuxIdx;
+					} else if (dx < 0) {
+						state.selectedAuxIdx = PREV_AUX[state.selectedAuxIdx] ?? state.selectedAuxIdx;
+					} else if (inputState.actions.justActivated('loadoutCycleNext')) {
+						loadoutMutated = applyAuxCycle(carrierLoadout, state.selectedAuxIdx, 1) || loadoutMutated;
+					} else if (inputState.actions.justActivated('loadoutCyclePrev')) {
+						loadoutMutated = applyAuxCycle(carrierLoadout, state.selectedAuxIdx, -1) || loadoutMutated;
+					}
+				}
+
+				if (legendChanged) {
+					setScreenLegend(ecs, 'loadoutSelect', legendForState(state.category, state.facingMode));
 				}
 
 				const focus = currentFocus(state);

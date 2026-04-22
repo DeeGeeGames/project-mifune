@@ -11,9 +11,10 @@ import {
 	CAMERA_FOLLOW_SMOOTHING,
 	GP_BUTTON_A,
 	GP_BUTTON_B,
-	GP_BUTTON_Y,
+	GP_BUTTON_X,
 	GP_BUTTON_LB,
-	GP_BUTTON_RB,
+	GP_BUTTON_START,
+	GP_BUTTON_BACK,
 	GP_BUTTON_DPAD_UP,
 	GP_BUTTON_DPAD_DOWN,
 	GP_BUTTON_DPAD_LEFT,
@@ -46,9 +47,11 @@ export type GameAction =
 	| 'menuRight'
 	| 'menuConfirm'
 	| 'menuCancel'
-	| 'facingCCW'
-	| 'facingCW'
-	| 'loadoutToggle';
+	| 'loadoutCycleNext'
+	| 'loadoutCyclePrev'
+	| 'loadoutFacing'
+	| 'loadoutStart'
+	| 'loadoutBack';
 
 const actions: ActionMap<GameAction> = {
 	fwd:           { keys: ['w'] },
@@ -65,11 +68,13 @@ const actions: ActionMap<GameAction> = {
 	menuDown:      { keys: ['ArrowDown'],  gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_DOWN) },
 	menuLeft:      { keys: ['ArrowLeft'],  gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_LEFT) },
 	menuRight:     { keys: ['ArrowRight'], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_DPAD_RIGHT) },
-	menuConfirm:   { keys: ['Enter', ' '], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
-	menuCancel:    { keys: ['Escape'],     gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_B) },
-	facingCCW:     { keys: ['q'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_LB) },
-	facingCW:      { keys: ['e'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_RB) },
-	loadoutToggle: { keys: ['Tab'],        gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_Y) },
+	menuConfirm:      { keys: ['Enter', ' '], gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
+	menuCancel:       { keys: ['Escape'],     gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_B) },
+	loadoutCycleNext: { keys: ['a'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_X) },
+	loadoutCyclePrev: { keys: ['d'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_B) },
+	loadoutFacing:    { keys: [' '],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
+	loadoutStart:     { keys: ['Enter'],      gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_START) },
+	loadoutBack:      { keys: ['Escape'],     gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_BACK) },
 };
 
 export interface ShipComponent {
@@ -275,6 +280,7 @@ export type LoadoutScreenState = {
 	category: LoadoutCategory;
 	selectedPylonIdx: number;
 	selectedAuxIdx: number;
+	facingMode: boolean;
 };
 
 export type MarketScreenConfig = {
@@ -446,6 +452,7 @@ export const builder = ECSpresso.create()
 				category: 'weapon',
 				selectedPylonIdx: 0,
 				selectedAuxIdx: 0,
+				facingMode: false,
 			}),
 		})
 		.add('playing', {
