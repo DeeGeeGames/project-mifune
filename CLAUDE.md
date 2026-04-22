@@ -1,6 +1,6 @@
 # Horde Defense Prototype
 
-Isometric ship-fleet horde defense prototype. ECSpresso + three.js (via renderer3D) + Vite + Node.
+Isometric ship-fleet horde defense prototype. ECSpresso + three.js (via renderer3D) + Bun (dev server, bundler, runtime).
 
 `three` / `@types/three` are pinned to match the `ecspresso` npm package's resolved versions — mismatched patch versions produce duplicate-module type errors.
 
@@ -11,8 +11,8 @@ Update this file when changes affect directory structure, architectural patterns
 ## Validation
 
 ```sh
-npm run check:types
-npm run dev
+bun run check
+bun run dev
 ```
 
 ## Architecture

@@ -3,17 +3,18 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
-		"build": "vite build",
-		"check:types": "tsc --noEmit"
+		"dev": "bun ./index.html",
+		"build": "rm -rf dist && bun build ./index.html --outdir=dist --public-path=/project-mifune/ --minify --sourcemap=linked",
+		"check:types": "tsc --noEmit",
+		"check": "bun run check:types"
 	},
 	"dependencies": {
 		"ecspresso": "^0.14.3",
 		"three": "^0.184.0"
 	},
 	"devDependencies": {
+		"@types/bun": "latest",
 		"@types/three": "^0.184.0",
-		"typescript": "^6.0.3",
-		"vite": "^8.0.8"
+		"typescript": "^6.0.3"
 	}
 }
