@@ -368,6 +368,7 @@ export const builder = ECSpresso.create()
 	}))
 	.withPlugin(createInputPlugin<GameAction>({
 		actions,
+		preventDefaultKeys: ['Tab'],
 	}))
 	.withPlugin(createCamera3DPlugin({
 		projection: 'orthographic',
