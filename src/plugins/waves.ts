@@ -88,12 +88,12 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 		kinematic: createKinematicState(spec, spawnHeading),
 		healthBar,
 		...(behaviorTree ?? {}),
-	});
+	}, { scope: 'playing' });
 
 	if (isShooter && spec.turretMount && turretMount) {
 		ecs.spawn({
 			...turretFromMount(enemyEntity.id, 'enemy', spec.turretMount, turretMount),
-		});
+		}, { scope: 'playing' });
 	}
 };
 

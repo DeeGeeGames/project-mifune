@@ -22,14 +22,13 @@ const MENU_ACTIONS: Record<MenuId, (ecs: World) => void> = {
 export const createTitleScreenPlugin = () => definePlugin({
 	id: 'titleScreen',
 	install: (world) => {
-		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen !== 'title') return;
+		world.onScreenEnter('title', () => {
 			world.getResource('hudRefs').titleEl.style.display = 'flex';
 			setScreenLegend(world, 'title', LEGEND_SPECS);
 		});
 
-		world.eventBus.subscribe('screenExit', ({ screen }) => {
-			if (screen === 'title') world.getResource('hudRefs').titleEl.style.display = 'none';
+		world.onScreenExit('title', () => {
+			world.getResource('hudRefs').titleEl.style.display = 'none';
 		});
 
 		let lastRenderedIndex = -1;

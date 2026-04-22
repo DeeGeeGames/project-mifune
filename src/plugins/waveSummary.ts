@@ -23,14 +23,13 @@ const MENU_ACTIONS: Record<MenuId, (ecs: World) => void> = {
 export const createWaveSummaryPlugin = () => definePlugin({
 	id: 'waveSummary',
 	install: (world) => {
-		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen !== 'waveSummary') return;
+		world.onScreenEnter('waveSummary', () => {
 			world.getResource('hudRefs').summaryEl.style.display = 'flex';
 			setScreenLegend(world, 'waveSummary', LEGEND_SPECS);
 		});
 
-		world.eventBus.subscribe('screenExit', ({ screen }) => {
-			if (screen === 'waveSummary') world.getResource('hudRefs').summaryEl.style.display = 'none';
+		world.onScreenExit('waveSummary', () => {
+			world.getResource('hudRefs').summaryEl.style.display = 'none';
 		});
 
 		let lastRenderedWave = -1;

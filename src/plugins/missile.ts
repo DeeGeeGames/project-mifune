@@ -67,7 +67,7 @@ export const createMissilePlugin = () => definePlugin({
 							damage: turret.damage,
 							targetId: nearestId,
 						},
-					});
+					}, { scope: 'playing' });
 
 					spawnMuzzleFlash(ecs, muzzleX, muzzleZ, launchWorld, 'missile');
 					recordShot(burstFire, now);

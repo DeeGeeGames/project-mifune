@@ -185,8 +185,7 @@ export const createMarketPlugin = () => definePlugin({
 			lastMode = null;
 		};
 
-		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen !== 'market') return;
+		world.onScreenEnter('market', () => {
 			const hudRefs = world.getResource('hudRefs');
 			hudRefs.marketEl.style.display = 'flex';
 			const state = world.getScreenState('market');
@@ -200,8 +199,7 @@ export const createMarketPlugin = () => definePlugin({
 			setScreenLegend(world, 'market', LEGEND_BROWSE);
 		});
 
-		world.eventBus.subscribe('screenExit', ({ screen }) => {
-			if (screen !== 'market') return;
+		world.onScreenExit('market', () => {
 			world.getResource('hudRefs').marketEl.style.display = 'none';
 		});
 

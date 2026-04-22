@@ -14,14 +14,13 @@ export const createHudPlugin = () => definePlugin({
 			world.getResource('hudRefs').gameHudEls.forEach((el) => { el.style.display = value; });
 		};
 
-		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen !== 'playing') return;
+		world.onScreenEnter('playing', () => {
 			setGameHudDisplay('');
 			setScreenLegend(world, 'playing', LEGEND_SPECS);
 		});
 
-		world.eventBus.subscribe('screenExit', ({ screen }) => {
-			if (screen === 'playing') setGameHudDisplay('none');
+		world.onScreenExit('playing', () => {
+			setGameHudDisplay('none');
 		});
 
 		world.addSystem('hud')

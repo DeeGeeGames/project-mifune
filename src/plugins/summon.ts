@@ -43,7 +43,7 @@ export const createSummonPlugin = () => definePlugin({
 						kinematic: createKinematicState(spec, initialHeading),
 						formationSlot: { flagshipId: playerState.commandVesselId, slotIndex },
 						summonAnim: { progress: 0, originX, originZ },
-					});
+					}, { scope: 'playing' });
 
 					playerState.ownedShipIds.push(entity.id);
 

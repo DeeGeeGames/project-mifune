@@ -14,7 +14,7 @@ export function killEnemyAndDrop(ecs: World, enemyId: number, x: number, z: numb
 	ecs.spawn({
 		...createMeshComponents(pickupMesh(), { x, y: 0.25, z }),
 		pickup: { value: PICKUP_VALUE, magnetized: false },
-	});
+	}, { scope: 'playing' });
 	ecs.removeEntity(enemyId);
 }
 
@@ -37,7 +37,7 @@ function spawnBlast(ecs: World, x: number, z: number, radius: number): void {
 	ecs.spawn({
 		...createMeshComponents(mesh, { x, y: 0.1, z }, { scale: radius }),
 		blast: { life: BLAST_LIFE_SEC, maxLife: BLAST_LIFE_SEC, material },
-	});
+	}, { scope: 'playing' });
 }
 
 export const createCombatPlugin = () => definePlugin({

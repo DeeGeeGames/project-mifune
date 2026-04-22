@@ -142,7 +142,7 @@ export const createTurretPlugin = () => definePlugin({
 							hitTargets: turret.pierce !== undefined ? new Set<number>() : undefined,
 							kind,
 						},
-					});
+					}, { scope: 'playing' });
 
 					spawnMuzzleFlash(ecs, muzzleX, muzzleZ, fireAngle, kind);
 					recordShot(burstFire, now);

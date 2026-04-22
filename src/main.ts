@@ -130,8 +130,6 @@ scene.add(sun);
 
 scene.add(createStarfield());
 
-const TEARDOWN_COMPONENTS = ['projectile', 'missile', 'pickup', 'turret', 'missileTurret', 'beamTurret', 'mainGunBeam', 'summonAnim', 'blast', 'vfx', 'enemy', 'ship'] as const;
-
 const spawnCarrier = (ecs: World): void => {
 	const spec = SHIP_SPECS.carrier;
 	const built = createShipGroup('carrier');
@@ -142,7 +140,7 @@ const spawnCarrier = (ecs: World): void => {
 		kinematic: createKinematicState(spec, 0),
 		commandVessel: true,
 		engineGlow: { material: built.engineMaterial },
-	});
+	}, { scope: 'playing' });
 	spawnShipTurrets(ecs, carrier.id, spec, built);
 	applyCarrierLoadout(ecs, carrier.id, spec, built, loadout);
 
@@ -162,24 +160,7 @@ const spawnCarrier = (ecs: World): void => {
 	ecs.getResource('camera3DState').follow(carrier);
 };
 
-const teardownSim = (ecs: World): void => {
-	const seen = new Set<number>();
-	TEARDOWN_COMPONENTS.forEach((component) => {
-		ecs.getEntitiesWithQuery([component]).forEach(({ id }) => {
-			if (seen.has(id)) return;
-			seen.add(id);
-			ecs.removeEntity(id);
-		});
-	});
-};
-
-game.eventBus.subscribe('screenEnter', ({ screen }) => {
-	if (screen === 'playing') spawnCarrier(game);
-});
-
-game.eventBus.subscribe('screenExit', ({ screen }) => {
-	if (screen === 'playing') teardownSim(game);
-});
+game.onScreenEnter('playing', () => spawnCarrier(game));
 
 await game.setScreen('title', {});
 

@@ -391,8 +391,7 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 			auxIdx: state.selectedAuxIdx,
 		});
 
-		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen !== 'loadoutSelect') return;
+		world.onScreenEnter('loadoutSelect', () => {
 			const hudRefs = world.getResource('hudRefs');
 			hudRefs.loadoutEl.style.display = 'block';
 			const initState = world.getScreenState('loadoutSelect');
@@ -420,8 +419,7 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 			applyStatCard(hudRefs.loadoutStatCardEl, card);
 		});
 
-		world.eventBus.subscribe('screenExit', ({ screen }) => {
-			if (screen !== 'loadoutSelect') return;
+		world.onScreenExit('loadoutSelect', () => {
 			const hudRefs = world.getResource('hudRefs');
 			hudRefs.loadoutEl.style.display = 'none';
 			tearDownPreview(world, preview);

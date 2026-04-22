@@ -30,9 +30,7 @@ export const createCameraLeadPlugin = () => definePlugin({
 	install: (world) => {
 		const state: LeadState = { leadX: 0, leadZ: 0, charge: 0, prevZoomScale: 1 };
 
-		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen === 'playing') resetLeadState(state);
-		});
+		world.onScreenEnter('playing', () => resetLeadState(state));
 
 		world.addSystem('camera-lead')
 			.setPriority(410)

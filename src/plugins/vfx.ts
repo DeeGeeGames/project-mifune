@@ -42,7 +42,7 @@ export const spawnMuzzleFlash = (
 			scaleEnd: 1.6,
 			opacityStart: 0.95,
 		},
-	});
+	}, { scope: 'playing' });
 };
 
 export const spawnImpactSpark = (
@@ -62,7 +62,7 @@ export const spawnImpactSpark = (
 			scaleEnd: 1.8,
 			opacityStart: 0.9,
 		},
-	});
+	}, { scope: 'playing' });
 };
 
 export const spawnDeathExplosion = (
@@ -89,7 +89,7 @@ export const spawnDeathExplosion = (
 			scaleEnd: outerEnd,
 			opacityStart: 0.8,
 		},
-	});
+	}, { scope: 'playing' });
 
 	const coreLife = life * DEATH_EXPLOSION_CORE_LIFE_RATIO;
 	const core = createExplosionMesh(DEATH_EXPLOSION_CORE_COLOR, 1.0);
@@ -105,7 +105,7 @@ export const spawnDeathExplosion = (
 			scaleEnd: coreEnd,
 			opacityStart: 1.0,
 		},
-	});
+	}, { scope: 'playing' });
 };
 
 export const createVfxPlugin = () => definePlugin({

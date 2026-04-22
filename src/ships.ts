@@ -831,25 +831,26 @@ export function turretFromMount(ownerId: number, faction: Faction, mountSpec: Tu
 }
 
 export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, built: BuiltShip): void {
+	const opts = { scope: 'playing' } as const;
 	spec.turrets.forEach((mountSpec, idx) => {
 		const mount = built.turretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ ...turretFromMount(ownerId, 'ally', mountSpec, mount) });
+		ecs.spawn({ ...turretFromMount(ownerId, 'ally', mountSpec, mount) }, opts);
 	});
 	(spec.cannonTurrets ?? []).forEach((mountSpec, idx) => {
 		const mount = built.cannonTurretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ ...cannonTurretFromMount(ownerId, 'ally', mountSpec, mount) });
+		ecs.spawn({ ...cannonTurretFromMount(ownerId, 'ally', mountSpec, mount) }, opts);
 	});
 	(spec.beamTurrets ?? []).forEach((mountSpec, idx) => {
 		const beamMount = built.beamTurretMounts[idx];
 		if (!beamMount) return;
-		ecs.spawn({ ...beamTurretFromMount(ownerId, 'ally', mountSpec, beamMount.mount, beamMount.beamMesh) });
+		ecs.spawn({ ...beamTurretFromMount(ownerId, 'ally', mountSpec, beamMount.mount, beamMount.beamMesh) }, opts);
 	});
 	(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
 		const mount = built.missileTurretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ ...missileTurretFromMount(ownerId, mountSpec, mount) });
+		ecs.spawn({ ...missileTurretFromMount(ownerId, mountSpec, mount) }, opts);
 	});
 }
 
@@ -964,13 +965,14 @@ export function applyCarrierLoadout(
 	built: BuiltShip,
 	loadout: CarrierLoadout,
 ): void {
+	const opts = { scope: 'playing' } as const;
 	const emptyMounts = spec.emptyTurretMounts ?? [];
 	const consumed = pylonsConsumedByPairs(loadout);
 	loadout.pairs.forEach((pair) => {
 		if (pair.weaponKind !== 'mainGun') return;
 		const build = materializeMainGunPair(spec, built, emptyMounts, pair);
 		if (!build) return;
-		ecs.spawn({ ...mainGunBeamFromMount(ownerId, 'ally', build) });
+		ecs.spawn({ ...mainGunBeamFromMount(ownerId, 'ally', build) }, opts);
 	});
 	emptyMounts.forEach((emptyMount, idx) => {
 		if (consumed.has(idx)) return;
@@ -978,7 +980,7 @@ export function applyCarrierLoadout(
 		if (!pylon) return;
 		const result = materializeLoadoutMount(spec, built, emptyMount, idx, pylon);
 		if (!result) return;
-		ecs.spawn({ ...loadoutComponentsFor(ownerId, result) });
+		ecs.spawn({ ...loadoutComponentsFor(ownerId, result) }, opts);
 	});
 }
 
