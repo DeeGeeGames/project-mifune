@@ -1,5 +1,4 @@
 import { definePlugin } from '../types';
-import type { ShipClass } from '../ships';
 import {
 	GP_BUTTON_LT,
 	GP_BUTTON_RT,
@@ -11,13 +10,6 @@ import {
 	THRUST_RATE,
 } from '../constants';
 import { bearingXZ, stickToWorldAngle, clamp } from '../math';
-
-const SUMMON_BY_ACTION: Record<'summon1' | 'summon2' | 'summon3' | 'summon4', ShipClass> = {
-	summon1: 'corvette',
-	summon2: 'frigate',
-	summon3: 'destroyer',
-	summon4: 'dreadnought',
-};
 
 export const createControlPlugin = () => definePlugin({
 	id: 'control',
@@ -58,33 +50,9 @@ export const createControlPlugin = () => definePlugin({
 					kinematic.throttle = updateThrust(kinematic.throttle, input, gp, dt);
 				}
 
-				for (const [action, shipClass] of Object.entries(SUMMON_BY_ACTION)) {
-					if (input.actions.justActivated(action as 'summon1' | 'summon2' | 'summon3' | 'summon4')) {
-						ecs.eventBus.publish('summon:request', { shipClass });
-					}
-				}
-
-				if (input.actions.justActivated('confirmSummon')) {
-					ecs.eventBus.publish('summon:request', { shipClass: playerState.selectedSummon });
-				}
-
-				if (input.actions.justActivated('menuLeft')) {
-					playerState.selectedSummon = stepSummon(playerState.selectedSummon, -1);
-				}
-				if (input.actions.justActivated('menuRight')) {
-					playerState.selectedSummon = stepSummon(playerState.selectedSummon, 1);
-				}
 			});
 	},
 });
-
-const SUMMON_ORDER: readonly ShipClass[] = ['corvette', 'frigate', 'destroyer', 'dreadnought'];
-
-function stepSummon(current: ShipClass, direction: 1 | -1): ShipClass {
-	const idx = SUMMON_ORDER.indexOf(current);
-	const next = (idx + direction + SUMMON_ORDER.length) % SUMMON_ORDER.length;
-	return SUMMON_ORDER[next] ?? 'corvette';
-}
 
 function isStickActive(
 	gp: { axis(i: number): number },

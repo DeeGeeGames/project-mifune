@@ -55,7 +55,7 @@ const game = builder
 	.withPlugin(createEnemyPlugin())
 	.withPlugin(createWavesPlugin())
 	.withPlugin(createPickupsPlugin())
-	.withPlugin(createSummonPlugin())
+	// .withPlugin(createSummonPlugin()) // summoning deactivated
 	.withPlugin(createHudPlugin())
 	.withPlugin(createAimPreviewPlugin())
 	.withPlugin(createHealthBarsPlugin())
