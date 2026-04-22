@@ -4,7 +4,7 @@ import { setScreenLegend, type LegendSpec } from './legend';
 const LEGEND_SPECS: readonly LegendSpec[] = [
 	{ action: 'fwd',     label: 'Thrust', keyboardOverride: 'W/S', gamepadOverride: 'RT/LT' },
 	{ action: 'aimGate', label: 'Set Heading', keyboardOverride: null },
-	{ action: 'zoomIn',  label: 'Zoom',   keyboardOverride: 'Q/E', gamepadOverride: null },
+	{ action: 'zoomIn',  label: 'Zoom',   keyboardOverride: 'Q/E', gamepadOverride: 'RS ↑↓' },
 ];
 
 export const createHudPlugin = () => definePlugin({

@@ -1,6 +1,6 @@
 import { Raycaster, Plane, Vector3, Vector2 } from 'three';
 import { definePlugin } from '../types';
-import { CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX, CAMERA_ZOOM_STEP } from '../constants';
+import { CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX, CAMERA_ZOOM_STEP, CAMERA_ZOOM_SPEED, GP_AXIS_RS_Y, STICK_ACTIVE_THRESHOLD } from '../constants';
 import { clamp } from '../math';
 
 export const createCursorPlugin = () => definePlugin({
@@ -37,6 +37,21 @@ export const createCursorPlugin = () => definePlugin({
 			.setOnDetach(() => {
 				wheelCleanup?.();
 				wheelCleanup = null;
+			});
+
+		world.addSystem('cursor-zoom')
+			.setPriority(10)
+			.inPhase('preUpdate')
+			.withResources(['inputState', 'camera3DState'])
+			.setProcess(({ resources: { inputState: input, camera3DState: cam3d }, dt }) => {
+				if (cam3d.projection !== 'orthographic') return;
+				const gp = input.gamepads[0]?.connected ? input.gamepads[0] : undefined;
+				const keySpeed = input.actions.isActive('zoomIn') ? 1 : input.actions.isActive('zoomOut') ? -1 : 0;
+				const stickRaw = gp ? gp.axis(GP_AXIS_RS_Y) : 0;
+				const stickSpeed = Math.abs(stickRaw) > STICK_ACTIVE_THRESHOLD ? -stickRaw : 0;
+				const speed = keySpeed !== 0 ? keySpeed : stickSpeed;
+				if (speed === 0) return;
+				cam3d.setZoom(clamp(cam3d.zoom * Math.pow(CAMERA_ZOOM_SPEED, speed * dt), CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX));
 			});
 
 		world.addSystem('cursor-update')
