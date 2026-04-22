@@ -1,5 +1,5 @@
 import { definePlugin, type GameAction, type LegendEntry, type InputScheme, type AppScreenName, type World } from '../types';
-import { TRIGGER_DEADZONE } from '../constants';
+import { TRIGGER_DEADZONE, STICK_ACTIVE_THRESHOLD, GP_AXIS_LS_X, GP_AXIS_LS_Y, GP_AXIS_RS_X, GP_AXIS_RS_Y } from '../constants';
 import type { ActionMap } from 'ecspresso/plugins/input/input';
 
 export type LegendSpec = {
@@ -47,6 +47,7 @@ const GAMEPAD_BUTTON_GLYPHS: Partial<Record<number, string>> = {
 
 const STICK_CLICK_BUTTONS = new Set([10, 11]);
 const TRIGGER_BUTTONS = [6, 7] as const;
+const STICK_AXES = [GP_AXIS_LS_X, GP_AXIS_LS_Y, GP_AXIS_RS_X, GP_AXIS_RS_Y] as const;
 const GAMEPAD_POLL_BUTTONS = Array.from({ length: 16 }, (_, i) => i)
 	.filter((b) => !STICK_CLICK_BUTTONS.has(b) && !(TRIGGER_BUTTONS as readonly number[]).includes(b));
 
@@ -102,18 +103,20 @@ const renderLegend = (el: HTMLElement, entries: readonly LegendEntry[], extras: 
 };
 
 const detectGamepadActivity = (
-	gamepads: ReadonlyArray<{ connected: boolean; justPressed(b: number): boolean; buttonValue(b: number): number }>,
+	gamepads: ReadonlyArray<{ connected: boolean; justPressed(b: number): boolean; buttonValue(b: number): number; axis(i: number): number }>,
 	prevTriggers: { values: number[][] },
 ): boolean => {
 	const buttonHit = gamepads.some((gp) => gp.connected && GAMEPAD_POLL_BUTTONS.some((b) => gp.justPressed(b)));
 	if (buttonHit) return true;
-	return gamepads.some((gp, padIdx) => {
+	const triggerHit = gamepads.some((gp, padIdx) => {
 		if (!gp.connected) return false;
 		return TRIGGER_BUTTONS.some((b) => {
 			const prev = prevTriggers.values[padIdx]?.[b] ?? 0;
 			return prev <= TRIGGER_DEADZONE && gp.buttonValue(b) > TRIGGER_DEADZONE;
 		});
 	});
+	if (triggerHit) return true;
+	return gamepads.some((gp) => gp.connected && STICK_AXES.some((a) => Math.abs(gp.axis(a)) > STICK_ACTIVE_THRESHOLD));
 };
 
 const updateTriggerSnapshot = (

@@ -29,19 +29,18 @@ export const createControlPlugin = () => definePlugin({
 			.addQuery('commandVessel', {
 				with: ['kinematic', 'commandVessel', 'localTransform3D'],
 			})
-			.withResources(['inputState', 'cursorState', 'playerState'])
-			.setProcess(({ queries, resources: { inputState: input, cursorState, playerState }, ecs, dt }) => {
-				const gp = input.gamepads[0];
-				const hasGamepad = gp?.connected ?? false;
+			.withResources(['inputState', 'cursorState', 'playerState', 'legend'])
+			.setProcess(({ queries, resources: { inputState: input, cursorState, playerState, legend }, ecs, dt }) => {
+				const rawGp = input.gamepads[0];
+				const gp = (rawGp?.connected ?? false) && legend.scheme === 'gamepad' ? rawGp : undefined;
 
 				const gateHeld = input.actions.isActive('aimGate');
 				const gateReleased = input.actions.justDeactivated('aimGate');
 				const lockPressed = input.actions.justActivated('aimGate');
 
 				for (const { components: { kinematic, localTransform3D } } of queries.commandVessel) {
-					const stickActive = hasGamepad && isStickActive(gp, GP_AXIS_LS_X, GP_AXIS_LS_Y);
-					const shouldTrack = hasGamepad ? stickActive : gateHeld;
-					const shouldCommit = hasGamepad ? lockPressed : gateReleased;
+					const shouldTrack = gp ? isStickActive(gp, GP_AXIS_LS_X, GP_AXIS_LS_Y) : gateHeld;
+					const shouldCommit = gp ? lockPressed : gateReleased;
 
 					if (shouldCommit) {
 						kinematic.headingTarget = playerState.pendingHeading;
@@ -52,12 +51,11 @@ export const createControlPlugin = () => definePlugin({
 							localTransform3D.x,
 							localTransform3D.z,
 							cursorState,
-							hasGamepad,
 							gp,
 						)
 						: kinematic.headingTarget;
 					playerState.headingPreviewActive = shouldTrack;
-					kinematic.throttle = updateThrust(kinematic.throttle, input, gp, hasGamepad, dt);
+					kinematic.throttle = updateThrust(kinematic.throttle, input, gp, dt);
 				}
 
 				for (const [action, shipClass] of Object.entries(SUMMON_BY_ACTION)) {
@@ -89,11 +87,10 @@ function stepSummon(current: ShipClass, direction: 1 | -1): ShipClass {
 }
 
 function isStickActive(
-	gp: { axis(i: number): number } | undefined,
+	gp: { axis(i: number): number },
 	axisX: number,
 	axisY: number,
 ): boolean {
-	if (!gp) return false;
 	const x = gp.axis(axisX);
 	const y = gp.axis(axisY);
 	return Math.sqrt(x * x + y * y) > STICK_ACTIVE_THRESHOLD;
@@ -104,10 +101,9 @@ function computePendingHeading(
 	shipX: number,
 	shipZ: number,
 	cursor: { x: number; z: number; valid: boolean },
-	hasGamepad: boolean,
-	gp: { axis(i: number): number; connected: boolean } | undefined,
+	gp: { axis(i: number): number } | undefined,
 ): number {
-	if (hasGamepad && gp) {
+	if (gp) {
 		const angle = stickToWorldAngle(gp.axis(GP_AXIS_LS_X), gp.axis(GP_AXIS_LS_Y), STICK_ACTIVE_THRESHOLD, ISO_AZIMUTH);
 		return angle ?? current;
 	}
@@ -122,11 +118,10 @@ function applyThrustDelta(current: number, forward: number, reverse: number, dt:
 function updateThrust(
 	current: number,
 	input: { actions: { isActive(a: 'fwd' | 'rev'): boolean } },
-	gp: { buttonValue(b: number): number; connected: boolean } | undefined,
-	hasGamepad: boolean,
+	gp: { buttonValue(b: number): number } | undefined,
 	dt: number,
 ): number {
-	if (hasGamepad && gp) {
+	if (gp) {
 		const rt = gp.buttonValue(GP_BUTTON_RT);
 		const lt = gp.buttonValue(GP_BUTTON_LT);
 		return applyThrustDelta(current, rt > TRIGGER_DEADZONE ? rt : 0, lt > TRIGGER_DEADZONE ? lt : 0, dt);
