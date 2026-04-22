@@ -38,6 +38,7 @@ import { createLoadoutSelectPlugin } from './plugins/loadoutSelect';
 import { createMarketPlugin } from './plugins/market';
 import { createCameraLeadPlugin } from './plugins/cameraLead';
 import { buildShieldComponent, createShieldBubble, createShieldPlugin } from './plugins/shield';
+import { createLegendPlugin } from './plugins/legend';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -64,9 +65,10 @@ const game = builder
 	.withPlugin(createMarketPlugin())
 	.withPlugin(createCameraLeadPlugin())
 	.withPlugin(createShieldPlugin())
+	.withPlugin(createLegendPlugin())
 	.build();
 
-const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-help', 'hud-wave'] as const;
+const gameHudIds = ['hud-resources', 'hud-roster', 'hud-menu', 'hud-thrust', 'hud-wave'] as const;
 
 game.addResource('playerState', {
 	resources: 500,
@@ -105,6 +107,13 @@ game.addResource('hudRefs', {
 	marketFooterEl: requireEl('hud-market-footer'),
 	marketAssignEl: requireEl('hud-market-assign'),
 	marketStatCardEl: requireEl('hud-market-stat-card'),
+	legendEl: requireEl('hud-legend'),
+});
+
+game.addResource('legend', {
+	scheme: 'keyboard',
+	entriesByScreen: {},
+	extraEntries: [],
 });
 
 game.getResource('hudRefs').gameHudEls.forEach((el) => { el.style.display = 'none'; });

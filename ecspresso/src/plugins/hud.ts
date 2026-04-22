@@ -1,5 +1,14 @@
 import { definePlugin } from '../types';
 import { SHIP_SPECS, type ShipClass } from '../ships';
+import { setScreenLegend, type LegendSpec } from './legend';
+
+const LEGEND_SPECS: readonly LegendSpec[] = [
+	{ action: 'fwd',           label: 'Thrust', keyboardOverride: 'W/S', gamepadOverride: 'RT/LT' },
+	{ action: 'aimGate',       label: 'Aim',    keyboardOverride: null },
+	{ action: null,            label: 'Select', keyboardOverride: null, gamepadOverride: 'D-pad ←→' },
+	{ action: 'confirmSummon', label: 'Summon', keyboardOverride: '1-4', gamepadOverride: 'A' },
+	{ action: 'zoomIn',        label: 'Zoom',   keyboardOverride: 'Q/E', gamepadOverride: null },
+];
 
 const SUMMON_ORDER: readonly ShipClass[] = ['corvette', 'frigate', 'destroyer', 'dreadnought'];
 
@@ -11,7 +20,9 @@ export const createHudPlugin = () => definePlugin({
 		};
 
 		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen === 'playing') setGameHudDisplay('');
+			if (screen !== 'playing') return;
+			setGameHudDisplay('');
+			setScreenLegend(world, 'playing', LEGEND_SPECS);
 		});
 
 		world.eventBus.subscribe('screenExit', ({ screen }) => {

@@ -1,5 +1,11 @@
 import { definePlugin, type World } from '../types';
 import { wrapIndex, renderMenuText, menuAxisDelta } from '../menu';
+import { setScreenLegend, dpadVertical, type LegendSpec } from './legend';
+
+const LEGEND_SPECS: readonly LegendSpec[] = [
+	dpadVertical('Navigate'),
+	{ action: 'menuConfirm', label: 'Confirm' },
+];
 
 const MENU_ITEMS = [
 	{ id: 'continue', label: 'Continue' },
@@ -18,7 +24,9 @@ export const createWaveSummaryPlugin = () => definePlugin({
 	id: 'waveSummary',
 	install: (world) => {
 		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen === 'waveSummary') world.getResource('hudRefs').summaryEl.style.display = 'flex';
+			if (screen !== 'waveSummary') return;
+			world.getResource('hudRefs').summaryEl.style.display = 'flex';
+			setScreenLegend(world, 'waveSummary', LEGEND_SPECS);
 		});
 
 		world.eventBus.subscribe('screenExit', ({ screen }) => {

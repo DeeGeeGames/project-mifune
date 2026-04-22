@@ -18,6 +18,19 @@ import {
 	type FooterAction,
 } from './marketCardsDom';
 import { renderStatCard } from './statCardDom';
+import { setScreenLegend, dpadVertical, dpadHorizontal, type LegendSpec } from './legend';
+
+const LEGEND_BROWSE: readonly LegendSpec[] = [
+	dpadVertical('Navigate'),
+	dpadHorizontal(''),
+	{ action: 'menuConfirm', label: 'Confirm' },
+];
+
+const LEGEND_ASSIGN: readonly LegendSpec[] = [
+	dpadVertical('Pick pylon'),
+	{ action: 'menuConfirm', label: 'Assign' },
+	{ action: 'menuCancel',  label: 'Cancel' },
+];
 
 type AssignRow =
 	| { kind: 'pylon'; pylonIdx: number }
@@ -184,6 +197,7 @@ export const createMarketPlugin = () => definePlugin({
 			hudRefs.marketTitleEl.textContent = `MARKET — WAVE ${state.waveNumber} COMPLETE`;
 			resetCaches();
 			setBrowseVisibility(true);
+			setScreenLegend(world, 'market', LEGEND_BROWSE);
 		});
 
 		world.eventBus.subscribe('screenExit', ({ screen }) => {
@@ -221,6 +235,7 @@ export const createMarketPlugin = () => definePlugin({
 				const mode = state.mode.kind;
 				if (mode !== lastMode) {
 					setBrowseVisibility(mode === 'browse');
+					setScreenLegend(ecs, 'market', mode === 'browse' ? LEGEND_BROWSE : LEGEND_ASSIGN);
 					lastMode = mode;
 				}
 				hudRefs.marketResourcesEl.textContent = `Resources: ${playerState.resources}`;

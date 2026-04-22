@@ -301,6 +301,20 @@ export interface CursorState {
 	valid: boolean;
 }
 
+export type InputScheme = 'keyboard' | 'gamepad';
+
+export interface LegendEntry {
+	keyboard: string | null;
+	gamepad: string | null;
+	label: string;
+}
+
+export interface LegendState {
+	scheme: InputScheme;
+	entriesByScreen: Partial<Record<AppScreenName, readonly LegendEntry[]>>;
+	extraEntries: readonly LegendEntry[];
+}
+
 export interface HudRefs {
 	resourcesEl: HTMLElement;
 	rosterEl: HTMLElement;
@@ -323,6 +337,7 @@ export interface HudRefs {
 	marketFooterEl: HTMLElement;
 	marketAssignEl: HTMLElement;
 	marketStatCardEl: HTMLElement;
+	legendEl: HTMLElement;
 }
 
 export interface ShipSummonedEvent {
@@ -418,6 +433,7 @@ export const builder = ECSpresso.create()
 		hudRefs: HudRefs;
 		threatMap: ThreatMap;
 		carrierLoadout: CarrierLoadout;
+		legend: LegendState;
 	}>()
 	.withScreens(screens => screens
 		.add('title', {

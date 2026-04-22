@@ -20,6 +20,27 @@ import { angleDiff, clamp, forwardXZ, normalizeAngle } from '../math';
 import { ISO_AZIMUTH, ISO_ELEVATION, CAMERA_DISTANCE, LOADOUT_CARRIER_ROTATION_SMOOTHING } from '../constants';
 import { WEAPON_KINDS, AUXILIARY_KINDS } from '../loadoutLabels';
 import { renderAuxStatCard, renderStatCard } from './statCardDom';
+import { setScreenLegend, dpadVertical, dpadHorizontal, type LegendSpec } from './legend';
+
+const LEGEND_WEAPON: readonly LegendSpec[] = [
+	dpadVertical('Weapon'),
+	dpadHorizontal('Pylon'),
+	{ action: 'facingCCW',     label: 'Facing',   keyboardOverride: 'Q/E', gamepadOverride: 'LB/RB' },
+	{ action: 'loadoutToggle', label: 'Auxiliary' },
+	{ action: 'menuConfirm',   label: 'Start' },
+	{ action: 'menuCancel',    label: 'Back' },
+];
+
+const LEGEND_AUX: readonly LegendSpec[] = [
+	dpadVertical('System'),
+	dpadHorizontal('Slot'),
+	{ action: 'loadoutToggle', label: 'Weapons' },
+	{ action: 'menuConfirm',   label: 'Start' },
+	{ action: 'menuCancel',    label: 'Back' },
+];
+
+const legendForCategory = (category: LoadoutCategory): readonly LegendSpec[] =>
+	category === 'weapon' ? LEGEND_WEAPON : LEGEND_AUX;
 
 const LOADOUT_AZIMUTH = -Math.PI / 5;
 const LOADOUT_ELEVATION = Math.PI / 8;
@@ -363,6 +384,7 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 			if (screen !== 'loadoutSelect') return;
 			const hudRefs = world.getResource('hudRefs');
 			hudRefs.loadoutEl.style.display = 'block';
+			setScreenLegend(world, 'loadoutSelect', legendForCategory(world.getScreenState('loadoutSelect').category));
 
 			const camera = world.getResource('camera3DState');
 			camera.unfollow();
@@ -415,6 +437,7 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 				}
 				if (inputState.actions.justActivated('loadoutToggle')) {
 					state.category = state.category === 'weapon' ? 'auxiliary' : 'weapon';
+					setScreenLegend(ecs, 'loadoutSelect', legendForCategory(state.category));
 				}
 
 				const dx = menuAxisDelta(inputState, 'menuLeft', 'menuRight');

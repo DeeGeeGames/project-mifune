@@ -1,5 +1,11 @@
 import { definePlugin, type World } from '../types';
 import { wrapIndex, renderMenuText, menuAxisDelta } from '../menu';
+import { setScreenLegend, dpadVertical, type LegendSpec } from './legend';
+
+const LEGEND_SPECS: readonly LegendSpec[] = [
+	dpadVertical('Navigate'),
+	{ action: 'menuConfirm', label: 'Select' },
+];
 
 const MENU_ITEMS = [
 	{ id: 'start', label: 'Start' },
@@ -17,7 +23,9 @@ export const createTitleScreenPlugin = () => definePlugin({
 	id: 'titleScreen',
 	install: (world) => {
 		world.eventBus.subscribe('screenEnter', ({ screen }) => {
-			if (screen === 'title') world.getResource('hudRefs').titleEl.style.display = 'flex';
+			if (screen !== 'title') return;
+			world.getResource('hudRefs').titleEl.style.display = 'flex';
+			setScreenLegend(world, 'title', LEGEND_SPECS);
 		});
 
 		world.eventBus.subscribe('screenExit', ({ screen }) => {
