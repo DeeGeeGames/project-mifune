@@ -34,7 +34,17 @@ Coordinate conventions:
 - `src/math.ts` — pure helpers (`normalizeAngle`, `stepAngle`, `rotateY`, `bearingXZ`, `forwardXZ`, `leadTarget`)
 - `src/menu.ts` — pure helpers (`wrapIndex`, `renderMenuText`) shared by overlay-screen menu plugins.
 - `src/kinematic.ts` — shared `integrateKinematicXZ(state, transform, dt)` used by both `movement.ts` (ships) and `enemy.ts` (enemies)
-- `src/ships.ts` — `SHIP_SPECS` table per class + `createShipGroup` / `enemyShipGroup(kind)` / `projectileMesh` / `pickupMesh` factories
+- `src/ships/` — ship/enemy factories, loadout config, and visual primitives. Public surface re-exported from `src/ships/index.ts`; importers should continue to use `from './ships'` / `'../ships'`. Internal layout:
+  - `angles.ts` — shared angle constants (`FRONT`/`PORT`/etc)
+  - `loadout.ts` — loadout types (`WeaponKind`, `CarrierLoadout`, pylon/pair types), `PAIR_SLOTS`, `pylonArc`, `pylonsConsumedByPairs`
+  - `specs.ts` — `ShipClass`, mount spec interfaces, `SHIP_SPECS`, empty-loadout factories
+  - `mounts.ts` — mount visual builders (turret/empty/aux/missile/beam/mainGun), `attachEnginePlume`, engine material helpers, pair math, shared `CARRIER_ACCENT_MAT`
+  - `details.ts` — per-class hull detail builders + `SHIP_DETAILS` map
+  - `ship.ts` — `BuiltShip` + `createShipGroup`
+  - `turrets.ts` — per-weapon-kind turret component factories (`turretFromMount` / `cannonTurretFromMount` / etc), `spawnShipTurrets`, `buildCarrierLoadoutVisual`, `applyCarrierLoadout`
+  - `enemy.ts` — `BuiltEnemy` + `enemyShipGroup`
+  - `projectiles.ts` — bullet / missile / cannon / railgun / pd meshes
+  - `meshVfx.ts` — blast / pickup / explosion / muzzle-flash / impact-spark meshes
 - `src/enemies.ts` — `EnemyKind` union (`pursuer | interceptor | flanker | orbiter`), `EnemyBehavior` discriminated union, `ENEMY_SPECS` stat/color table, `makeBehavior(kind)` factory
 - `src/formation.ts` — pure helpers: `slotLocalXZ(slotIndex)` maps flat slot indices to a V formation (row 0 = front tip, row 1 = command row, each next row +2 slots); `reassignFormationSlots` repacks slots from `ownedShipIds` order.
 - `src/main.ts` — install plugins, build hud refs, `onScreenEnter('playing')` to spawn the carrier, boot into `title` screen
@@ -62,6 +72,7 @@ Coordinate conventions:
 
 ## Key Patterns
 
+- Soft file-size target: aim to keep source files under ~500 lines. When a file grows past that, prefer splitting it into smaller logical parts — even just a directory with a barrel `index.ts` that re-exports the pieces is better than one big file. Exceptions are fine when a file is a genuine single unit (e.g. `src/types.ts`'s builder chain) but the default stance is: split.
 - Export `builder` (pre-`.build()`) from `types.ts` so feature plugins use `definePlugin({id, install})`.
 - Plugin creators are `createXPlugin() => definePlugin({...})` — called from `main.ts`.
 - Ship turrets are separate entities with a `turret` component referencing their `ownerShipId`; `turret.mount` holds the three.js `Group` child so the aim system can rotate it in ship-local space.
