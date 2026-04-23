@@ -27,11 +27,14 @@ export const createShieldBubble = (spec: ShipSpec): BuiltShield => {
 		side: DoubleSide,
 	});
 	const mesh = new Mesh(SHIELD_GEO, material);
-	mesh.position.y = spec.hullHeight;
+	// Center at hull mid-height so the y-offset doesn't consume the XZ budget.
+	// x/z radii scaled to 1.7× and 1.3× half-extents so hull bottom corners
+	// (±hullWidth/2, 0, ±hullLength/2) sit inside the ellipsoid: ~0.97 < 1.
+	mesh.position.y = spec.hullHeight / 2;
 	mesh.scale.set(
-		spec.hullWidth / 2 + 0.4,
-		spec.hullHeight * 2.5,
-		spec.hullLength / 2 + 0.4,
+		spec.hullWidth * 0.85,
+		spec.hullHeight * 3,
+		spec.hullLength * 0.65,
 	);
 	return { mesh, material };
 };
