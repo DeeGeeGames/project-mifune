@@ -11,6 +11,7 @@ import {
 	STAR_FIELD_Y_MAX,
 	STAR_FIELD_Y_MIN,
 	STAR_SIZE,
+	TRAIL_COLOR_ALLY,
 } from './constants';
 import { createCursorPlugin } from './plugins/cursor';
 import { createControlPlugin } from './plugins/control';
@@ -39,6 +40,7 @@ import { buildShieldComponent, createShieldBubble, createShieldPlugin } from './
 import { createLegendPlugin } from './plugins/legend';
 import { createBackdropPlugin } from './plugins/backdrop';
 import { createVfxPlugin } from './plugins/vfx';
+import { createTrailPlugin, spawnShipTrails } from './plugins/trail';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -67,6 +69,7 @@ const game = builder
 	.withPlugin(createShieldPlugin())
 	.withPlugin(createLegendPlugin())
 	.withPlugin(createBackdropPlugin())
+	.withPlugin(createTrailPlugin())
 	.withPlugin(createVfxPlugin())
 	.build();
 
@@ -139,8 +142,9 @@ const spawnCarrier = (ecs: World): void => {
 		ship: { class: 'carrier', hp: spec.hp },
 		kinematic: createKinematicState(spec, 0),
 		commandVessel: true,
-		engineGlow: { material: built.engineMaterial },
+		engineGlow: { material: built.engineMaterial, mounts: built.engineMounts },
 	}, { scope: 'playing' });
+	spawnShipTrails(ecs, carrier.id, built.engineMounts, TRAIL_COLOR_ALLY);
 	spawnShipTurrets(ecs, carrier.id, spec, built);
 	applyCarrierLoadout(ecs, carrier.id, spec, built, loadout);
 

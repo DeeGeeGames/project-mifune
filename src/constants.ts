@@ -293,6 +293,37 @@ export const DEATH_EXPLOSION_COLOR_SHIP = 0xffaa33;
 export const DEATH_EXPLOSION_CORE_COLOR = 0xfff2cc;
 export const ENGINE_EMISSIVE_IDLE = 0.4;
 export const ENGINE_EMISSIVE_MAX = 2.2;
+
+// Engine thrust plume — persistent additive cone mounted aft of each engine.
+// Scale-Z multiplies `size` (per-engine nominal dimension) to yield plume length.
+export const ENGINE_PLUME_COLOR = 0x66bbff;
+export const ENGINE_PLUME_COLOR_ENEMY = 0xff8855;
+export const ENGINE_PLUME_OPACITY_IDLE = 0.15;
+export const ENGINE_PLUME_OPACITY_MAX = 0.85;
+export const ENGINE_PLUME_LENGTH_IDLE = 0.6;
+export const ENGINE_PLUME_LENGTH_MAX = 3.0;
+export const ENGINE_PLUME_WIDTH_MULT = 0.9;
+
+// Missile engine plume — fixed since missiles are uniform.
+export const MISSILE_PLUME_SIZE = 0.16;
+export const MISSILE_PLUME_COLOR = 0xffaa55;
+export const MISSILE_PLUME_OPACITY = 0.85;
+export const MISSILE_PLUME_LENGTH = 1.8;
+
+// Vapor trail — continuous ribbon (triangle strip) in world space behind each engine.
+export const TRAIL_SEGMENTS = 28;
+export const TRAIL_COLOR_ALLY = 0x88ccff;
+export const TRAIL_COLOR_ENEMY = 0xffaa88;
+export const TRAIL_COLOR_MISSILE = 0xff9955;
+export const TRAIL_WIDTH_ENGINE_MULT = 0.7;
+export const TRAIL_WIDTH_MISSILE = 0.15;
+export const TRAIL_ALPHA_HEAD = 0.85;
+export const TRAIL_ALPHA_TAIL = 0.0;
+// Below these gates the emitter freezes (no new samples) so the ribbon stops extending.
+export const TRAIL_EMIT_MIN_THROTTLE = 0.05;
+export const TRAIL_EMIT_MIN_SPEED = 0.4;
+export const TRAIL_Y = 0.45;
+
 export const BEAM_IMPACT_COOLDOWN_SEC = 0.08;
 export const MUZZLE_TINT = {
 	bullet: 0xffcc66,

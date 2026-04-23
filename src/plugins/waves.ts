@@ -19,9 +19,11 @@ import {
 	GUNSHIP_RANGED_CONFIG,
 	SNIPER_AIM_CONFIG,
 	SNIPER_RANGED_CONFIG,
+	TRAIL_COLOR_ENEMY,
 	type RangedBehaviorConfig,
 	type SniperAimConfig,
 } from '../constants';
+import { spawnShipTrails } from './trail';
 
 const TOTAL_WEIGHT = ENEMY_KINDS.reduce((sum, kind) => sum + ENEMY_SPAWN_WEIGHTS[kind], 0);
 
@@ -59,7 +61,8 @@ const behaviorTreeFor = (behavior: EnemyBehavior) => {
 
 const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number, targetX: number, targetZ: number): void => {
 	const spec = ENEMY_SPECS[kind];
-	const { group, turretMount } = enemyShipGroup(kind);
+	const built = enemyShipGroup(kind);
+	const { group, turretMount } = built;
 	const behavior = makeBehavior(kind);
 	const isShooter = spec.turretMount !== undefined && turretMount !== null;
 	const behaviorTree = behaviorTreeFor(behavior);
@@ -87,8 +90,11 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 		},
 		kinematic: createKinematicState(spec, spawnHeading),
 		healthBar,
+		engineGlow: { material: built.engineMaterial, mounts: built.engineMounts },
 		...(behaviorTree ?? {}),
 	}, { scope: 'playing' });
+
+	spawnShipTrails(ecs, enemyEntity.id, built.engineMounts, TRAIL_COLOR_ENEMY);
 
 	if (isShooter && spec.turretMount && turretMount) {
 		ecs.spawn({

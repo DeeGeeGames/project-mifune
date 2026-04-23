@@ -10,6 +10,11 @@ import {
 	DEATH_EXPLOSION_SCALE_MULT,
 	ENGINE_EMISSIVE_IDLE,
 	ENGINE_EMISSIVE_MAX,
+	ENGINE_PLUME_LENGTH_IDLE,
+	ENGINE_PLUME_LENGTH_MAX,
+	ENGINE_PLUME_OPACITY_IDLE,
+	ENGINE_PLUME_OPACITY_MAX,
+	ENGINE_PLUME_WIDTH_MULT,
 	IMPACT_SPARK_LIFE_SEC,
 	IMPACT_TINT,
 	MUZZLE_FLASH_LIFE_SEC,
@@ -146,6 +151,13 @@ export const createVfxPlugin = () => definePlugin({
 					const throttleMag = Math.min(1, Math.abs(kinematic.throttle));
 					const t = Math.min(1, throttleMag * 0.7 + speedRatio * 0.3);
 					engineGlow.material.emissiveIntensity = ENGINE_EMISSIVE_IDLE + (ENGINE_EMISSIVE_MAX - ENGINE_EMISSIVE_IDLE) * t;
+					const length = ENGINE_PLUME_LENGTH_IDLE + (ENGINE_PLUME_LENGTH_MAX - ENGINE_PLUME_LENGTH_IDLE) * t;
+					const opacity = ENGINE_PLUME_OPACITY_IDLE + (ENGINE_PLUME_OPACITY_MAX - ENGINE_PLUME_OPACITY_IDLE) * t;
+					for (const mount of engineGlow.mounts) {
+						const width = mount.size * ENGINE_PLUME_WIDTH_MULT;
+						mount.plume.scale.set(width, width, mount.size * length);
+						mount.plumeMat.opacity = opacity;
+					}
 				}
 			});
 	},

@@ -1,11 +1,12 @@
 import { definePlugin } from '../types';
 import { angleDiff, bearingXZ, distanceXZ, forwardXZ, mountToWorld, normalizeAngle, stepAngle } from '../math';
-import { missileMesh } from '../ships';
+import { buildMissile } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { canFire, recordShot } from '../weapons';
 import { getOwnerState } from './turret';
 import { killEnemyAndDrop } from './combat';
 import { spawnImpactSpark, spawnMuzzleFlash } from './vfx';
+import { spawnTrailForAnchor } from './trail';
 import {
 	MISSILE_LAUNCH_SPEED,
 	MISSILE_LIFE_SEC,
@@ -14,6 +15,8 @@ import {
 	MISSILE_TURN_RATE,
 	MISSILE_UNGUIDED_SEC,
 	MUZZLE_OFFSET,
+	TRAIL_COLOR_MISSILE,
+	TRAIL_WIDTH_MISSILE,
 } from '../constants';
 
 export const createMissilePlugin = () => definePlugin({
@@ -57,8 +60,9 @@ export const createMissilePlugin = () => definePlugin({
 					const muzzleX = mountWorldX + fwd.x * MUZZLE_OFFSET;
 					const muzzleZ = mountWorldZ + fwd.z * MUZZLE_OFFSET;
 
-					ecs.spawn({
-						...createMeshComponents(missileMesh(), { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: launchWorld } }),
+					const builtMissile = buildMissile();
+					const missileEntity = ecs.spawn({
+						...createMeshComponents(builtMissile.mesh, { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: launchWorld } }),
 						missile: {
 							heading: launchWorld,
 							speed: MISSILE_LAUNCH_SPEED,
@@ -69,6 +73,7 @@ export const createMissilePlugin = () => definePlugin({
 						},
 					}, { scope: 'playing' });
 
+					spawnTrailForAnchor(ecs, missileEntity.id, builtMissile.engineMount.anchor, TRAIL_WIDTH_MISSILE, TRAIL_COLOR_MISSILE);
 					spawnMuzzleFlash(ecs, muzzleX, muzzleZ, launchWorld, 'missile');
 					recordShot(burstFire, now);
 				}

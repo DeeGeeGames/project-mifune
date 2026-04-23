@@ -22,7 +22,7 @@ import {
 	ISO_ELEVATION,
 } from './constants';
 import type { ShipClass, CarrierLoadout } from './ships';
-import type { Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Sprite } from 'three';
+import type { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
 import type { BurstFireState } from './weapons';
@@ -235,8 +235,26 @@ export interface VfxComponent {
 	opacityStart: number;
 }
 
+export interface EngineMountRef {
+	readonly plume: Mesh;
+	readonly plumeMat: MeshBasicMaterial;
+	readonly size: number;
+}
+
 export interface EngineGlowComponent {
 	material: MeshStandardMaterial;
+	mounts: readonly EngineMountRef[];
+}
+
+export interface TrailComponent {
+	ownerId: number;
+	anchor: Object3D;
+	geometry: BufferGeometry;
+	material: MeshBasicMaterial;
+	positionAttr: BufferAttribute;
+	halfWidth: number;
+	centers: Float32Array;
+	initialized: boolean;
 }
 
 export interface ShieldComponent {
@@ -434,6 +452,7 @@ export const builder = ECSpresso.create()
 		shield: ShieldComponent;
 		vfx: VfxComponent;
 		engineGlow: EngineGlowComponent;
+		trail: TrailComponent;
 	}>()
 	.withEventTypes<
 		ScreenEvents<AppScreenName> &

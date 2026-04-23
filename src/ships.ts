@@ -10,6 +10,7 @@ import {
 	MeshBasicMaterial,
 	MeshStandardMaterial,
 	DoubleSide,
+	Object3D,
 } from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import {
@@ -71,6 +72,15 @@ import {
 	MAIN_GUN_DETECTION_RANGE,
 	MAIN_GUN_DURATION_MS,
 	MAIN_GUN_VISUAL_LENGTH,
+	ENGINE_PLUME_COLOR,
+	ENGINE_PLUME_COLOR_ENEMY,
+	ENGINE_PLUME_LENGTH_IDLE,
+	ENGINE_PLUME_OPACITY_IDLE,
+	ENGINE_PLUME_WIDTH_MULT,
+	MISSILE_PLUME_COLOR,
+	MISSILE_PLUME_LENGTH,
+	MISSILE_PLUME_OPACITY,
+	MISSILE_PLUME_SIZE,
 } from './constants';
 import type { Faction, World } from './types';
 import { ENEMY_SPECS, type EnemyKind } from './enemies';
@@ -588,6 +598,13 @@ export const mainGunBeamFromMount = (ownerId: number, faction: Faction, build: M
 	},
 });
 
+export interface EngineMount {
+	readonly anchor: Object3D;
+	readonly plume: Mesh;
+	readonly plumeMat: MeshBasicMaterial;
+	readonly size: number;
+}
+
 export interface BuiltShip {
 	readonly group: Group;
 	readonly turretMounts: readonly Group[];
@@ -597,6 +614,7 @@ export interface BuiltShip {
 	readonly emptyTurretMountGroups: readonly Group[];
 	readonly emptyAuxMountGroups: readonly Group[];
 	readonly engineMaterial: MeshStandardMaterial;
+	readonly engineMounts: readonly EngineMount[];
 }
 
 interface ShipMaterials {
@@ -605,7 +623,43 @@ interface ShipMaterials {
 	readonly engine: MeshStandardMaterial;
 }
 
-type ShipDetailBuilder = (group: Group, spec: ShipSpec, mats: ShipMaterials) => void;
+export function attachEnginePlume(
+	engineMesh: Mesh,
+	engineDepth: number,
+	size: number,
+	color: number,
+	opacity: number = ENGINE_PLUME_OPACITY_IDLE,
+	lengthFactor: number = ENGINE_PLUME_LENGTH_IDLE,
+): EngineMount {
+	const plumeMat = new MeshBasicMaterial({
+		color,
+		transparent: true,
+		opacity,
+		blending: AdditiveBlending,
+		depthWrite: false,
+	});
+	const geo = new ConeGeometry(1, 1, 10);
+	geo.rotateX(-Math.PI / 2);
+	geo.translate(0, 0, -0.5);
+	const plume = new Mesh(geo, plumeMat);
+	plume.position.z = -engineDepth / 2;
+	const width = size * ENGINE_PLUME_WIDTH_MULT;
+	plume.scale.set(width, width, size * lengthFactor);
+	engineMesh.add(plume);
+
+	const anchor = new Object3D();
+	anchor.position.z = -engineDepth / 2;
+	engineMesh.add(anchor);
+
+	return { anchor, plume, plumeMat, size };
+}
+
+const engineSize = (width: number, height: number): number => Math.max(width, height) * 0.5;
+
+const createEngineMaterial = (color: number, emissive: number): MeshStandardMaterial =>
+	new MeshStandardMaterial({ color, emissive, emissiveIntensity: 0.9, roughness: 0.3, metalness: 0.4 });
+
+type ShipDetailBuilder = (group: Group, spec: ShipSpec, mats: ShipMaterials) => readonly EngineMount[];
 
 const SIDES = [-1, 1] as const;
 
@@ -625,12 +679,13 @@ const addCorvetteDetails: ShipDetailBuilder = (group, spec, mats) => {
 	);
 	cockpit.position.set(0, spec.hullHeight + spec.hullHeight * 0.22, spec.hullLength * 0.05);
 	group.add(cockpit);
-	const eng = new Mesh(
-		new BoxGeometry(spec.hullWidth * 0.55, spec.hullHeight * 0.5, 0.12),
-		mats.engine,
-	);
+	const engW = spec.hullWidth * 0.55;
+	const engH = spec.hullHeight * 0.5;
+	const engD = 0.12;
+	const eng = new Mesh(new BoxGeometry(engW, engH, engD), mats.engine);
 	eng.position.set(0, spec.hullHeight * 0.5, -spec.hullLength / 2 - 0.06);
 	group.add(eng);
+	return [attachEnginePlume(eng, engD, engineSize(engW, engH), ENGINE_PLUME_COLOR)];
 };
 
 const addFrigateDetails: ShipDetailBuilder = (group, spec, mats) => {
@@ -654,13 +709,14 @@ const addFrigateDetails: ShipDetailBuilder = (group, spec, mats) => {
 	);
 	mast.position.set(0, spec.hullHeight + spec.hullHeight * 0.9, -spec.hullLength * 0.18);
 	group.add(mast);
-	SIDES.forEach((side) => {
-		const eng = new Mesh(
-			new BoxGeometry(spec.hullWidth * 0.3, spec.hullHeight * 0.55, 0.14),
-			mats.engine,
-		);
+	const engW = spec.hullWidth * 0.3;
+	const engH = spec.hullHeight * 0.55;
+	const engD = 0.14;
+	return SIDES.map((side) => {
+		const eng = new Mesh(new BoxGeometry(engW, engH, engD), mats.engine);
 		eng.position.set(side * spec.hullWidth * 0.27, spec.hullHeight * 0.45, -spec.hullLength / 2 - 0.07);
 		group.add(eng);
+		return attachEnginePlume(eng, engD, engineSize(engW, engH), ENGINE_PLUME_COLOR);
 	});
 };
 
@@ -683,13 +739,14 @@ const addDestroyerDetails: ShipDetailBuilder = (group, spec, mats) => {
 	);
 	command.position.set(0, spec.hullHeight + spec.hullHeight * 1.075, -spec.hullLength * 0.18);
 	group.add(command);
-	SIDES.forEach((side) => {
-		const eng = new Mesh(
-			new BoxGeometry(spec.hullWidth * 0.36, spec.hullHeight * 0.7, 0.18),
-			mats.engine,
-		);
+	const engW = spec.hullWidth * 0.36;
+	const engH = spec.hullHeight * 0.7;
+	const engD = 0.18;
+	return SIDES.map((side) => {
+		const eng = new Mesh(new BoxGeometry(engW, engH, engD), mats.engine);
 		eng.position.set(side * spec.hullWidth * 0.27, spec.hullHeight * 0.5, -spec.hullLength / 2 - 0.09);
 		group.add(eng);
+		return attachEnginePlume(eng, engD, engineSize(engW, engH), ENGINE_PLUME_COLOR);
 	});
 };
 
@@ -701,7 +758,10 @@ const addDreadnoughtDetails: ShipDetailBuilder = (group, spec, mats) => {
 	const podHeight = spec.hullHeight;
 	const podLength = spec.hullLength * 0.78;
 	const podZ = -spec.hullLength * 0.12;
-	SIDES.forEach((side) => {
+	const engW = podWidth * 0.75;
+	const engH = podHeight * 0.7;
+	const engD = 0.18;
+	const engineMounts = SIDES.map((side) => {
 		const pod = new Mesh(
 			new BoxGeometry(podWidth, podHeight, podLength),
 			mats.hull,
@@ -714,16 +774,14 @@ const addDreadnoughtDetails: ShipDetailBuilder = (group, spec, mats) => {
 		);
 		podStripe.position.set(side * (spec.hullWidth / 2 + podWidth / 2), podHeight + 0.01, podZ);
 		group.add(podStripe);
-		const eng = new Mesh(
-			new BoxGeometry(podWidth * 0.75, podHeight * 0.7, 0.18),
-			mats.engine,
-		);
+		const eng = new Mesh(new BoxGeometry(engW, engH, engD), mats.engine);
 		eng.position.set(
 			side * (spec.hullWidth / 2 + podWidth / 2),
 			podHeight / 2,
 			podZ - podLength / 2 - 0.09,
 		);
 		group.add(eng);
+		return attachEnginePlume(eng, engD, engineSize(engW, engH), ENGINE_PLUME_COLOR);
 	});
 
 	const towerBase = new Mesh(
@@ -760,6 +818,8 @@ const addDreadnoughtDetails: ShipDetailBuilder = (group, spec, mats) => {
 	);
 	prow.position.set(0, spec.hullHeight + spec.hullHeight * 0.175, spec.hullLength * 0.32);
 	group.add(prow);
+
+	return engineMounts;
 };
 
 // Slab-hulled space carrier: ships launch from internal hangar bays, so no
@@ -789,13 +849,14 @@ const addCarrierDetails: ShipDetailBuilder = (group, spec, mats) => {
 	mast.position.set(0, spec.hullHeight + spec.hullHeight * 1.85, towerZ);
 	group.add(mast);
 
-	SIDES.forEach((side) => {
-		const eng = new Mesh(
-			new BoxGeometry(spec.hullWidth * 0.35, spec.hullHeight * 0.55, 0.18),
-			mats.engine,
-		);
+	const engW = spec.hullWidth * 0.35;
+	const engH = spec.hullHeight * 0.55;
+	const engD = 0.18;
+	return SIDES.map((side) => {
+		const eng = new Mesh(new BoxGeometry(engW, engH, engD), mats.engine);
 		eng.position.set(side * spec.hullWidth * 0.3, spec.hullHeight * 0.5, -spec.hullLength / 2 - 0.09);
 		group.add(eng);
+		return attachEnginePlume(eng, engD, engineSize(engW, engH), ENGINE_PLUME_COLOR);
 	});
 };
 
@@ -1124,13 +1185,7 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 	const mats: ShipMaterials = {
 		hull: new MeshStandardMaterial({ color: spec.color, roughness: 0.55, metalness: 0.25 }),
 		accent: new MeshStandardMaterial({ color: 0x222833, roughness: 0.6, metalness: 0.2 }),
-		engine: new MeshStandardMaterial({
-			color: 0x88ccff,
-			emissive: 0x4488ff,
-			emissiveIntensity: 0.9,
-			roughness: 0.3,
-			metalness: 0.4,
-		}),
+		engine: createEngineMaterial(0x88ccff, 0x4488ff),
 	};
 
 	const hullGeo = spec.flatBow
@@ -1147,7 +1202,7 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		group.add(bow);
 	}
 
-	SHIP_DETAILS[shipClass](group, spec, mats);
+	const engineMounts = SHIP_DETAILS[shipClass](group, spec, mats);
 
 	const turretMounts: Group[] = spec.turrets.map((mount) => {
 		const turretGroup = buildTurretMountGroup(mount, spec.hullHeight, mats.accent);
@@ -1194,6 +1249,7 @@ export function createShipGroup(shipClass: ShipClass): BuiltShip {
 		emptyTurretMountGroups,
 		emptyAuxMountGroups,
 		engineMaterial: mats.engine,
+		engineMounts,
 	};
 }
 
@@ -1272,12 +1328,15 @@ const ENEMY_DETAILS: Record<EnemyKind, EnemyDetailBuilder> = {
 export interface BuiltEnemy {
 	readonly group: Group;
 	readonly turretMount: Group | null;
+	readonly engineMaterial: MeshStandardMaterial;
+	readonly engineMounts: readonly EngineMount[];
 }
 
 export function enemyShipGroup(kind: EnemyKind): BuiltEnemy {
 	const spec = ENEMY_SPECS[kind];
 	const group = new Group();
 	const hullMat = ENEMY_HULL_MATS[kind];
+	const engineMat = createEngineMaterial(0xffaa66, 0xff6622);
 
 	const hull = new Mesh(
 		new BoxGeometry(spec.hullWidth, spec.hullHeight, spec.hullLength),
@@ -1301,6 +1360,16 @@ export function enemyShipGroup(kind: EnemyKind): BuiltEnemy {
 	tailFin.position.set(0, spec.hullHeight * 0.65, -spec.hullLength / 2 - spec.hullLength * 0.08);
 	group.add(tailFin);
 
+	const engW = spec.hullWidth * 0.55;
+	const engH = spec.hullHeight * 0.55;
+	const engD = 0.12;
+	const eng = new Mesh(new BoxGeometry(engW, engH, engD), engineMat);
+	eng.position.set(0, spec.hullHeight * 0.5, -spec.hullLength / 2 - engD / 2);
+	group.add(eng);
+	const engineMounts: readonly EngineMount[] = [
+		attachEnginePlume(eng, engD, engineSize(engW, engH), ENGINE_PLUME_COLOR_ENEMY),
+	];
+
 	ENEMY_DETAILS[kind](group, hullMat);
 
 	const turretMount = spec.turretMount
@@ -1308,7 +1377,7 @@ export function enemyShipGroup(kind: EnemyKind): BuiltEnemy {
 		: null;
 	if (turretMount) group.add(turretMount);
 
-	return { group, turretMount };
+	return { group, turretMount, engineMaterial: engineMat, engineMounts };
 }
 
 export function projectileMesh(): Mesh {
@@ -1327,8 +1396,22 @@ const MISSILE_MAT = new MeshStandardMaterial({ color: 0xff5533, emissive: 0xaa22
 MISSILE_GEO.userData.shared = true;
 MISSILE_MAT.userData.shared = true;
 
-export function missileMesh(): Mesh {
-	return new Mesh(MISSILE_GEO, MISSILE_MAT);
+export interface BuiltMissile {
+	readonly mesh: Mesh;
+	readonly engineMount: EngineMount;
+}
+
+export function buildMissile(): BuiltMissile {
+	const mesh = new Mesh(MISSILE_GEO, MISSILE_MAT);
+	const engineMount = attachEnginePlume(
+		mesh,
+		0.8, // missile mesh is 0.8 long along Z (rotated cylinder)
+		MISSILE_PLUME_SIZE,
+		MISSILE_PLUME_COLOR,
+		MISSILE_PLUME_OPACITY,
+		MISSILE_PLUME_LENGTH,
+	);
+	return { mesh, engineMount };
 }
 
 const CANNON_SHELL_GEO = (() => {

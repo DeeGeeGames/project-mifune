@@ -1,10 +1,11 @@
 import { definePlugin } from '../types';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { SHIP_SPECS, createShipGroup, spawnShipTurrets } from '../ships';
-import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING } from '../constants';
+import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING, TRAIL_COLOR_ALLY } from '../constants';
 import { createKinematicState } from '../kinematic';
 import { forwardXZ, rotateY } from '../math';
 import { slotLocalXZ } from '../formation';
+import { spawnShipTrails } from './trail';
 
 export const createSummonPlugin = () => definePlugin({
 	id: 'summon',
@@ -43,9 +44,12 @@ export const createSummonPlugin = () => definePlugin({
 						kinematic: createKinematicState(spec, initialHeading),
 						formationSlot: { flagshipId: playerState.commandVesselId, slotIndex },
 						summonAnim: { progress: 0, originX, originZ },
+						engineGlow: { material: built.engineMaterial, mounts: built.engineMounts },
 					}, { scope: 'playing' });
 
 					playerState.ownedShipIds.push(entity.id);
+
+					spawnShipTrails(ecs, entity.id, built.engineMounts, TRAIL_COLOR_ALLY);
 
 					spawnShipTurrets(ecs, entity.id, spec, built);
 
