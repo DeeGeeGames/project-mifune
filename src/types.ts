@@ -21,7 +21,7 @@ import {
 	ISO_AZIMUTH,
 	ISO_ELEVATION,
 } from './constants';
-import type { ShipClass, CarrierLoadout } from './ships';
+import type { ShipClass, CarrierLoadout, EngineMount } from './ships';
 import type { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
 import type { EnemyBehavior } from './enemies';
@@ -136,6 +136,7 @@ export interface MissileComponent {
 	unguidedTime: number;
 	damage: number;
 	targetId: number | null;
+	engineMount: EngineMount;
 }
 
 export type BeamTurretState = 'idle' | 'firing' | 'cooldown';

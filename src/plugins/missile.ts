@@ -10,6 +10,7 @@ import { spawnTrailForAnchor } from './trail';
 import {
 	MISSILE_LAUNCH_SPEED,
 	MISSILE_LIFE_SEC,
+	MISSILE_PLUME_OPACITY,
 	MISSILE_RADIUS,
 	MISSILE_SPEED,
 	MISSILE_TURN_RATE,
@@ -61,7 +62,7 @@ export const createMissilePlugin = () => definePlugin({
 					const muzzleZ = mountWorldZ + fwd.z * MUZZLE_OFFSET;
 
 					const builtMissile = buildMissile();
-					const missileEntity = ecs.spawn({
+					ecs.spawn({
 						...createMeshComponents(builtMissile.mesh, { x: muzzleX, y: 0.6, z: muzzleZ }, { rotation: { y: launchWorld } }),
 						missile: {
 							heading: launchWorld,
@@ -70,10 +71,10 @@ export const createMissilePlugin = () => definePlugin({
 							unguidedTime: MISSILE_UNGUIDED_SEC,
 							damage: turret.damage,
 							targetId: nearestId,
+							engineMount: builtMissile.engineMount,
 						},
 					}, { scope: 'playing' });
 
-					spawnTrailForAnchor(ecs, missileEntity.id, builtMissile.engineMount.anchor, TRAIL_WIDTH_MISSILE, TRAIL_COLOR_MISSILE);
 					spawnMuzzleFlash(ecs, muzzleX, muzzleZ, launchWorld, 'missile');
 					recordShot(burstFire, now);
 				}
@@ -94,6 +95,10 @@ export const createMissilePlugin = () => definePlugin({
 
 					if (missile.unguidedTime > 0) {
 						missile.unguidedTime -= dt;
+						if (missile.unguidedTime <= 0) {
+							missile.engineMount.plumeMat.opacity = MISSILE_PLUME_OPACITY;
+							spawnTrailForAnchor(ecs, id, missile.engineMount.anchor, TRAIL_WIDTH_MISSILE, TRAIL_COLOR_MISSILE);
+						}
 					} else if (missile.targetId !== null) {
 						const targetTransform = ecs.getComponent(missile.targetId, 'localTransform3D');
 						const targetEnemy = ecs.getComponent(missile.targetId, 'enemy');

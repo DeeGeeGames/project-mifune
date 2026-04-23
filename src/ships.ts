@@ -1408,7 +1408,7 @@ export function buildMissile(): BuiltMissile {
 		0.8, // missile mesh is 0.8 long along Z (rotated cylinder)
 		MISSILE_PLUME_SIZE,
 		MISSILE_PLUME_COLOR,
-		MISSILE_PLUME_OPACITY,
+		0,
 		MISSILE_PLUME_LENGTH,
 	);
 	return { mesh, engineMount };
