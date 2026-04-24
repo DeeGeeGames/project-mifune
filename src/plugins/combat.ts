@@ -1,6 +1,6 @@
 import { definePlugin, type World } from '../types';
-import { distanceXZ } from '../math';
-import { PROJECTILE_RADIUS, PICKUP_VALUE, SHIP_HIT_RADIUS, BLAST_LIFE_SEC } from '../constants';
+import { distanceXZ, pointCapsuleDistanceSqXZ } from '../math';
+import { PROJECTILE_RADIUS, PICKUP_VALUE, BLAST_LIFE_SEC } from '../constants';
 import { pickupMesh, createBlast, SHIP_SPECS, type ShipClass } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { applyDamageToShip } from './shield';
@@ -74,9 +74,8 @@ export const createCombatPlugin = () => definePlugin({
 			.inScreens(['playing'])
 			.addQuery('projectiles', { with: ['projectile', 'localTransform3D'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
-			.addQuery('ships', { with: ['ship', 'localTransform3D'] })
+			.addQuery('ships', { with: ['ship', 'localTransform3D', 'collider', 'kinematic'] })
 			.setProcess(({ queries, ecs }) => {
-				const shipHitRadius = SHIP_HIT_RADIUS + PROJECTILE_RADIUS;
 				for (const { id: projId, components: { projectile, localTransform3D: pt } } of queries.projectiles) {
 					const splashDamage = projectile.splashDamage ?? 0;
 					const splashRadius = projectile.splashRadius ?? 0;
@@ -124,9 +123,10 @@ export const createCombatPlugin = () => definePlugin({
 						continue;
 					}
 
-					for (const { id: shipId, components: { ship, localTransform3D: st } } of queries.ships) {
-						const d = distanceXZ(pt.x, pt.z, st.x, st.z);
-						if (d > shipHitRadius) continue;
+					for (const { id: shipId, components: { ship, localTransform3D: st, collider: sc, kinematic: sk } } of queries.ships) {
+						const reach = sc.radius + PROJECTILE_RADIUS;
+						const dSq = pointCapsuleDistanceSqXZ(pt.x, pt.z, st.x, st.z, sk.heading, sc.halfLength);
+						if (dSq > reach * reach) continue;
 						applyDamageToShip(ecs, shipId, projectile.damage, ship);
 						const impactX = pt.x;
 						const impactZ = pt.z;
@@ -136,10 +136,11 @@ export const createCombatPlugin = () => definePlugin({
 						if (willDestroy) destroyShip(ecs, shipId, ship.class);
 						if (hasSplash) {
 							spawnBlast(ecs, impactX, impactZ, splashRadius);
-							for (const { id: otherId, components: { ship: other, localTransform3D: ot } } of queries.ships) {
+							for (const { id: otherId, components: { ship: other, localTransform3D: ot, collider: oc, kinematic: ok } } of queries.ships) {
 								if (otherId === shipId) continue;
-								const sd = distanceXZ(impactX, impactZ, ot.x, ot.z);
-								if (sd > splashRadius + SHIP_HIT_RADIUS) continue;
+								const reach = splashRadius + oc.radius;
+								const sdSq = pointCapsuleDistanceSqXZ(impactX, impactZ, ot.x, ot.z, ok.heading, oc.halfLength);
+								if (sdSq > reach * reach) continue;
 								applyDamageToShip(ecs, otherId, splashDamage, other);
 								if (other.hp <= 0) destroyShip(ecs, otherId, other.class);
 							}

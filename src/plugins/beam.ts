@@ -1,6 +1,6 @@
 import { definePlugin } from '../types';
-import { angleDiff, bearingXZ, distanceXZ, forwardXZ, mountToWorld, normalizeAngle, stepAngle } from '../math';
-import { BEAM_IMPACT_COOLDOWN_SEC, BEAM_RADIUS, MUZZLE_OFFSET, SHIP_HIT_RADIUS, TURRET_TURN_RATE } from '../constants';
+import { angleDiff, bearingXZ, distanceXZ, forwardXZ, mountToWorld, normalizeAngle, segmentCapsuleDistanceSqXZ, stepAngle } from '../math';
+import { BEAM_IMPACT_COOLDOWN_SEC, BEAM_RADIUS, MUZZLE_OFFSET, TURRET_TURN_RATE } from '../constants';
 import { getOwnerState } from './turret';
 import { destroyShip, killEnemyAndDrop } from './combat';
 import { applyDamageToShip } from './shield';
@@ -95,7 +95,7 @@ export const createBeamPlugin = () => definePlugin({
 			.inScreens(['playing'])
 			.addQuery('turrets', { with: ['beamTurret'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
-			.addQuery('ships', { with: ['ship', 'localTransform3D'] })
+			.addQuery('ships', { with: ['ship', 'localTransform3D', 'collider', 'kinematic'] })
 			.setProcess(({ queries, dt, ecs }) => {
 				for (const { id: turretId, components: { beamTurret: turret } } of queries.turrets) {
 					if (turret.state === 'idle') {
@@ -149,10 +149,12 @@ export const createBeamPlugin = () => definePlugin({
 							}
 						} else {
 							let closestShipId = -1;
-							for (const { id, components: { localTransform3D: st } } of queries.ships) {
-								const d = segmentHitDistance(originX, originZ, fwd.x, fwd.z, beamLen, st.x, st.z, SHIP_HIT_RADIUS, BEAM_RADIUS);
-								if (d >= closestDist) continue;
-								closestDist = d;
+							for (const { id, components: { localTransform3D: st, collider: sc, kinematic: sk } } of queries.ships) {
+								const reach = sc.radius + BEAM_RADIUS;
+								const hit = segmentCapsuleDistanceSqXZ(originX, originZ, fwd.x, fwd.z, beamLen, st.x, st.z, sk.heading, sc.halfLength);
+								if (hit.distanceSq > reach * reach) continue;
+								if (hit.t >= closestDist) continue;
+								closestDist = hit.t;
 								closestShipId = id;
 							}
 							if (closestShipId !== -1) {

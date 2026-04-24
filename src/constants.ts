@@ -129,7 +129,6 @@ export const MAIN_GUN_COLOR = 0xffaa33;
 export const ENEMY_RADIUS = 0.6;
 export const ENEMY_SPAWN_RING_PAD = 8;
 export const ENEMY_SPAWN_DISTANCE_SCALE = 0.5;
-export const SHIP_HIT_RADIUS = 1.2;
 
 export const ENEMY_HULL_LENGTH = 1.3;
 export const ENEMY_HULL_WIDTH = 0.25;

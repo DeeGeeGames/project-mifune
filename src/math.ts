@@ -82,6 +82,45 @@ export function clamp(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, value));
 }
 
+export function pointCapsuleDistanceSqXZ(
+	px: number, pz: number,
+	cx: number, cz: number,
+	heading: number,
+	halfLength: number,
+): number {
+	const fx = Math.sin(heading);
+	const fz = Math.cos(heading);
+	const rx = px - cx;
+	const rz = pz - cz;
+	const t = clamp(rx * fx + rz * fz, -halfLength, halfLength);
+	const qx = rx - fx * t;
+	const qz = rz - fz * t;
+	return qx * qx + qz * qz;
+}
+
+export function segmentCapsuleDistanceSqXZ(
+	originX: number, originZ: number,
+	dirX: number, dirZ: number,
+	range: number,
+	cx: number, cz: number,
+	heading: number,
+	halfLength: number,
+): { readonly distanceSq: number; readonly t: number } {
+	const fx = Math.sin(heading);
+	const fz = Math.cos(heading);
+	const a1x = cx - fx * halfLength;
+	const a1z = cz - fz * halfLength;
+	const a2x = cx + fx * halfLength;
+	const a2z = cz + fz * halfLength;
+	const b2x = originX + dirX * range;
+	const b2z = originZ + dirZ * range;
+	const cp = closestPointsOnSegments2D(a1x, a1z, a2x, a2z, originX, originZ, b2x, b2z);
+	const dx = cp.bx - cp.ax;
+	const dz = cp.bz - cp.az;
+	const t = (cp.bx - originX) * dirX + (cp.bz - originZ) * dirZ;
+	return { distanceSq: dx * dx + dz * dz, t };
+}
+
 export function degreesRounded(rad: number): number {
 	return Math.round((rad * 180) / Math.PI);
 }
