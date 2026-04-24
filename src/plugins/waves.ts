@@ -5,6 +5,7 @@ import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { bearingXZ } from '../math';
 import { ENEMY_KINDS, ENEMY_SPECS, makeBehavior, type EnemyBehavior, type EnemyKind } from '../enemies';
 import { createKinematicState } from '../kinematic';
+import { makeCollider } from '../collider';
 import { RANGED_TREE, SNIPER_TREE, createBehaviorTree, type RangedBlackboard } from './enemy-behavior';
 import { buildHealthBar } from './healthBars';
 import {
@@ -89,6 +90,7 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 			behavior,
 		},
 		kinematic: createKinematicState(spec, spawnHeading),
+		collider: makeCollider(spec),
 		healthBar,
 		engineGlow: { material: built.engineMaterial, mounts: built.engineMounts },
 		...(behaviorTree ?? {}),

@@ -346,3 +346,8 @@ export const SHIELD_DEPLETED_DELAY_SEC = 3;
 export const SHIELD_OPACITY_FULL = 0.18;
 export const SHIELD_OPACITY_LOW = 0.35;
 export const SHIELD_COLOR = 0x3a9bff;
+
+// Collisions
+export const RESTITUTION = 0.4;
+export const COLLISION_DAMAGE_K = 0.75;
+export const COLLISION_POSITIONAL_SLOP = 0.01;

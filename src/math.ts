@@ -27,6 +27,57 @@ export function distanceXZ(ax: number, az: number, bx: number, bz: number): numb
 	return Math.sqrt(dx * dx + dz * dz);
 }
 
+export type SegmentClosest = {
+	readonly ax: number;
+	readonly az: number;
+	readonly bx: number;
+	readonly bz: number;
+};
+
+export function closestPointsOnSegments2D(
+	a1x: number, a1z: number, a2x: number, a2z: number,
+	b1x: number, b1z: number, b2x: number, b2z: number,
+): SegmentClosest {
+	const dax = a2x - a1x;
+	const daz = a2z - a1z;
+	const dbx = b2x - b1x;
+	const dbz = b2z - b1z;
+	const rx = a1x - b1x;
+	const rz = a1z - b1z;
+	const a = dax * dax + daz * daz;
+	const e = dbx * dbx + dbz * dbz;
+	const f = dbx * rx + dbz * rz;
+	const EPS = 1e-8;
+
+	const pickEndpoints = (): SegmentClosest => {
+		if (a <= EPS && e <= EPS) return { ax: a1x, az: a1z, bx: b1x, bz: b1z };
+		if (a <= EPS) {
+			const tt = clamp(f / e, 0, 1);
+			return { ax: a1x, az: a1z, bx: b1x + dbx * tt, bz: b1z + dbz * tt };
+		}
+		const c = dax * rx + daz * rz;
+		const ss = clamp(-c / a, 0, 1);
+		return { ax: a1x + dax * ss, az: a1z + daz * ss, bx: b1x, bz: b1z };
+	};
+
+	if (a <= EPS || e <= EPS) return pickEndpoints();
+
+	const c = dax * rx + daz * rz;
+	const b = dax * dbx + daz * dbz;
+	const denom = a * e - b * b;
+	const sInit = denom !== 0 ? clamp((b * f - c * e) / denom, 0, 1) : 0;
+	const tInit = (b * sInit + f) / e;
+	const tClamped = clamp(tInit, 0, 1);
+	const sFinal = clamp((b * tClamped - c) / a, 0, 1);
+
+	return {
+		ax: a1x + dax * sFinal,
+		az: a1z + daz * sFinal,
+		bx: b1x + dbx * tClamped,
+		bz: b1z + dbz * tClamped,
+	};
+}
+
 export function clamp(value: number, min: number, max: number): number {
 	return Math.max(min, Math.min(max, value));
 }

@@ -3,6 +3,7 @@ import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { SHIP_SPECS, createShipGroup, spawnShipTurrets } from '../ships';
 import { SUMMON_ANIM_SEC, SUMMON_OFFSCREEN_RING, TRAIL_COLOR_ALLY } from '../constants';
 import { createKinematicState } from '../kinematic';
+import { makeCollider } from '../collider';
 import { forwardXZ, rotateY } from '../math';
 import { slotLocalXZ } from '../formation';
 import { spawnShipTrails } from './trail';
@@ -42,6 +43,7 @@ export const createSummonPlugin = () => definePlugin({
 							hp: spec.hp,
 						},
 						kinematic: createKinematicState(spec, initialHeading),
+						collider: makeCollider(spec),
 						formationSlot: { flagshipId: playerState.commandVesselId, slotIndex },
 						summonAnim: { progress: 0, originX, originZ },
 						engineGlow: { material: built.engineMaterial, mounts: built.engineMounts },

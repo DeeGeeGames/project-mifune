@@ -3,6 +3,7 @@ import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { builder, type World } from './types';
 import { SHIP_SPECS, createShipGroup, spawnShipTurrets, applyCarrierLoadout, emptyLoadoutPairs, emptyLoadoutAuxSlots } from './ships';
 import { createKinematicState } from './kinematic';
+import { makeCollider } from './collider';
 import {
 	STAR_BRIGHTNESS_MIN,
 	STAR_BRIGHTNESS_RANGE,
@@ -22,6 +23,7 @@ import { createMissilePlugin } from './plugins/missile';
 import { createBeamPlugin } from './plugins/beam';
 import { createMainGunPlugin } from './plugins/mainGun';
 import { createCombatPlugin } from './plugins/combat';
+import { createCollisionPlugin } from './plugins/collision';
 import { createBlastPlugin } from './plugins/blast';
 import { createEnemyPlugin } from './plugins/enemy';
 import { createThreatPlugin } from './plugins/threat';
@@ -46,6 +48,7 @@ const game = builder
 	.withPlugin(createCursorPlugin())
 	.withPlugin(createControlPlugin())
 	.withPlugin(createMovementPlugin())
+	.withPlugin(createCollisionPlugin())
 	.withPlugin(createFormationPlugin())
 	.withPlugin(createTurretPlugin())
 	.withPlugin(createMissilePlugin())
@@ -141,6 +144,7 @@ const spawnCarrier = (ecs: World): void => {
 		...createGroupComponents(built.group, { x: 0, y: 0, z: 0 }),
 		ship: { class: 'carrier', hp: spec.hp },
 		kinematic: createKinematicState(spec, 0),
+		collider: makeCollider(spec),
 		commandVessel: true,
 		engineGlow: { material: built.engineMaterial, mounts: built.engineMounts },
 	}, { scope: 'playing' });

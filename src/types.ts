@@ -24,6 +24,7 @@ import {
 import type { ShipClass, CarrierLoadout, EngineMount } from './ships';
 import type { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, Sprite } from 'three';
 import type { KinematicState } from './kinematic';
+import type { ColliderComponent } from './collider';
 import type { EnemyBehavior } from './enemies';
 import type { BurstFireState } from './weapons';
 import type { ShopOffer } from './shop';
@@ -436,6 +437,7 @@ export const builder = ECSpresso.create()
 	.withComponentTypes<{
 		ship: ShipComponent;
 		kinematic: KinematicState;
+		collider: ColliderComponent;
 		burstFire: BurstFireState;
 		commandVessel: true;
 		formationSlot: FormationSlotComponent;
