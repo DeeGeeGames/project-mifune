@@ -4,7 +4,7 @@ export type PylonCategory = 'forward' | 'side' | 'back';
 
 export type WeaponKind = 'turret' | 'cannon' | 'beam' | 'missile' | 'railgun' | 'pd' | 'mainGun';
 
-export type AuxiliaryKind = 'shield';
+export type AuxiliaryKind = 'shield' | 'hangar';
 
 export interface AuxiliaryMount {
 	readonly x: number;

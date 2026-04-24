@@ -5,6 +5,7 @@ const LEGEND_SPECS: readonly LegendSpec[] = [
 	{ action: 'fwd',     label: 'Thrust', keyboardOverride: 'W/S', gamepadOverride: 'RT/LT' },
 	{ action: 'aimGate', label: 'Set Heading', keyboardOverride: null },
 	{ action: 'zoomIn',  label: 'Zoom',   keyboardOverride: 'Q/E', gamepadOverride: 'RS ↑↓' },
+	{ action: 'toggleHangar', label: 'Hangar' },
 ];
 
 export const createHudPlugin = () => definePlugin({

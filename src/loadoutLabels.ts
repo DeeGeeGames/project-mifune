@@ -33,11 +33,12 @@ export const PAIR_LABELS: Record<PairSlotId, string> = {
 	portSideAft:  'Port Side-Aft',
 };
 
-export const AUXILIARY_KINDS: readonly AuxiliaryKind[] = ['shield'];
+export const AUXILIARY_KINDS: readonly AuxiliaryKind[] = ['shield', 'hangar'];
 
 export const AUXILIARY_LABELS: Record<AuxiliaryKind | 'none', string> = {
 	none: 'None',
 	shield: 'Shield Generator',
+	hangar: 'Fighter Hangar',
 };
 
 export const AUX_LABEL_WIDTH = Math.max(...Object.values(AUXILIARY_LABELS).map((l) => l.length));

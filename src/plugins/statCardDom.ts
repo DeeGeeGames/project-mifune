@@ -2,6 +2,10 @@ import type { WeaponKind, AuxiliaryKind } from '../ships';
 import { weaponStats, weaponDisplayName } from '../weaponStats';
 import { AUXILIARY_LABELS } from '../loadoutLabels';
 import {
+	HANGAR_CAPACITY,
+	HANGAR_ENGAGE_RADIUS,
+	HANGAR_LAUNCH_INTERVAL_SEC,
+	HANGAR_MANUFACTURE_SEC,
 	SHIELD_DEPLETED_DELAY_SEC,
 	SHIELD_HP_PER_GENERATOR,
 	SHIELD_REGEN_PER_GENERATOR_PER_SEC,
@@ -49,6 +53,14 @@ const auxStats = (kind: AuxiliaryKind): readonly { label: string; value: string 
 			{ label: 'Max (per gen)', value: `${SHIELD_HP_PER_GENERATOR}` },
 			{ label: 'Regen (per gen)', value: `${SHIELD_REGEN_PER_GENERATOR_PER_SEC}/s` },
 			{ label: 'Depleted lockout', value: `${SHIELD_DEPLETED_DELAY_SEC}s` },
+		];
+	}
+	if (kind === 'hangar') {
+		return [
+			{ label: 'Capacity', value: `${HANGAR_CAPACITY}` },
+			{ label: 'Launch interval', value: `${HANGAR_LAUNCH_INTERVAL_SEC}s` },
+			{ label: 'Manufacture', value: `${HANGAR_MANUFACTURE_SEC}s` },
+			{ label: 'Engage radius', value: `${HANGAR_ENGAGE_RADIUS}` },
 		];
 	}
 	return [];

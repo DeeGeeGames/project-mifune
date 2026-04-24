@@ -39,6 +39,7 @@ import { createLoadoutSelectPlugin } from './plugins/loadoutSelect';
 import { createMarketPlugin } from './plugins/market';
 import { createCameraLeadPlugin } from './plugins/cameraLead';
 import { buildShieldComponent, createShieldBubble, createShieldPlugin } from './plugins/shield';
+import { createHangarPlugin, installHangarOnShip } from './plugins/hangar';
 import { createLegendPlugin } from './plugins/legend';
 import { createBackdropPlugin } from './plugins/backdrop';
 import { createVfxPlugin } from './plugins/vfx';
@@ -70,6 +71,7 @@ const game = builder
 	.withPlugin(createMarketPlugin())
 	.withPlugin(createCameraLeadPlugin())
 	.withPlugin(createShieldPlugin())
+	.withPlugin(createHangarPlugin())
 	.withPlugin(createLegendPlugin())
 	.withPlugin(createBackdropPlugin())
 	.withPlugin(createTrailPlugin())
@@ -158,6 +160,8 @@ const spawnCarrier = (ecs: World): void => {
 		built.group.add(shieldBuild.mesh);
 		ecs.addComponent(carrier.id, 'shield', buildShieldComponent(shieldBuild, shieldCount));
 	}
+
+	installHangarOnShip(ecs, carrier.id, spec, loadout);
 
 	const playerState = ecs.getResource('playerState');
 	playerState.ownedShipIds = [carrier.id];

@@ -340,6 +340,19 @@ export const IMPACT_TINT = {
 	missile: 0xff9955,
 } as const;
 
+export const HANGAR_CAPACITY = 3;
+export const HANGAR_LAUNCH_INTERVAL_SEC = 0.6;
+export const HANGAR_MANUFACTURE_SEC = 12;
+export const HANGAR_HEAL_PER_SEC = 5;
+export const HANGAR_ENGAGE_RADIUS = 28;
+export const HANGAR_ORBIT_RADIUS = 12;
+export const HANGAR_ORBIT_BAND = 0.8;
+export const HANGAR_ORBIT_LOOKAHEAD_SEC = 0.6;
+export const HANGAR_DOCK_CONTACT_MARGIN = 0.4;
+export const HANGAR_FIGHTER_MAX_HP = 40;
+export const FIGHTER_LAUNCH_SEC = 0.3;
+export const FIGHTER_LAUNCH_SPEED = 20;
+
 export const SHIELD_HP_PER_GENERATOR = 50;
 export const SHIELD_REGEN_PER_GENERATOR_PER_SEC = 25;
 export const SHIELD_DEPLETED_DELAY_SEC = 3;

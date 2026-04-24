@@ -12,6 +12,7 @@ import {
 	GP_BUTTON_A,
 	GP_BUTTON_B,
 	GP_BUTTON_X,
+	GP_BUTTON_Y,
 	GP_BUTTON_START,
 	GP_BUTTON_BACK,
 	GP_BUTTON_DPAD_UP,
@@ -50,7 +51,8 @@ export type GameAction =
 	| 'loadoutCyclePrev'
 	| 'loadoutFacing'
 	| 'loadoutStart'
-	| 'loadoutBack';
+	| 'loadoutBack'
+	| 'toggleHangar';
 
 const actions: ActionMap<GameAction> = {
 	fwd:           { keys: ['w'] },
@@ -73,6 +75,7 @@ const actions: ActionMap<GameAction> = {
 	loadoutFacing:    { keys: [' '],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_A) },
 	loadoutStart:     { keys: ['Enter'],      gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_START) },
 	loadoutBack:      { keys: ['Escape'],     gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_BACK) },
+	toggleHangar:     { keys: ['h'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_Y) },
 };
 
 export interface ShipComponent {
@@ -257,6 +260,47 @@ export interface TrailComponent {
 	halfWidth: number;
 	centers: Float32Array;
 	initialized: boolean;
+}
+
+export type HangarCommand = 'docked' | 'deployed';
+
+export type HangarBayStatus = 'docked' | 'deployed' | 'manufacturing';
+
+export interface HangarBay {
+	slotIndex: number;
+	status: HangarBayStatus;
+	fighterId: number | null;
+	storedHp: number;
+	manufactureTimer: number;
+	orbitPhase: number;
+}
+
+export interface HangarInstance {
+	dockPointX: number;
+	dockPointZ: number;
+	craftKind: 'fighter';
+	launchTimer: number;
+	command: HangarCommand;
+	bays: HangarBay[];
+}
+
+export interface HangarComponent {
+	motherShipId: number;
+	instances: HangarInstance[];
+}
+
+export type FighterMode = 'launching' | 'orbit' | 'engage' | 'returning';
+
+export interface FighterComponent {
+	motherShipId: number;
+	hangarInstanceIdx: number;
+	slotIndex: number;
+	mode: FighterMode;
+	engageTargetId: number | null;
+	orbitPhase: number;
+	launchTimer: number;
+	launchHeading: number;
+	turretIds: readonly number[];
 }
 
 export interface ShieldComponent {
@@ -453,6 +497,8 @@ export const builder = ECSpresso.create()
 		summonAnim: SummonAnimComponent;
 		blast: BlastComponent;
 		shield: ShieldComponent;
+		hangar: HangarComponent;
+		fighter: FighterComponent;
 		vfx: VfxComponent;
 		engineGlow: EngineGlowComponent;
 		trail: TrailComponent;

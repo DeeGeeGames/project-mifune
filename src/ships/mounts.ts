@@ -139,8 +139,20 @@ const SHIELD_AUX_MAT = new MeshStandardMaterial({
 });
 SHIELD_AUX_MAT.userData.shared = true;
 
+const HANGAR_AUX_GEO = new BoxGeometry(0.2, 0.12, 0.9);
+HANGAR_AUX_GEO.userData.shared = true;
+const HANGAR_AUX_MAT = new MeshStandardMaterial({
+	color: 0x8a7040,
+	emissive: 0x443010,
+	emissiveIntensity: 0.4,
+	roughness: 0.7,
+	metalness: 0.3,
+});
+HANGAR_AUX_MAT.userData.shared = true;
+
 export function buildAuxSystemVisual(kind: AuxiliaryKind): Mesh {
 	if (kind === 'shield') return new Mesh(SHIELD_AUX_GEO, SHIELD_AUX_MAT);
+	if (kind === 'hangar') return new Mesh(HANGAR_AUX_GEO, HANGAR_AUX_MAT);
 	throw new Error(`Unhandled auxiliary kind: ${kind satisfies never}`);
 }
 

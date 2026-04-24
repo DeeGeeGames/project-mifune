@@ -4,6 +4,7 @@ import { PROJECTILE_RADIUS, PICKUP_VALUE, SHIP_HIT_RADIUS, BLAST_LIFE_SEC } from
 import { pickupMesh, createBlast, SHIP_SPECS, type ShipClass } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { applyDamageToShip } from './shield';
+import { onFighterDestroyed } from './hangar';
 import { spawnDeathExplosion, spawnImpactSpark, type FxKind } from './vfx';
 
 export function killEnemyAndDrop(ecs: World, enemyId: number, x: number, z: number): void {
@@ -28,6 +29,10 @@ export function destroyShip(ecs: World, shipId: number, shipClass: ShipClass): v
 	ecs.eventBus.publish('ship:destroyed', { entityId: shipId, shipClass });
 	if (shipClass === 'carrier') {
 		ecs.eventBus.publish('carrier:destroyed', { entityId: shipId });
+	}
+	if (shipClass === 'fighter') {
+		onFighterDestroyed(ecs, shipId);
+		return;
 	}
 	ecs.removeEntity(shipId);
 }

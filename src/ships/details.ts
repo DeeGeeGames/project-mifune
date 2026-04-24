@@ -204,10 +204,21 @@ const addCarrierDetails: ShipDetailBuilder = (group, spec, mats) => {
 	});
 };
 
+const addFighterDetails: ShipDetailBuilder = (group, spec, mats) => {
+	const engW = spec.hullWidth * 0.55;
+	const engH = spec.hullHeight * 0.55;
+	const engD = 0.08;
+	const eng = new Mesh(new BoxGeometry(engW, engH, engD), mats.engine);
+	eng.position.set(0, spec.hullHeight * 0.5, -spec.hullLength / 2 - engD / 2);
+	group.add(eng);
+	return [attachEnginePlume(eng, engD, engineSize(engW, engH), ENGINE_PLUME_COLOR)];
+};
+
 export const SHIP_DETAILS: Record<ShipClass, ShipDetailBuilder> = {
 	carrier: addCarrierDetails,
 	corvette: addCorvetteDetails,
 	frigate: addFrigateDetails,
 	destroyer: addDestroyerDetails,
 	dreadnought: addDreadnoughtDetails,
+	fighter: addFighterDetails,
 };

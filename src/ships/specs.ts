@@ -15,7 +15,7 @@ import type {
 } from './loadout';
 import { PAIR_SLOTS } from './loadout';
 
-export type ShipClass = 'carrier' | 'corvette' | 'frigate' | 'destroyer' | 'dreadnought';
+export type ShipClass = 'carrier' | 'corvette' | 'frigate' | 'destroyer' | 'dreadnought' | 'fighter';
 
 export interface TurretMount {
 	readonly x: number;
@@ -159,6 +159,22 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 			{ x: 0, z: 2.61, baseAngle: FRONT },
 			{ x: -0.83, z: -0.65, baseAngle: PORT },
 			{ x: 0.83, z: -0.65, baseAngle: STARBOARD },
+		],
+	},
+	fighter: {
+		hullLength: 1.3,
+		hullWidth: 0.35,
+		hullHeight: 0.22,
+		color: 0x66ddff,
+		turnRate: 3.5,
+		turnAccel: 4.0,
+		accel: 14,
+		maxSpeed: 24,
+		drag: 0.4,
+		hp: 40,
+		cost: 0,
+		turrets: [
+			{ x: 0, z: 0.35, baseAngle: FRONT, coneHalf: Math.PI / 3, fireIntervalMs: 200, damage: 1, range: 18 },
 		],
 	},
 	dreadnought: {

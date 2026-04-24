@@ -224,28 +224,30 @@ export function pdTurretFromMount(ownerId: number, faction: Faction, mountSpec: 
 	};
 }
 
-export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, built: BuiltShip): void {
+export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, built: BuiltShip): number[] {
 	const opts = { scope: 'playing' } as const;
+	const ids: number[] = [];
 	spec.turrets.forEach((mountSpec, idx) => {
 		const mount = built.turretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ ...turretFromMount(ownerId, 'ally', mountSpec, mount) }, opts);
+		ids.push(ecs.spawn({ ...turretFromMount(ownerId, 'ally', mountSpec, mount) }, opts).id);
 	});
 	(spec.cannonTurrets ?? []).forEach((mountSpec, idx) => {
 		const mount = built.cannonTurretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ ...cannonTurretFromMount(ownerId, 'ally', mountSpec, mount) }, opts);
+		ids.push(ecs.spawn({ ...cannonTurretFromMount(ownerId, 'ally', mountSpec, mount) }, opts).id);
 	});
 	(spec.beamTurrets ?? []).forEach((mountSpec, idx) => {
 		const beamMount = built.beamTurretMounts[idx];
 		if (!beamMount) return;
-		ecs.spawn({ ...beamTurretFromMount(ownerId, 'ally', mountSpec, beamMount.mount, beamMount.beamMesh) }, opts);
+		ids.push(ecs.spawn({ ...beamTurretFromMount(ownerId, 'ally', mountSpec, beamMount.mount, beamMount.beamMesh) }, opts).id);
 	});
 	(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
 		const mount = built.missileTurretMounts[idx];
 		if (!mount) return;
-		ecs.spawn({ ...missileTurretFromMount(ownerId, mountSpec, mount) }, opts);
+		ids.push(ecs.spawn({ ...missileTurretFromMount(ownerId, mountSpec, mount) }, opts).id);
 	});
+	return ids;
 }
 
 type MaterializedMount =
