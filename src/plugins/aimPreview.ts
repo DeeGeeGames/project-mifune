@@ -34,8 +34,9 @@ export const createAimPreviewPlugin = () => definePlugin({
 		const arcPositions = new Float32Array(ARC_VERTS * 3);
 		const fillPositions = new Float32Array(FILL_VERTS * 3);
 
+		const arcAttr = new BufferAttribute(arcPositions, 3);
 		const lineGeometry = new BufferGeometry();
-		lineGeometry.setAttribute('position', new BufferAttribute(arcPositions, 3));
+		lineGeometry.setAttribute('position', arcAttr);
 		const lineMaterial = new LineDashedMaterial({
 			color: AIM_ARC_COLOR,
 			dashSize: AIM_ARC_DASH_SIZE,
@@ -45,8 +46,9 @@ export const createAimPreviewPlugin = () => definePlugin({
 		line.frustumCulled = false;
 		line.visible = false;
 
+		const fillAttr = new BufferAttribute(fillPositions, 3);
 		const fillGeometry = new BufferGeometry();
-		fillGeometry.setAttribute('position', new BufferAttribute(fillPositions, 3));
+		fillGeometry.setAttribute('position', fillAttr);
 		fillGeometry.setIndex(FILL_INDICES);
 		const fillMaterial = new MeshBasicMaterial({
 			color: AIM_ARC_COLOR,
@@ -91,24 +93,26 @@ export const createAimPreviewPlugin = () => definePlugin({
 				if (!vessel) return;
 				const { kinematic, localTransform3D } = vessel.components;
 
-				writeArcPositions(arcPositions, localTransform3D.x, localTransform3D.z, kinematic.heading, playerState.pendingHeading);
+				const radius = Math.min(1, Math.abs(kinematic.throttle)) * AIM_ARC_RADIUS;
+				const flip = kinematic.throttle < 0 ? Math.PI : 0;
+				writeArcPositions(arcPositions, localTransform3D.x, localTransform3D.z, kinematic.heading + flip, playerState.pendingHeading + flip, radius);
 				writeFillPositions(fillPositions, arcPositions, localTransform3D.x, localTransform3D.z);
 
-				lineGeometry.getAttribute('position').needsUpdate = true;
-				fillGeometry.getAttribute('position').needsUpdate = true;
+				arcAttr.needsUpdate = true;
+				fillAttr.needsUpdate = true;
 				line.computeLineDistances();
 			});
 	},
 });
 
-function writeArcPositions(out: Float32Array, cx: number, cz: number, from: number, to: number): void {
+function writeArcPositions(out: Float32Array, cx: number, cz: number, from: number, to: number, radius: number): void {
 	const delta = angleDiff(to, from);
 	for (const i of ARC_INDEX_RANGE) {
 		const fwd = forwardXZ(from + delta * (i / AIM_ARC_SEGMENTS));
 		const o = i * 3;
-		out[o] = cx + fwd.x * AIM_ARC_RADIUS;
+		out[o] = cx + fwd.x * radius;
 		out[o + 1] = AIM_ARC_Y_OFFSET;
-		out[o + 2] = cz + fwd.z * AIM_ARC_RADIUS;
+		out[o + 2] = cz + fwd.z * radius;
 	}
 }
 

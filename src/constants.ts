@@ -271,6 +271,15 @@ export const AIM_ARC_DASH_SIZE = 0.25;
 export const AIM_ARC_GAP_SIZE = 0.15;
 export const AIM_ARC_FILL_OPACITY = 0.18;
 
+export const HEADING_ARROW_SHAFT_WIDTH = 1.4;
+export const HEADING_ARROW_HEAD_LENGTH = 2.2;
+export const HEADING_ARROW_HEAD_WIDTH = 3.0;
+export const HEADING_ARROW_Y_OFFSET = 0.06;
+export const HEADING_ARROW_OPACITY = 0.25;
+export const HEADING_GOAL_ARROW_COLOR = 0xffd27f;
+export const VELOCITY_ARROW_COLOR = 0x7fff9a;
+export const VELOCITY_ARROW_MIN_SPEED = 0.05;
+
 export const HEALTH_BAR_Y_OFFSET = 1.0;
 export const HEALTH_BAR_HEIGHT = 0.15;
 export const HEALTH_BAR_WIDTH_SCALE = 1.2;

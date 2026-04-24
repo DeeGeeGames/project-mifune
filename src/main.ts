@@ -32,6 +32,7 @@ import { createPickupsPlugin } from './plugins/pickups';
 import { createSummonPlugin } from './plugins/summon';
 import { createHudPlugin } from './plugins/hud';
 import { createAimPreviewPlugin } from './plugins/aimPreview';
+import { createHeadingIndicatorsPlugin } from './plugins/headingIndicators';
 import { createHealthBarsPlugin } from './plugins/healthBars';
 import { createWaveSummaryPlugin } from './plugins/waveSummary';
 import { createTitleScreenPlugin } from './plugins/titleScreen';
@@ -64,6 +65,7 @@ const game = builder
 	// .withPlugin(createSummonPlugin()) // summoning deactivated
 	.withPlugin(createHudPlugin())
 	.withPlugin(createAimPreviewPlugin())
+	.withPlugin(createHeadingIndicatorsPlugin())
 	.withPlugin(createHealthBarsPlugin())
 	.withPlugin(createWaveSummaryPlugin())
 	.withPlugin(createTitleScreenPlugin())
