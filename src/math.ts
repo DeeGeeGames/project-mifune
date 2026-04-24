@@ -169,7 +169,7 @@ export function mountToWorld(
 	mountX: number,
 	mountZ: number,
 ): Vec2 {
-	const rotated = rotateY({ x: mountX, z: mountZ }, shipHeading);
+	const rotated = rotateY({ x: mountX, z: mountZ }, -shipHeading);
 	return { x: shipX + rotated.x, z: shipZ + rotated.z };
 }
 

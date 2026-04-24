@@ -28,8 +28,8 @@ export const buildHealthBar = ({ parent, hullLength, hullHeight }: BuildHealthBa
 	const y = hullHeight + HEALTH_BAR_Y_OFFSET;
 
 	const bg = new Sprite(SHARED_BG_MAT);
-	bg.center = new Vector2(0.5, 0.5);
-	bg.position.set(0, y, 0);
+	bg.center = new Vector2(0, 0.5);
+	bg.position.set(-maxWidth / 2, y, 0);
 	bg.scale.set(maxWidth, HEALTH_BAR_HEIGHT, 1);
 	bg.renderOrder = 10;
 	bg.visible = false;
