@@ -10,12 +10,16 @@ export interface ColliderSpec {
 	readonly hullLength: number;
 	readonly hullWidth: number;
 	readonly hullHeight: number;
+	readonly colliderLength?: number;
+	readonly colliderWidth?: number;
 	readonly massScale?: number;
 }
 
 export const makeCollider = (spec: ColliderSpec): ColliderComponent => {
-	const halfLength = Math.max(0, (spec.hullLength - spec.hullWidth) / 2);
-	const radius = spec.hullWidth / 2;
+	const cLen = spec.colliderLength ?? spec.hullLength;
+	const cWid = spec.colliderWidth ?? spec.hullWidth;
+	const halfLength = Math.max(0, (cLen - cWid) / 2);
+	const radius = cWid / 2;
 	const massScale = spec.massScale ?? 1;
 	const mass = spec.hullLength * spec.hullWidth * spec.hullHeight * massScale;
 	const invMass = mass > 0 ? 1 / mass : 0;

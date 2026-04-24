@@ -41,6 +41,8 @@ export interface EnemySpec {
 	readonly hullLength: number;
 	readonly hullWidth: number;
 	readonly hullHeight: number;
+	readonly colliderLength?: number;
+	readonly colliderWidth?: number;
 	readonly radius: number;
 	readonly turretMount?: TurretMount;
 	readonly threatTolerance?: number;
@@ -52,6 +54,7 @@ const KAMIKAZE_HULL = {
 	hullLength: ENEMY_HULL_LENGTH,
 	hullWidth: ENEMY_HULL_WIDTH,
 	hullHeight: ENEMY_HULL_HEIGHT,
+	colliderLength: ENEMY_HULL_LENGTH * 1.55,
 	radius: ENEMY_RADIUS,
 } as const;
 
@@ -107,6 +110,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		hullLength: 5.5,
 		hullWidth: 1.4,
 		hullHeight: 0.5,
+		colliderLength: 8.5,
 		radius: 1.4,
 		turretMount: {
 			x: 0,
@@ -130,6 +134,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		hullLength: 6.5,
 		hullWidth: 1.8,
 		hullHeight: 0.7,
+		colliderLength: 10.1,
 		radius: 1.6,
 		turretMount: {
 			x: 0,
@@ -153,6 +158,7 @@ export const ENEMY_SPECS: Record<EnemyKind, EnemySpec> = {
 		hullLength: 4.8,
 		hullWidth: 0.9,
 		hullHeight: 0.35,
+		colliderLength: 7.4,
 		radius: 0.9,
 		turretMount: {
 			x: 0,

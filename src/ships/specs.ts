@@ -59,6 +59,8 @@ export interface ShipSpec {
 	readonly hullLength: number;
 	readonly hullWidth: number;
 	readonly hullHeight: number;
+	readonly colliderLength?: number;
+	readonly colliderWidth?: number;
 	readonly color: number;
 	readonly turnRate: number;
 	readonly turnAccel: number;
@@ -108,6 +110,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hullLength: 6.2,
 		hullWidth: 1.45,
 		hullHeight: 0.45,
+		colliderLength: 8.1,
 		color: 0x33ccee,
 		turnRate: 1.2,
 		turnAccel: 1.6,
@@ -125,6 +128,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hullLength: 6.8,
 		hullWidth: 1.55,
 		hullHeight: 0.5,
+		colliderLength: 8.8,
 		color: 0x55cc55,
 		turnRate: 0.9,
 		turnAccel: 1,
@@ -142,6 +146,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hullLength: 7.4,
 		hullWidth: 1.65,
 		hullHeight: 0.55,
+		colliderLength: 9.6,
 		color: 0xff9933,
 		turnRate: 0.7,
 		turnAccel: 0.6,
@@ -160,6 +165,7 @@ export const SHIP_SPECS: Record<ShipClass, ShipSpec> = {
 		hullLength: 8.4,
 		hullWidth: 1.8,
 		hullHeight: 0.7,
+		colliderLength: 10.9,
 		color: 0xdd3344,
 		turnRate: 0.5,
 		turnAccel: 0.4,
