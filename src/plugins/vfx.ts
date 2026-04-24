@@ -120,7 +120,10 @@ export const createVfxPlugin = () => definePlugin({
 			.setPriority(400)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('fx', { with: ['vfx', 'localTransform3D'] })
+			.addQuery('fx', {
+				with: ['vfx', 'localTransform3D'],
+				mutates: ['vfx', 'localTransform3D'],
+			})
 			.setProcess(({ queries, dt, ecs }) => {
 				for (const { id, components: { vfx, localTransform3D } } of queries.fx) {
 					vfx.life -= dt;
@@ -135,7 +138,6 @@ export const createVfxPlugin = () => definePlugin({
 					localTransform3D.sx = scale;
 					localTransform3D.sy = scale;
 					localTransform3D.sz = scale;
-					ecs.markChanged(id, 'localTransform3D');
 					vfx.material.opacity = vfx.opacityStart * (1 - t);
 				}
 			});

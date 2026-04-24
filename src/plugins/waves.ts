@@ -124,9 +124,9 @@ export const createWavesPlugin = () => definePlugin({
 			.setPriority(100)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('flagship', { with: ['commandVessel', 'localTransform3D'] })
+			.addSingleton('flagship', { with: ['commandVessel', 'localTransform3D'] })
 			.setProcess(({ queries, dt, ecs }) => {
-				const flagship = queries.flagship[0];
+				const flagship = queries.flagship;
 				if (!flagship) return;
 
 				const state = ecs.getScreenState('playing');

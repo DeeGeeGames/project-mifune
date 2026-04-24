@@ -65,6 +65,7 @@ export const createSummonPlugin = () => definePlugin({
 			.inScreens(['playing'])
 			.addQuery('summoning', {
 				with: ['summonAnim', 'kinematic', 'formationSlot', 'localTransform3D'],
+				mutates: ['summonAnim', 'kinematic', 'localTransform3D'],
 			})
 			.setProcess(({ queries, dt, ecs }) => {
 				for (const { id, components: { summonAnim, kinematic, formationSlot, localTransform3D } } of queries.summoning) {
@@ -88,7 +89,6 @@ export const createSummonPlugin = () => definePlugin({
 					kinematic.heading = flagshipKinematic.heading;
 					kinematic.headingTarget = kinematic.heading;
 					localTransform3D.ry = kinematic.heading;
-					ecs.markChanged(id, 'localTransform3D');
 
 					if (summonAnim.progress >= 1) {
 						ecs.removeComponent(id, 'summonAnim');

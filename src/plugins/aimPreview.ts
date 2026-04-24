@@ -77,7 +77,7 @@ export const createAimPreviewPlugin = () => definePlugin({
 		world.addSystem('aimPreview')
 			.inPhase('render')
 			.inScreens(['playing'])
-			.addQuery('commandVessel', {
+			.addSingleton('commandVessel', {
 				with: ['kinematic', 'commandVessel', 'localTransform3D'],
 			})
 			.withResources(['playerState'])
@@ -87,7 +87,7 @@ export const createAimPreviewPlugin = () => definePlugin({
 				fill.visible = preview;
 				if (!preview) return;
 
-				const vessel = queries.commandVessel[0];
+				const vessel = queries.commandVessel;
 				if (!vessel) return;
 				const { kinematic, localTransform3D } = vessel.components;
 

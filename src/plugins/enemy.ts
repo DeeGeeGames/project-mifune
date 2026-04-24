@@ -114,16 +114,19 @@ export const createEnemyPlugin = () => definePlugin({
 			.setPriority(250)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('enemies', { with: ['enemy', 'kinematic', 'localTransform3D'] })
-			.addQuery('flagship', { with: ['commandVessel', 'localTransform3D', 'kinematic'] })
-			.setProcess(({ queries, dt, ecs }) => {
-				const flagship = queries.flagship[0];
+			.addQuery('enemies', {
+				with: ['enemy', 'kinematic', 'localTransform3D'],
+				mutates: ['enemy', 'kinematic', 'localTransform3D'],
+			})
+			.addSingleton('flagship', { with: ['commandVessel', 'localTransform3D', 'kinematic'] })
+			.setProcess(({ queries, dt }) => {
+				const flagship = queries.flagship;
 				if (!flagship) return;
 				const ft = flagship.components.localTransform3D;
 				const fk = flagship.components.kinematic;
 				const snapshot: FlagshipSnapshot = { x: ft.x, z: ft.z, vx: fk.vx, vz: fk.vz };
 
-				for (const { id, components: { localTransform3D, enemy, kinematic } } of queries.enemies) {
+				for (const { components: { localTransform3D, enemy, kinematic } } of queries.enemies) {
 					if (enemy.hitEscalation > 0) {
 						enemy.hitEscalation = Math.max(0, enemy.hitEscalation - HIT_ESCALATION_DECAY_RATE * dt);
 					}
@@ -139,7 +142,6 @@ export const createEnemyPlugin = () => definePlugin({
 						AI_HANDLERS[enemy.behavior.kind](ctx);
 					}
 					integrateKinematicXZ(kinematic, localTransform3D, dt);
-					ecs.markChanged(id, 'localTransform3D');
 				}
 			});
 	},

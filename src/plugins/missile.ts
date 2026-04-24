@@ -84,7 +84,10 @@ export const createMissilePlugin = () => definePlugin({
 			.setPriority(300)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('missiles', { with: ['missile', 'localTransform3D'] })
+			.addQuery('missiles', {
+				with: ['missile', 'localTransform3D'],
+				mutates: ['missile', 'localTransform3D'],
+			})
 			.setProcess(({ queries, dt, ecs }) => {
 				for (const { id, components: { missile, localTransform3D } } of queries.missiles) {
 					missile.life -= dt;
@@ -115,7 +118,6 @@ export const createMissilePlugin = () => definePlugin({
 					localTransform3D.x += fwd.x * missile.speed * dt;
 					localTransform3D.z += fwd.z * missile.speed * dt;
 					localTransform3D.ry = missile.heading;
-					ecs.markChanged(id, 'localTransform3D');
 				}
 			});
 

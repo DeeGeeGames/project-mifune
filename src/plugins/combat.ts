@@ -52,7 +52,10 @@ export const createCombatPlugin = () => definePlugin({
 			.setPriority(300)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('projectiles', { with: ['projectile', 'localTransform3D'] })
+			.addQuery('projectiles', {
+				with: ['projectile', 'localTransform3D'],
+				mutates: ['projectile', 'localTransform3D'],
+			})
 			.setProcess(({ queries, dt, ecs }) => {
 				for (const { id, components: { projectile, localTransform3D } } of queries.projectiles) {
 					projectile.life -= dt;
@@ -62,7 +65,6 @@ export const createCombatPlugin = () => definePlugin({
 					}
 					localTransform3D.x += projectile.vx * dt;
 					localTransform3D.z += projectile.vz * dt;
-					ecs.markChanged(id, 'localTransform3D');
 				}
 			});
 

@@ -14,10 +14,10 @@ export const createPickupsPlugin = () => definePlugin({
 			.inPhase('update')
 			.inScreens(['playing'])
 			.addQuery('pickups', { with: ['pickup', 'localTransform3D'] })
-			.addQuery('flagship', { with: ['commandVessel', 'localTransform3D'] })
+			.addSingleton('flagship', { with: ['commandVessel', 'localTransform3D'] })
 			.withResources(['playerState'])
 			.setProcess(({ queries, dt, ecs, resources: { playerState } }) => {
-				const flagship = queries.flagship[0];
+				const flagship = queries.flagship;
 				if (!flagship) return;
 				const ft = flagship.components.localTransform3D;
 

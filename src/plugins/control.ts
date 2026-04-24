@@ -18,11 +18,11 @@ export const createControlPlugin = () => definePlugin({
 			.setPriority(50)
 			.inPhase('preUpdate')
 			.inScreens(['playing'])
-			.addQuery('commandVessel', {
+			.addSingleton('commandVessel', {
 				with: ['kinematic', 'commandVessel', 'localTransform3D'],
 			})
 			.withResources(['inputState', 'cursorState', 'playerState', 'legend'])
-			.setProcess(({ queries, resources: { inputState: input, cursorState, playerState, legend }, ecs, dt }) => {
+			.setProcess(({ queries, resources: { inputState: input, cursorState, playerState, legend }, dt }) => {
 				const rawGp = input.gamepads[0];
 				const gp = (rawGp?.connected ?? false) && legend.scheme === 'gamepad' ? rawGp : undefined;
 
@@ -30,26 +30,27 @@ export const createControlPlugin = () => definePlugin({
 				const gateReleased = input.actions.justDeactivated('aimGate');
 				const lockPressed = input.actions.justActivated('aimGate');
 
-				for (const { components: { kinematic, localTransform3D } } of queries.commandVessel) {
-					const shouldTrack = gp ? isStickActive(gp, GP_AXIS_LS_X, GP_AXIS_LS_Y) : gateHeld;
-					const shouldCommit = gp ? lockPressed : gateReleased;
+				const vessel = queries.commandVessel;
+				if (!vessel) return;
+				const { kinematic, localTransform3D } = vessel.components;
 
-					if (shouldCommit) {
-						kinematic.headingTarget = playerState.pendingHeading;
-					}
-					playerState.pendingHeading = shouldTrack
-						? computePendingHeading(
-							playerState.pendingHeading,
-							localTransform3D.x,
-							localTransform3D.z,
-							cursorState,
-							gp,
-						)
-						: kinematic.headingTarget;
-					playerState.headingPreviewActive = shouldTrack;
-					kinematic.throttle = updateThrust(kinematic.throttle, input, gp, dt);
+				const shouldTrack = gp ? isStickActive(gp, GP_AXIS_LS_X, GP_AXIS_LS_Y) : gateHeld;
+				const shouldCommit = gp ? lockPressed : gateReleased;
+
+				if (shouldCommit) {
+					kinematic.headingTarget = playerState.pendingHeading;
 				}
-
+				playerState.pendingHeading = shouldTrack
+					? computePendingHeading(
+						playerState.pendingHeading,
+						localTransform3D.x,
+						localTransform3D.z,
+						cursorState,
+						gp,
+					)
+					: kinematic.headingTarget;
+				playerState.headingPreviewActive = shouldTrack;
+				kinematic.throttle = updateThrust(kinematic.throttle, input, gp, dt);
 			});
 	},
 });

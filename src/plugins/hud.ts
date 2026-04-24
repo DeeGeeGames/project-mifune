@@ -29,7 +29,7 @@ export const createHudPlugin = () => definePlugin({
 			.inPhase('render')
 			.inScreens(['playing'])
 			.addQuery('ships', { with: ['ship'] })
-			.addQuery('flagship', { with: ['commandVessel', 'kinematic'] })
+			.addSingleton('flagship', { with: ['commandVessel', 'kinematic'] })
 			.withResources(['playerState', 'hudRefs'])
 			.setProcess(({ queries, ecs, resources: { playerState, hudRefs } }) => {
 				hudRefs.resourcesEl.textContent = `Resources: ${Math.floor(playerState.resources)}`;
@@ -44,7 +44,7 @@ export const createHudPlugin = () => definePlugin({
 				});
 				hudRefs.rosterEl.textContent = rosterLines.join('\n');
 
-				const throttle = queries.flagship[0]?.components.kinematic.throttle ?? 0;
+				const throttle = queries.flagship?.components.kinematic.throttle ?? 0;
 				const fill = hudRefs.thrustBarFillEl;
 				if (throttle >= 0) {
 					fill.style.left = '50%';

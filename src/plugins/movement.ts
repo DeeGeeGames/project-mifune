@@ -11,11 +11,11 @@ export const createMovementPlugin = () => definePlugin({
 			.addQuery('ships', {
 				with: ['ship', 'kinematic', 'localTransform3D'],
 				without: ['summonAnim'],
+				mutates: ['kinematic', 'localTransform3D'],
 			})
-			.setProcess(({ queries, dt, ecs }) => {
-				for (const { id, components: { kinematic, localTransform3D } } of queries.ships) {
+			.setProcess(({ queries, dt }) => {
+				for (const { components: { kinematic, localTransform3D } } of queries.ships) {
 					integrateKinematicXZ(kinematic, localTransform3D, dt);
-					ecs.markChanged(id, 'localTransform3D');
 				}
 			});
 	},

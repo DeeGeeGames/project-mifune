@@ -9,7 +9,7 @@
 		"check": "bun run check:types"
 	},
 	"dependencies": {
-		"ecspresso": "^0.14.10",
+		"ecspresso": "^0.15.0",
 		"three": "^0.184.0"
 	},
 	"devDependencies": {
