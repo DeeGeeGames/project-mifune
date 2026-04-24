@@ -106,9 +106,10 @@ export const createHeadingIndicatorsPlugin = () => definePlugin({
 			.addSingleton('commandVessel', {
 				with: ['kinematic', 'commandVessel', 'localTransform3D'],
 			})
-			.setProcess(({ queries }) => {
+			.withResources(['playerState'])
+			.setProcess(({ queries, resources: { playerState } }) => {
 				const vessel = queries.commandVessel;
-				if (!vessel) {
+				if (!vessel || !playerState.headingPreviewActive) {
 					goal.mesh.visible = false;
 					velocity.mesh.visible = false;
 					return;
