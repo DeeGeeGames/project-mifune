@@ -4,6 +4,7 @@ import {
 	GP_BUTTON_RT,
 	GP_AXIS_LS_X,
 	GP_AXIS_LS_Y,
+	HEADING_CONFIRM_DURATION_SEC,
 	ISO_AZIMUTH,
 	STICK_ACTIVE_THRESHOLD,
 	TRIGGER_DEADZONE,
@@ -26,20 +27,38 @@ export const createControlPlugin = () => definePlugin({
 				const rawGp = input.gamepads[0];
 				const gp = (rawGp?.connected ?? false) && legend.scheme === 'gamepad' ? rawGp : undefined;
 
-				const gateHeld = input.actions.isActive('aimGate');
-				const gateReleased = input.actions.justDeactivated('aimGate');
-				const lockPressed = input.actions.justActivated('aimGate');
-
 				const vessel = queries.commandVessel;
 				if (!vessel) return;
 				const { kinematic, localTransform3D } = vessel.components;
+
+				kinematic.throttle = updateThrust(kinematic.throttle, input, gp, dt);
+
+				if (playerState.confirm) {
+					playerState.confirm.timer -= dt;
+					if (playerState.confirm.timer <= 0) playerState.confirm = null;
+					playerState.headingPreviewActive = false;
+					playerState.pendingHeading = kinematic.headingTarget;
+					return;
+				}
+
+				const gateHeld = input.actions.isActive('aimGate');
+				const gateReleased = input.actions.justDeactivated('aimGate');
+				const lockPressed = input.actions.justActivated('aimGate');
 
 				const shouldTrack = gp ? isStickActive(gp, GP_AXIS_LS_X, GP_AXIS_LS_Y) : gateHeld;
 				const shouldCommit = gp ? lockPressed : gateReleased;
 
 				if (shouldCommit) {
+					playerState.confirm = {
+						timer: HEADING_CONFIRM_DURATION_SEC,
+						oldGoal: kinematic.headingTarget,
+						facing: kinematic.heading,
+					};
 					kinematic.headingTarget = playerState.pendingHeading;
+					playerState.headingPreviewActive = false;
+					return;
 				}
+
 				playerState.pendingHeading = shouldTrack
 					? computePendingHeading(
 						playerState.pendingHeading,
@@ -50,7 +69,6 @@ export const createControlPlugin = () => definePlugin({
 					)
 					: kinematic.headingTarget;
 				playerState.headingPreviewActive = shouldTrack;
-				kinematic.throttle = updateThrust(kinematic.throttle, input, gp, dt);
 			});
 	},
 });

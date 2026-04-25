@@ -320,6 +320,7 @@ export interface PlayerState {
 	selectedSummon: ShipClass;
 	pendingHeading: number;
 	headingPreviewActive: boolean;
+	confirm: { timer: number; oldGoal: number; facing: number } | null;
 }
 
 export type PlayingScreenConfig = {

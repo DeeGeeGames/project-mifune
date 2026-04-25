@@ -1,8 +1,14 @@
 export type Vec2 = { readonly x: number; readonly z: number };
 
+export const TAU = Math.PI * 2;
+
 export function normalizeAngle(angle: number): number {
-	const a = angle % (2 * Math.PI);
-	return a > Math.PI ? a - 2 * Math.PI : a < -Math.PI ? a + 2 * Math.PI : a;
+	const a = angle % TAU;
+	return a > Math.PI ? a - TAU : a < -Math.PI ? a + TAU : a;
+}
+
+export function wrapTau(angle: number): number {
+	return ((angle % TAU) + TAU) % TAU;
 }
 
 export function angleDiff(target: number, current: number): number {

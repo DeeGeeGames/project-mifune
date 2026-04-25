@@ -8,7 +8,7 @@ import {
 	MeshBasicMaterial,
 } from 'three';
 import { definePlugin } from '../types';
-import { angleDiff, forwardXZ } from '../math';
+import { TAU, forwardXZ, wrapTau } from '../math';
 import {
 	AIM_ARC_COLOR,
 	AIM_ARC_DASH_SIZE,
@@ -18,6 +18,8 @@ import {
 	AIM_ARC_RADIUS,
 	AIM_ARC_SEGMENTS,
 	AIM_ARC_Y_OFFSET,
+	HEADING_CONFIRM_BLINK_PERIOD_SEC,
+	HEADING_CONFIRM_DURATION_SEC,
 } from '../constants';
 
 const ARC_VERTS = AIM_ARC_SEGMENTS + 1;
@@ -85,17 +87,35 @@ export const createAimPreviewPlugin = () => definePlugin({
 			.withResources(['playerState'])
 			.setProcess(({ queries, resources: { playerState } }) => {
 				const preview = playerState.headingPreviewActive;
-				line.visible = preview;
-				fill.visible = preview;
-				if (!preview) return;
+				const confirm = playerState.confirm;
+				if (!preview && !confirm) {
+					line.visible = false;
+					fill.visible = false;
+					return;
+				}
 
 				const vessel = queries.commandVessel;
 				if (!vessel) return;
 				const { kinematic, localTransform3D } = vessel.components;
 
-				const radius = Math.min(1, Math.abs(kinematic.throttle)) * AIM_ARC_RADIUS;
+				const blinkOn = confirm !== null
+					&& Math.floor((HEADING_CONFIRM_DURATION_SEC - confirm.timer) / (HEADING_CONFIRM_BLINK_PERIOD_SEC / 2)) % 2 === 0;
+				const visible = preview || blinkOn;
+				line.visible = visible;
+				fill.visible = visible;
+
 				const flip = kinematic.throttle < 0 ? Math.PI : 0;
-				writeArcPositions(arcPositions, localTransform3D.x, localTransform3D.z, kinematic.heading + flip, playerState.pendingHeading + flip, radius);
+				const src = confirm && !preview
+					? { facing: confirm.facing, pending: kinematic.headingTarget, oldGoal: confirm.oldGoal }
+					: { facing: kinematic.heading, pending: playerState.pendingHeading, oldGoal: kinematic.headingTarget };
+				const facing = src.facing + flip;
+				const pending = src.pending + flip;
+				const oldGoal = src.oldGoal + flip;
+				const ccwSpan = wrapTau(pending - oldGoal);
+				const ccwReverseDist = wrapTau(facing + Math.PI - oldGoal);
+				const useCCW = ccwReverseDist >= ccwSpan;
+				const span = useCCW ? ccwSpan : ccwSpan - TAU;
+				writeArcPositions(arcPositions, localTransform3D.x, localTransform3D.z, oldGoal, span, AIM_ARC_RADIUS);
 				writeFillPositions(fillPositions, arcPositions, localTransform3D.x, localTransform3D.z);
 
 				arcAttr.needsUpdate = true;
@@ -105,8 +125,7 @@ export const createAimPreviewPlugin = () => definePlugin({
 	},
 });
 
-function writeArcPositions(out: Float32Array, cx: number, cz: number, from: number, to: number, radius: number): void {
-	const delta = angleDiff(to, from);
+function writeArcPositions(out: Float32Array, cx: number, cz: number, from: number, delta: number, radius: number): void {
 	for (const i of ARC_INDEX_RANGE) {
 		const fwd = forwardXZ(from + delta * (i / AIM_ARC_SEGMENTS));
 		const o = i * 3;

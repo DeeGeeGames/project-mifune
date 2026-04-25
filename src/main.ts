@@ -89,6 +89,7 @@ game.addResource('playerState', {
 	selectedSummon: 'frigate',
 	pendingHeading: 0,
 	headingPreviewActive: false,
+	confirm: null,
 });
 
 game.addResource('carrierLoadout', {
@@ -170,6 +171,7 @@ const spawnCarrier = (ecs: World): void => {
 	playerState.commandVesselId = carrier.id;
 	playerState.pendingHeading = 0;
 	playerState.headingPreviewActive = false;
+	playerState.confirm = null;
 
 	ecs.getResource('camera3DState').follow(carrier);
 };

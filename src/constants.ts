@@ -262,6 +262,9 @@ export const STAR_SIZE = 2;
 export const STAR_BRIGHTNESS_MIN = 0.35;
 export const STAR_BRIGHTNESS_RANGE = 0.65;
 
+export const HEADING_CONFIRM_DURATION_SEC = 0.75;
+export const HEADING_CONFIRM_BLINK_PERIOD_SEC = 0.25;
+
 export const AIM_ARC_RADIUS = 12;
 export const AIM_ARC_SEGMENTS = 24;
 export const AIM_ARC_Y_OFFSET = 0.05;
@@ -276,7 +279,6 @@ export const HEADING_ARROW_HEAD_LENGTH = 2.2;
 export const HEADING_ARROW_HEAD_WIDTH = 3.0;
 export const HEADING_ARROW_Y_OFFSET = 0.06;
 export const HEADING_ARROW_OPACITY = 0.25;
-export const HEADING_GOAL_ARROW_COLOR = 0xffd27f;
 export const VELOCITY_ARROW_COLOR = 0x7fff9a;
 export const VELOCITY_ARROW_MIN_SPEED = 0.05;
 

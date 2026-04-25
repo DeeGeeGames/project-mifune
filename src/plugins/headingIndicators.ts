@@ -14,7 +14,6 @@ import {
 	HEADING_ARROW_OPACITY,
 	HEADING_ARROW_SHAFT_WIDTH,
 	HEADING_ARROW_Y_OFFSET,
-	HEADING_GOAL_ARROW_COLOR,
 	VELOCITY_ARROW_COLOR,
 	VELOCITY_ARROW_MIN_SPEED,
 } from '../constants';
@@ -82,21 +81,16 @@ const writeArrowPositions = (
 export const createHeadingIndicatorsPlugin = () => definePlugin({
 	id: 'headingIndicators',
 	install: (world) => {
-		const goal = makeArrow(HEADING_GOAL_ARROW_COLOR);
 		const velocity = makeArrow(VELOCITY_ARROW_COLOR);
 
 		world.addSystem('headingIndicators-init')
 			.setOnInitialize((ecs) => {
 				const scene = ecs.getResource('scene');
-				scene.add(goal.mesh);
 				scene.add(velocity.mesh);
 			})
 			.setOnDetach(() => {
-				goal.mesh.removeFromParent();
 				velocity.mesh.removeFromParent();
-				goal.mesh.geometry.dispose();
 				velocity.mesh.geometry.dispose();
-				goal.material.dispose();
 				velocity.material.dispose();
 			});
 
@@ -110,23 +104,12 @@ export const createHeadingIndicatorsPlugin = () => definePlugin({
 			.setProcess(({ queries, resources: { playerState } }) => {
 				const vessel = queries.commandVessel;
 				if (!vessel || !playerState.headingPreviewActive) {
-					goal.mesh.visible = false;
 					velocity.mesh.visible = false;
 					return;
 				}
 				const { kinematic, localTransform3D } = vessel.components;
 				const cx = localTransform3D.x;
 				const cz = localTransform3D.z;
-
-				const throttleMag = Math.min(1, Math.abs(kinematic.throttle));
-				const goalLength = throttleMag * AIM_ARC_RADIUS;
-				const showGoal = goalLength > 0;
-				goal.mesh.visible = showGoal;
-				if (showGoal) {
-					const goalAngle = kinematic.throttle >= 0 ? kinematic.headingTarget : kinematic.headingTarget + Math.PI;
-					writeArrowPositions(goal.positions, cx, cz, goalAngle, goalLength);
-					goal.attr.needsUpdate = true;
-				}
 
 				const speed = Math.hypot(kinematic.vx, kinematic.vz);
 				const showVelocity = speed >= VELOCITY_ARROW_MIN_SPEED;
