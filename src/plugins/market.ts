@@ -203,12 +203,12 @@ export const createMarketPlugin = () => definePlugin({
 			world.getResource('hudRefs').marketEl.style.display = 'none';
 		});
 
-		world.addSystem('market-menu')
+		world.addSystem('market-input')
 			.setPriority(100)
 			.inPhase('update')
 			.inScreens(['market'])
-			.withResources(['inputState', 'hudRefs', 'playerState', 'carrierLoadout'])
-			.setProcess(({ ecs, resources: { inputState, hudRefs, playerState, carrierLoadout } }) => {
+			.withResources(['inputState'])
+			.setProcess(({ ecs, resources: { inputState } }) => {
 				const state = ecs.getScreenState('market');
 				const offerCount = state.offers.length;
 
@@ -221,15 +221,26 @@ export const createMarketPlugin = () => definePlugin({
 					if (inputState.actions.justActivated('menuConfirm')) {
 						confirmByIndex(offerCount, state.selectedIndex);
 					}
-				} else {
-					const assignRows = buildAssignRows(ecs);
-					const dy = menuAxisDelta(inputState, 'menuUp', 'menuDown');
-					if (dy !== 0 && assignRows.length > 0) {
-						state.selectedIndex = wrapIndex(state.selectedIndex + dy, assignRows.length);
-					}
-					if (inputState.actions.justActivated('menuConfirm')) confirmAssign(ecs, assignRows);
+					return;
 				}
+				const assignRows = buildAssignRows(ecs);
+				const dy = menuAxisDelta(inputState, 'menuUp', 'menuDown');
+				if (assignRows.length > 0) {
+					state.selectedIndex = dy !== 0
+						? wrapIndex(state.selectedIndex + dy, assignRows.length)
+						: Math.min(state.selectedIndex, assignRows.length - 1);
+				}
+				if (inputState.actions.justActivated('menuConfirm')) confirmAssign(ecs, assignRows);
+			});
 
+		world.addSystem('market-render')
+			.setPriority(100)
+			.inPhase('render')
+			.inScreens(['market'])
+			.withResources(['hudRefs', 'playerState'])
+			.setProcess(({ ecs, resources: { hudRefs, playerState } }) => {
+				const state = ecs.getScreenState('market');
+				const offerCount = state.offers.length;
 				const mode = state.mode.kind;
 				if (mode !== lastMode) {
 					setBrowseVisibility(mode === 'browse');
@@ -274,23 +285,22 @@ export const createMarketPlugin = () => definePlugin({
 						renderStatCard(hudRefs.marketStatCardEl, kind, '— hover an offer —');
 						lastStatCardKind = kind;
 					}
-				} else if (state.mode.kind === 'assignPylon') {
-					const offerIdx = state.mode.offerIdx;
-					const offer = state.offers[offerIdx];
-					const assignRows = buildAssignRows(ecs);
-					state.selectedIndex = Math.min(state.selectedIndex, assignRows.length - 1);
-					if (offer) {
-						const assignText = `${offerIdx}|${state.selectedIndex}|${assignRows.length}|${offer.cost}`;
-						if (assignText !== lastAssignText) {
-							renderAssign(hudRefs.marketAssignEl, assignRows, state.selectedIndex, offer);
-							lastAssignText = assignText;
-						}
-						const kind = offerWeaponKind(offer);
-						if (kind !== lastStatCardKind) {
-							renderStatCard(hudRefs.marketStatCardEl, kind, '');
-							lastStatCardKind = kind;
-						}
-					}
+					return;
+				}
+				if (state.mode.kind !== 'assignPylon') return;
+				const offerIdx = state.mode.offerIdx;
+				const offer = state.offers[offerIdx];
+				const assignRows = buildAssignRows(ecs);
+				if (!offer) return;
+				const assignText = `${offerIdx}|${state.selectedIndex}|${assignRows.length}|${offer.cost}`;
+				if (assignText !== lastAssignText) {
+					renderAssign(hudRefs.marketAssignEl, assignRows, state.selectedIndex, offer);
+					lastAssignText = assignText;
+				}
+				const kind = offerWeaponKind(offer);
+				if (kind !== lastStatCardKind) {
+					renderStatCard(hudRefs.marketStatCardEl, kind, '');
+					lastStatCardKind = kind;
 				}
 			});
 	},

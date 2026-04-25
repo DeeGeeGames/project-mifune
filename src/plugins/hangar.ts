@@ -304,14 +304,37 @@ export const createHangarPlugin = () => definePlugin({
 				if (!inputState.actions.justActivated('toggleHangar')) return;
 				const hangar = ecs.getComponent(playerState.commandVesselId, 'hangar');
 				if (!hangar) return;
-				hangar.instances.forEach((instance) => {
+				for (const instance of hangar.instances) {
 					instance.command = instance.command === 'deployed' ? 'docked' : 'deployed';
 					instance.launchTimer = 0;
-				});
+				}
 			});
 
-		world.addSystem('hangar-bay-update')
+		world.addSystem('hangar-bays')
 			.setPriority(195)
+			.inPhase('update')
+			.inScreens(['playing'])
+			.setProcessEach({ with: ['hangar'] }, ({ entity: { components: { hangar } }, dt }) => {
+				for (const instance of hangar.instances) {
+					for (const bay of instance.bays) {
+						bay.orbitPhase = normalizeAngle(bay.orbitPhase + ORBIT_ANGULAR_VEL * dt);
+						if (bay.status === 'docked' && bay.storedHp < HANGAR_FIGHTER_MAX_HP) {
+							bay.storedHp = Math.min(HANGAR_FIGHTER_MAX_HP, bay.storedHp + HANGAR_HEAL_PER_SEC * dt);
+						}
+						if (bay.status === 'manufacturing') {
+							bay.manufactureTimer -= dt;
+							if (bay.manufactureTimer <= 0) {
+								bay.status = 'docked';
+								bay.manufactureTimer = 0;
+								bay.storedHp = HANGAR_FIGHTER_MAX_HP;
+							}
+						}
+					}
+				}
+			});
+
+		world.addSystem('hangar-launch')
+			.setPriority(196)
 			.inPhase('update')
 			.inScreens(['playing'])
 			.addQuery('hangars', { with: ['hangar'] })
@@ -319,50 +342,33 @@ export const createHangarPlugin = () => definePlugin({
 				for (const { id: shipId, components: { hangar } } of queries.hangars) {
 					const mother = readMotherState(ecs, shipId);
 					if (!mother) continue;
-					hangar.instances.forEach((instance, instanceIdx) => {
-						instance.bays.forEach((bay) => {
-							bay.orbitPhase = normalizeAngle(bay.orbitPhase + ORBIT_ANGULAR_VEL * dt);
-							if (bay.status === 'docked' && bay.storedHp < HANGAR_FIGHTER_MAX_HP) {
-								bay.storedHp = Math.min(HANGAR_FIGHTER_MAX_HP, bay.storedHp + HANGAR_HEAL_PER_SEC * dt);
-							}
-							if (bay.status === 'manufacturing') {
-								bay.manufactureTimer -= dt;
-								if (bay.manufactureTimer <= 0) {
-									bay.status = 'docked';
-									bay.manufactureTimer = 0;
-									bay.storedHp = HANGAR_FIGHTER_MAX_HP;
-								}
-							}
-						});
-
+					for (const [instanceIdx, instance] of hangar.instances.entries()) {
 						if (instance.command === 'deployed') {
 							instance.launchTimer -= dt;
-							if (instance.launchTimer <= 0) {
-								const ready = pickDeployBay(instance);
-								if (ready) {
-									const dock = mountToWorld(mother.x, mother.z, mother.heading, instance.dockPointX, instance.dockPointZ);
-									const launchHeading = bayLaunchHeading(mother, instance.dockPointX);
-									const fighterId = spawnFighter(ecs, hangar.motherShipId, instanceIdx, ready, dock.x, dock.z, launchHeading);
-									ready.status = 'deployed';
-									ready.fighterId = fighterId;
-									const fighter = ecs.getComponent(fighterId, 'fighter');
-									if (fighter) fighter.orbitPhase = ready.orbitPhase;
-									instance.launchTimer = HANGAR_LAUNCH_INTERVAL_SEC;
-								}
-							}
-						} else {
-							instance.bays.forEach((deployedBay) => {
-								if (deployedBay.status !== 'deployed' || deployedBay.fighterId === null) return;
-								const fighter = ecs.getComponent(deployedBay.fighterId, 'fighter');
-								if (!fighter) {
-									deployedBay.status = 'docked';
-									deployedBay.fighterId = null;
-									return;
-								}
-								fighter.mode = 'returning';
-							});
+							if (instance.launchTimer > 0) continue;
+							const ready = pickDeployBay(instance);
+							if (!ready) continue;
+							const dock = mountToWorld(mother.x, mother.z, mother.heading, instance.dockPointX, instance.dockPointZ);
+							const launchHeading = bayLaunchHeading(mother, instance.dockPointX);
+							const fighterId = spawnFighter(ecs, hangar.motherShipId, instanceIdx, ready, dock.x, dock.z, launchHeading);
+							ready.status = 'deployed';
+							ready.fighterId = fighterId;
+							const fighter = ecs.getComponent(fighterId, 'fighter');
+							if (fighter) fighter.orbitPhase = ready.orbitPhase;
+							instance.launchTimer = HANGAR_LAUNCH_INTERVAL_SEC;
+							continue;
 						}
-					});
+						for (const deployedBay of instance.bays) {
+							if (deployedBay.status !== 'deployed' || deployedBay.fighterId === null) continue;
+							const fighter = ecs.getComponent(deployedBay.fighterId, 'fighter');
+							if (!fighter) {
+								deployedBay.status = 'docked';
+								deployedBay.fighterId = null;
+								continue;
+							}
+							fighter.mode = 'returning';
+						}
+					}
 				}
 			});
 
