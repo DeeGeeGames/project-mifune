@@ -8,15 +8,12 @@ export const createMovementPlugin = () => definePlugin({
 			.setPriority(200)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('ships', {
+			.setProcessEach({
 				with: ['ship', 'kinematic', 'localTransform3D'],
 				without: ['summonAnim'],
 				mutates: ['kinematic', 'localTransform3D'],
-			})
-			.setProcess(({ queries, dt }) => {
-				for (const { components: { kinematic, localTransform3D } } of queries.ships) {
-					integrateKinematicXZ(kinematic, localTransform3D, dt);
-				}
+			}, ({ entity: { components: { kinematic, localTransform3D } }, dt }) => {
+				integrateKinematicXZ(kinematic, localTransform3D, dt);
 			});
 	},
 });

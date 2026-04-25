@@ -84,41 +84,38 @@ export const createMissilePlugin = () => definePlugin({
 			.setPriority(300)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('missiles', {
+			.setProcessEach({
 				with: ['missile', 'localTransform3D'],
 				mutates: ['missile', 'localTransform3D'],
-			})
-			.setProcess(({ queries, dt, ecs }) => {
-				for (const { id, components: { missile, localTransform3D } } of queries.missiles) {
-					missile.life -= dt;
-					if (missile.life <= 0) {
-						ecs.removeEntity(id);
-						continue;
-					}
-
-					if (missile.unguidedTime > 0) {
-						missile.unguidedTime -= dt;
-						if (missile.unguidedTime <= 0) {
-							missile.engineMount.plumeMat.opacity = MISSILE_PLUME_OPACITY;
-							spawnTrailForAnchor(ecs, id, missile.engineMount.anchor, TRAIL_WIDTH_MISSILE, TRAIL_COLOR_MISSILE);
-						}
-					} else if (missile.targetId !== null) {
-						const targetTransform = ecs.getComponent(missile.targetId, 'localTransform3D');
-						const targetEnemy = ecs.getComponent(missile.targetId, 'enemy');
-						if (!targetTransform || !targetEnemy) {
-							missile.targetId = null;
-						} else {
-							const desired = bearingXZ(localTransform3D.x, localTransform3D.z, targetTransform.x, targetTransform.z);
-							missile.heading = stepAngle(missile.heading, desired, MISSILE_TURN_RATE * dt);
-							missile.speed = MISSILE_SPEED;
-						}
-					}
-
-					const fwd = forwardXZ(missile.heading);
-					localTransform3D.x += fwd.x * missile.speed * dt;
-					localTransform3D.z += fwd.z * missile.speed * dt;
-					localTransform3D.ry = missile.heading;
+			}, ({ entity: { id, components: { missile, localTransform3D } }, dt, ecs }) => {
+				missile.life -= dt;
+				if (missile.life <= 0) {
+					ecs.removeEntity(id);
+					return;
 				}
+
+				if (missile.unguidedTime > 0) {
+					missile.unguidedTime -= dt;
+					if (missile.unguidedTime <= 0) {
+						missile.engineMount.plumeMat.opacity = MISSILE_PLUME_OPACITY;
+						spawnTrailForAnchor(ecs, id, missile.engineMount.anchor, TRAIL_WIDTH_MISSILE, TRAIL_COLOR_MISSILE);
+					}
+				} else if (missile.targetId !== null) {
+					const targetTransform = ecs.getComponent(missile.targetId, 'localTransform3D');
+					const targetEnemy = ecs.getComponent(missile.targetId, 'enemy');
+					if (!targetTransform || !targetEnemy) {
+						missile.targetId = null;
+					} else {
+						const desired = bearingXZ(localTransform3D.x, localTransform3D.z, targetTransform.x, targetTransform.z);
+						missile.heading = stepAngle(missile.heading, desired, MISSILE_TURN_RATE * dt);
+						missile.speed = MISSILE_SPEED;
+					}
+				}
+
+				const fwd = forwardXZ(missile.heading);
+				localTransform3D.x += fwd.x * missile.speed * dt;
+				localTransform3D.z += fwd.z * missile.speed * dt;
+				localTransform3D.ry = missile.heading;
 			});
 
 		world.addSystem('missile-hit')

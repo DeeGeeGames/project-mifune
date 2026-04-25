@@ -63,36 +63,33 @@ export const createSummonPlugin = () => definePlugin({
 			.setPriority(70)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('summoning', {
+			.setProcessEach({
 				with: ['summonAnim', 'kinematic', 'formationSlot', 'localTransform3D'],
 				mutates: ['summonAnim', 'kinematic', 'localTransform3D'],
-			})
-			.setProcess(({ queries, dt, ecs }) => {
-				for (const { id, components: { summonAnim, kinematic, formationSlot, localTransform3D } } of queries.summoning) {
-					const flagshipTransform = ecs.getComponent(formationSlot.flagshipId, 'localTransform3D');
-					const flagshipKinematic = ecs.getComponent(formationSlot.flagshipId, 'kinematic');
-					if (!flagshipTransform || !flagshipKinematic) {
-						ecs.removeComponent(id, 'summonAnim');
-						continue;
-					}
+			}, ({ entity: { id, components: { summonAnim, kinematic, formationSlot, localTransform3D } }, dt, ecs }) => {
+				const flagshipTransform = ecs.getComponent(formationSlot.flagshipId, 'localTransform3D');
+				const flagshipKinematic = ecs.getComponent(formationSlot.flagshipId, 'kinematic');
+				if (!flagshipTransform || !flagshipKinematic) {
+					ecs.removeComponent(id, 'summonAnim');
+					return false;
+				}
 
-					summonAnim.progress = Math.min(1, summonAnim.progress + dt / SUMMON_ANIM_SEC);
+				summonAnim.progress = Math.min(1, summonAnim.progress + dt / SUMMON_ANIM_SEC);
 
-					const slotLocal = slotLocalXZ(formationSlot.slotIndex);
-					const slotWorld = rotateY(slotLocal, -flagshipKinematic.heading);
-					const targetX = flagshipTransform.x + slotWorld.x;
-					const targetZ = flagshipTransform.z + slotWorld.z;
+				const slotLocal = slotLocalXZ(formationSlot.slotIndex);
+				const slotWorld = rotateY(slotLocal, -flagshipKinematic.heading);
+				const targetX = flagshipTransform.x + slotWorld.x;
+				const targetZ = flagshipTransform.z + slotWorld.z;
 
-					const t = easeOutCubic(summonAnim.progress);
-					localTransform3D.x = summonAnim.originX + (targetX - summonAnim.originX) * t;
-					localTransform3D.z = summonAnim.originZ + (targetZ - summonAnim.originZ) * t;
-					kinematic.heading = flagshipKinematic.heading;
-					kinematic.headingTarget = kinematic.heading;
-					localTransform3D.ry = kinematic.heading;
+				const t = easeOutCubic(summonAnim.progress);
+				localTransform3D.x = summonAnim.originX + (targetX - summonAnim.originX) * t;
+				localTransform3D.z = summonAnim.originZ + (targetZ - summonAnim.originZ) * t;
+				kinematic.heading = flagshipKinematic.heading;
+				kinematic.headingTarget = kinematic.heading;
+				localTransform3D.ry = kinematic.heading;
 
-					if (summonAnim.progress >= 1) {
-						ecs.removeComponent(id, 'summonAnim');
-					}
+				if (summonAnim.progress >= 1) {
+					ecs.removeComponent(id, 'summonAnim');
 				}
 			});
 	},

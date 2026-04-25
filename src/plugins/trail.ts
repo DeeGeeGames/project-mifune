@@ -115,66 +115,63 @@ export const createTrailPlugin = () => definePlugin({
 			.setPriority(395)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('trails', { with: ['trail'] })
-			.setProcess(({ queries, ecs }) => {
-				for (const { id, components: { trail } } of queries.trails) {
-					const ownerTransform = ecs.getComponent(trail.ownerId, 'localTransform3D');
-					if (!ownerTransform) {
-						trail.geometry.dispose();
-						trail.material.dispose();
-						ecs.removeEntity(id);
-						continue;
-					}
-
-					trail.anchor.getWorldPosition(_worldPos);
-
-					if (!trail.initialized) {
-						for (let i = 0; i < TRAIL_SEGMENTS; i++) {
-							trail.centers[i * 3 + 0] = _worldPos.x;
-							trail.centers[i * 3 + 1] = TRAIL_Y;
-							trail.centers[i * 3 + 2] = _worldPos.z;
-						}
-						trail.initialized = true;
-					} else {
-						const kinematic = ecs.getComponent(trail.ownerId, 'kinematic');
-						const frozen = kinematic != null
-							&& Math.abs(kinematic.throttle) < TRAIL_EMIT_MIN_THROTTLE
-							&& Math.hypot(kinematic.vx, kinematic.vz) < TRAIL_EMIT_MIN_SPEED;
-						if (!frozen) {
-							trail.centers.copyWithin(3, 0, TRAIL_SEGMENTS * 3 - 3);
-							trail.centers[0] = _worldPos.x;
-							trail.centers[1] = TRAIL_Y;
-							trail.centers[2] = _worldPos.z;
-						}
-					}
-
-					const posArr = trail.positionAttr.array as Float32Array;
-					const hw = trail.halfWidth;
-					for (let i = 0; i < TRAIL_SEGMENTS; i++) {
-						const cx = trail.centers[i * 3 + 0];
-						const cy = trail.centers[i * 3 + 1];
-						const cz = trail.centers[i * 3 + 2];
-
-						const pi = Math.max(0, i - 1);
-						const ni = Math.min(TRAIL_SEGMENTS - 1, i + 1);
-						const dx = trail.centers[pi * 3 + 0] - trail.centers[ni * 3 + 0];
-						const dz = trail.centers[pi * 3 + 2] - trail.centers[ni * 3 + 2];
-						const len = Math.hypot(dx, dz);
-						const tx = len > 1e-4 ? dx / len : 0;
-						const tz = len > 1e-4 ? dz / len : 1;
-						const nx = -tz;
-						const nz = tx;
-
-						const base = i * 2 * 3;
-						posArr[base + 0] = cx + nx * hw;
-						posArr[base + 1] = cy;
-						posArr[base + 2] = cz + nz * hw;
-						posArr[base + 3] = cx - nx * hw;
-						posArr[base + 4] = cy;
-						posArr[base + 5] = cz - nz * hw;
-					}
-					trail.positionAttr.needsUpdate = true;
+			.setProcessEach({ with: ['trail'] }, ({ entity: { id, components: { trail } }, ecs }) => {
+				const ownerTransform = ecs.getComponent(trail.ownerId, 'localTransform3D');
+				if (!ownerTransform) {
+					trail.geometry.dispose();
+					trail.material.dispose();
+					ecs.removeEntity(id);
+					return;
 				}
+
+				trail.anchor.getWorldPosition(_worldPos);
+
+				if (!trail.initialized) {
+					for (let i = 0; i < TRAIL_SEGMENTS; i++) {
+						trail.centers[i * 3 + 0] = _worldPos.x;
+						trail.centers[i * 3 + 1] = TRAIL_Y;
+						trail.centers[i * 3 + 2] = _worldPos.z;
+					}
+					trail.initialized = true;
+				} else {
+					const kinematic = ecs.getComponent(trail.ownerId, 'kinematic');
+					const frozen = kinematic != null
+						&& Math.abs(kinematic.throttle) < TRAIL_EMIT_MIN_THROTTLE
+						&& Math.hypot(kinematic.vx, kinematic.vz) < TRAIL_EMIT_MIN_SPEED;
+					if (!frozen) {
+						trail.centers.copyWithin(3, 0, TRAIL_SEGMENTS * 3 - 3);
+						trail.centers[0] = _worldPos.x;
+						trail.centers[1] = TRAIL_Y;
+						trail.centers[2] = _worldPos.z;
+					}
+				}
+
+				const posArr = trail.positionAttr.array as Float32Array;
+				const hw = trail.halfWidth;
+				for (let i = 0; i < TRAIL_SEGMENTS; i++) {
+					const cx = trail.centers[i * 3 + 0];
+					const cy = trail.centers[i * 3 + 1];
+					const cz = trail.centers[i * 3 + 2];
+
+					const pi = Math.max(0, i - 1);
+					const ni = Math.min(TRAIL_SEGMENTS - 1, i + 1);
+					const dx = trail.centers[pi * 3 + 0] - trail.centers[ni * 3 + 0];
+					const dz = trail.centers[pi * 3 + 2] - trail.centers[ni * 3 + 2];
+					const len = Math.hypot(dx, dz);
+					const tx = len > 1e-4 ? dx / len : 0;
+					const tz = len > 1e-4 ? dz / len : 1;
+					const nx = -tz;
+					const nz = tx;
+
+					const base = i * 2 * 3;
+					posArr[base + 0] = cx + nx * hw;
+					posArr[base + 1] = cy;
+					posArr[base + 2] = cz + nz * hw;
+					posArr[base + 3] = cx - nx * hw;
+					posArr[base + 4] = cy;
+					posArr[base + 5] = cz - nz * hw;
+				}
+				trail.positionAttr.needsUpdate = true;
 			});
 	},
 });

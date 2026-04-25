@@ -88,22 +88,19 @@ export const createShieldPlugin = () => definePlugin({
 			.setPriority(320)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('shields', { with: ['shield'] })
-			.setProcess(({ queries, dt }) => {
-				for (const { components: { shield } } of queries.shields) {
-					if (shield.depletedTimer > 0) {
-						shield.depletedTimer = Math.max(0, shield.depletedTimer - dt);
-						setMeshVisible(shield.mesh, false);
-						continue;
-					}
-					if (shield.current < shield.max) {
-						shield.current = Math.min(shield.max, shield.current + shield.regenPerSec * dt);
-					}
-					const ratio = shield.max > 0 ? shield.current / shield.max : 0;
-					setMeshVisible(shield.mesh, true);
-					const nextOpacity = SHIELD_OPACITY_LOW + (SHIELD_OPACITY_FULL - SHIELD_OPACITY_LOW) * ratio;
-					if (shield.material.opacity !== nextOpacity) shield.material.opacity = nextOpacity;
+			.setProcessEach({ with: ['shield'] }, ({ entity: { components: { shield } }, dt }) => {
+				if (shield.depletedTimer > 0) {
+					shield.depletedTimer = Math.max(0, shield.depletedTimer - dt);
+					setMeshVisible(shield.mesh, false);
+					return;
 				}
+				if (shield.current < shield.max) {
+					shield.current = Math.min(shield.max, shield.current + shield.regenPerSec * dt);
+				}
+				const ratio = shield.max > 0 ? shield.current / shield.max : 0;
+				setMeshVisible(shield.mesh, true);
+				const nextOpacity = SHIELD_OPACITY_LOW + (SHIELD_OPACITY_FULL - SHIELD_OPACITY_LOW) * ratio;
+				if (shield.material.opacity !== nextOpacity) shield.material.opacity = nextOpacity;
 			});
 	},
 });

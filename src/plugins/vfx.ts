@@ -120,46 +120,40 @@ export const createVfxPlugin = () => definePlugin({
 			.setPriority(400)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('fx', {
+			.setProcessEach({
 				with: ['vfx', 'localTransform3D'],
 				mutates: ['vfx', 'localTransform3D'],
-			})
-			.setProcess(({ queries, dt, ecs }) => {
-				for (const { id, components: { vfx, localTransform3D } } of queries.fx) {
-					vfx.life -= dt;
-					if (vfx.life <= 0) {
-						vfx.material.dispose();
-						ecs.removeEntity(id);
-						continue;
-					}
-					const t = 1 - vfx.life / vfx.maxLife;
-					const eased = 1 - (1 - t) * (1 - t);
-					const scale = vfx.scaleStart + (vfx.scaleEnd - vfx.scaleStart) * eased;
-					localTransform3D.sx = scale;
-					localTransform3D.sy = scale;
-					localTransform3D.sz = scale;
-					vfx.material.opacity = vfx.opacityStart * (1 - t);
+			}, ({ entity: { id, components: { vfx, localTransform3D } }, dt, ecs }) => {
+				vfx.life -= dt;
+				if (vfx.life <= 0) {
+					vfx.material.dispose();
+					ecs.removeEntity(id);
+					return;
 				}
+				const t = 1 - vfx.life / vfx.maxLife;
+				const eased = 1 - (1 - t) * (1 - t);
+				const scale = vfx.scaleStart + (vfx.scaleEnd - vfx.scaleStart) * eased;
+				localTransform3D.sx = scale;
+				localTransform3D.sy = scale;
+				localTransform3D.sz = scale;
+				vfx.material.opacity = vfx.opacityStart * (1 - t);
 			});
 
 		world.addSystem('engine-glow')
 			.setPriority(205)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('ships', { with: ['engineGlow', 'kinematic'] })
-			.setProcess(({ queries }) => {
-				for (const { components: { engineGlow, kinematic } } of queries.ships) {
-					const speedRatio = Math.min(1, Math.hypot(kinematic.vx, kinematic.vz) / kinematic.maxSpeed);
-					const throttleMag = Math.min(1, Math.abs(kinematic.throttle));
-					const t = Math.min(1, throttleMag * 0.7 + speedRatio * 0.3);
-					engineGlow.material.emissiveIntensity = ENGINE_EMISSIVE_IDLE + (ENGINE_EMISSIVE_MAX - ENGINE_EMISSIVE_IDLE) * t;
-					const length = ENGINE_PLUME_LENGTH_IDLE + (ENGINE_PLUME_LENGTH_MAX - ENGINE_PLUME_LENGTH_IDLE) * t;
-					const opacity = ENGINE_PLUME_OPACITY_IDLE + (ENGINE_PLUME_OPACITY_MAX - ENGINE_PLUME_OPACITY_IDLE) * t;
-					for (const mount of engineGlow.mounts) {
-						const width = mount.size * ENGINE_PLUME_WIDTH_MULT;
-						mount.plume.scale.set(width, width, mount.size * length);
-						mount.plumeMat.opacity = opacity;
-					}
+			.setProcessEach({ with: ['engineGlow', 'kinematic'] }, ({ entity: { components: { engineGlow, kinematic } } }) => {
+				const speedRatio = Math.min(1, Math.hypot(kinematic.vx, kinematic.vz) / kinematic.maxSpeed);
+				const throttleMag = Math.min(1, Math.abs(kinematic.throttle));
+				const t = Math.min(1, throttleMag * 0.7 + speedRatio * 0.3);
+				engineGlow.material.emissiveIntensity = ENGINE_EMISSIVE_IDLE + (ENGINE_EMISSIVE_MAX - ENGINE_EMISSIVE_IDLE) * t;
+				const length = ENGINE_PLUME_LENGTH_IDLE + (ENGINE_PLUME_LENGTH_MAX - ENGINE_PLUME_LENGTH_IDLE) * t;
+				const opacity = ENGINE_PLUME_OPACITY_IDLE + (ENGINE_PLUME_OPACITY_MAX - ENGINE_PLUME_OPACITY_IDLE) * t;
+				for (const mount of engineGlow.mounts) {
+					const width = mount.size * ENGINE_PLUME_WIDTH_MULT;
+					mount.plume.scale.set(width, width, mount.size * length);
+					mount.plumeMat.opacity = opacity;
 				}
 			});
 	},

@@ -71,19 +71,16 @@ export const createHealthBarsPlugin = () => definePlugin({
 		world.addSystem('healthBars')
 			.inPhase('render')
 			.inScreens(['playing'])
-			.addQuery('enemies', { with: ['enemy', 'healthBar'] })
-			.setProcess(({ queries }) => {
-				for (const { components: { enemy, healthBar } } of queries.enemies) {
-					const ratio = clamp(enemy.hp / enemy.maxHp, 0, 1);
-					if (ratio === healthBar.lastRatio) continue;
-					const damaged = ratio < 1;
-					healthBar.bg.visible = damaged;
-					healthBar.fill.visible = damaged;
-					healthBar.lastRatio = ratio;
-					if (!damaged) continue;
-					healthBar.fill.scale.x = healthBar.bg.scale.x * ratio;
-					healthBar.fill.material.color.setHex(ratioColor(ratio));
-				}
+			.setProcessEach({ with: ['enemy', 'healthBar'] }, ({ entity: { components: { enemy, healthBar } } }) => {
+				const ratio = clamp(enemy.hp / enemy.maxHp, 0, 1);
+				if (ratio === healthBar.lastRatio) return;
+				const damaged = ratio < 1;
+				healthBar.bg.visible = damaged;
+				healthBar.fill.visible = damaged;
+				healthBar.lastRatio = ratio;
+				if (!damaged) return;
+				healthBar.fill.scale.x = healthBar.bg.scale.x * ratio;
+				healthBar.fill.material.color.setHex(ratioColor(ratio));
 			});
 	},
 });
