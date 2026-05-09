@@ -1,4 +1,5 @@
 import { DoubleSide, Mesh, MeshBasicMaterial, SphereGeometry } from 'three';
+import { createTimer } from 'ecspresso/plugins/scripting/timers';
 import { definePlugin, type World, type ShieldComponent } from '../types';
 import type { ShipSpec } from '../ships';
 import {
@@ -48,20 +49,31 @@ export const buildShieldComponent = (
 		current: max,
 		max,
 		regenPerSec: generatorCount * SHIELD_REGEN_PER_GENERATOR_PER_SEC,
-		depletedDelaySec: SHIELD_DEPLETED_DELAY_SEC,
-		depletedTimer: 0,
 		mesh: built.mesh,
 		material: built.material,
 	};
 };
 
-const absorbWithShield = (shield: ShieldComponent, damage: number): number => {
+interface AbsorbResult {
+	readonly leftover: number;
+	readonly depleted: boolean;
+}
+
+const absorbWithShield = (shield: ShieldComponent, damage: number): AbsorbResult => {
 	const absorbed = Math.min(shield.current, damage);
-	const leftover = damage - absorbed;
 	shield.current = Math.max(0, shield.current - absorbed);
-	if (shield.current === 0) shield.depletedTimer = shield.depletedDelaySec;
-	return leftover;
+	return { leftover: damage - absorbed, depleted: shield.current === 0 };
 };
+
+const armShieldDepletion = (ecs: World, shipId: number): void => {
+	const slot = createTimer(SHIELD_DEPLETED_DELAY_SEC);
+	const existing = ecs.getComponent(shipId, 'timers');
+	if (existing) existing.shieldDepletion = slot;
+	else ecs.addComponent(shipId, 'timers', { shieldDepletion: slot });
+};
+
+const isShieldLockedOut = (ecs: World, shipId: number): boolean =>
+	ecs.getComponent(shipId, 'timers')?.shieldDepletion?.active === true;
 
 export const applyDamageToShip = (
 	ecs: World,
@@ -71,9 +83,12 @@ export const applyDamageToShip = (
 ): void => {
 	if (!ship) return;
 	const shield = ecs.getComponent(shipId, 'shield');
-	const leftover = shield && shield.depletedTimer === 0 && shield.current > 0
-		? absorbWithShield(shield, damage)
-		: damage;
+	if (!shield || shield.current <= 0 || isShieldLockedOut(ecs, shipId)) {
+		ship.hp -= damage;
+		return;
+	}
+	const { leftover, depleted } = absorbWithShield(shield, damage);
+	if (depleted) armShieldDepletion(ecs, shipId);
 	ship.hp -= leftover;
 };
 
@@ -88,9 +103,8 @@ export const createShieldPlugin = () => definePlugin({
 			.setPriority(320)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.setProcessEach({ with: ['shield'] }, ({ entity: { components: { shield } }, dt }) => {
-				if (shield.depletedTimer > 0) {
-					shield.depletedTimer = Math.max(0, shield.depletedTimer - dt);
+			.setProcessEach({ with: ['shield'] }, ({ entity: { id, components: { shield } }, dt, ecs }) => {
+				if (isShieldLockedOut(ecs, id)) {
 					setMeshVisible(shield.mesh, false);
 					return;
 				}

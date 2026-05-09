@@ -5,6 +5,7 @@ import { createInputPlugin, gamepadButtonsOn } from 'ecspresso/plugins/input/inp
 import type { ActionMap } from 'ecspresso/plugins/input/input';
 import { createBehaviorTreePlugin } from 'ecspresso/plugins/ai/behavior-tree';
 import { createTweenPlugin } from 'ecspresso/plugins/scripting/tween';
+import { createTimerPlugin } from 'ecspresso/plugins/scripting/timers';
 import type { ScreenEvents } from 'ecspresso';
 import {
 	CAMERA_DISTANCE,
@@ -284,7 +285,6 @@ export interface FighterComponent {
 	mode: FighterMode;
 	engageTargetId: number | null;
 	orbitPhase: number;
-	launchTimer: number;
 	launchHeading: number;
 	turretIds: readonly number[];
 }
@@ -293,8 +293,6 @@ export interface ShieldComponent {
 	current: number;
 	max: number;
 	regenPerSec: number;
-	depletedDelaySec: number;
-	depletedTimer: number;
 	mesh: Mesh;
 	material: MeshBasicMaterial;
 }
@@ -466,6 +464,7 @@ export const builder = ECSpresso.create()
 	}))
 	.withPlugin(createBehaviorTreePlugin({ priority: 240 }))
 	.withPlugin(createTweenPlugin({ priority: 390 }))
+	.withPlugin(createTimerPlugin({ priority: 100 }))
 	.withComponentTypes<{
 		ship: ShipComponent;
 		kinematic: KinematicState;

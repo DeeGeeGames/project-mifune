@@ -1,4 +1,5 @@
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
+import { createTimer } from 'ecspresso/plugins/scripting/timers';
 import {
 	definePlugin,
 	type FighterComponent,
@@ -162,7 +163,6 @@ const spawnFighter = (
 		mode: 'launching',
 		engageTargetId: null,
 		orbitPhase: bay.orbitPhase,
-		launchTimer: FIGHTER_LAUNCH_SEC,
 		launchHeading,
 		turretIds: [],
 	};
@@ -172,6 +172,7 @@ const spawnFighter = (
 		kinematic,
 		fighter: fighterComponent,
 		engineGlow: { material: built.engineMaterial, mounts: built.engineMounts },
+		timers: { launch: createTimer(FIGHTER_LAUNCH_SEC) },
 	}, { scope: 'playing' });
 	spawnShipTrails(ecs, entity.id, built.engineMounts, TRAIL_COLOR_ALLY);
 	fighterComponent.turretIds = spawnShipTurrets(ecs, entity.id, spec, built);
@@ -376,9 +377,9 @@ export const createHangarPlugin = () => definePlugin({
 			.setPriority(198)
 			.inPhase('update')
 			.inScreens(['playing'])
-			.addQuery('fighters', { with: ['fighter', 'kinematic', 'localTransform3D'] })
+			.addQuery('fighters', { with: ['fighter', 'kinematic', 'localTransform3D', 'timers'] })
 			.addQuery('enemies', { with: ['enemy', 'kinematic', 'localTransform3D'] })
-			.setProcess(({ queries, dt, ecs }) => {
+			.setProcess(({ queries, ecs }) => {
 				const candidates: EnemyCandidate[] = queries.enemies.map((e) => ({
 					id: e.id,
 					x: e.components.localTransform3D.x,
@@ -388,7 +389,7 @@ export const createHangarPlugin = () => definePlugin({
 				}));
 				const fighterSpec = SHIP_SPECS.fighter;
 
-				for (const { id: fighterId, components: { fighter, kinematic, localTransform3D } } of queries.fighters) {
+				for (const { id: fighterId, components: { fighter, kinematic, localTransform3D, timers } } of queries.fighters) {
 					const hangar = ecs.getComponent(fighter.motherShipId, 'hangar');
 					const mother = readMotherState(ecs, fighter.motherShipId);
 					if (!hangar || !mother) continue;
@@ -399,10 +400,9 @@ export const createHangarPlugin = () => definePlugin({
 					if (bay) fighter.orbitPhase = bay.orbitPhase;
 
 					if (fighter.mode === 'launching') {
-						fighter.launchTimer -= dt;
 						kinematic.headingTarget = fighter.launchHeading;
 						kinematic.throttle = 1;
-						if (fighter.launchTimer <= 0) fighter.mode = 'orbit';
+						if (timers.launch?.justFinished) fighter.mode = 'orbit';
 						continue;
 					}
 
