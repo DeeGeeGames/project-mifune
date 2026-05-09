@@ -20,8 +20,8 @@ export const createBeamPlugin = () => definePlugin({
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.addQuery('ships', { with: ['ship', 'localTransform3D'] })
 			.setProcess(({ queries, dt, ecs }) => {
-				for (const { components: { beamTurret: turret } } of queries.turrets) {
-					const owner = getOwnerState(ecs, turret.ownerId);
+				for (const { id, components: { beamTurret: turret } } of queries.turrets) {
+					const owner = getOwnerState(ecs, id);
 					if (!owner) {
 						turret.hasTarget = false;
 						continue;
@@ -117,7 +117,7 @@ export const createBeamPlugin = () => definePlugin({
 
 					turret.stateTimerMs -= dt * 1000;
 
-					const owner = getOwnerState(ecs, turret.ownerId);
+					const owner = getOwnerState(ecs, turretId);
 					if (owner) {
 						const { x: mountWorldX, z: mountWorldZ } = mountToWorld(
 							owner.x, owner.z, owner.heading, turret.mountX, turret.mountZ,

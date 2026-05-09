@@ -89,7 +89,6 @@ export type Faction = 'ally' | 'enemy';
 export type ProjectileKind = 'bullet' | 'cannon' | 'railgun' | 'pd';
 
 export interface TurretComponent {
-	ownerId: number;
 	faction: Faction;
 	mountX: number;
 	mountZ: number;
@@ -123,7 +122,6 @@ export interface ProjectileComponent {
 }
 
 export interface MissileTurretComponent {
-	ownerShipId: number;
 	mountX: number;
 	mountZ: number;
 	baseAngle: number;
@@ -147,7 +145,6 @@ export interface MissileComponent {
 export type BeamTurretState = 'idle' | 'firing' | 'cooldown';
 
 export interface BeamTurretComponent {
-	ownerId: number;
 	faction: Faction;
 	mountX: number;
 	mountZ: number;
@@ -167,7 +164,6 @@ export interface BeamTurretComponent {
 }
 
 export interface MainGunBeamComponent {
-	ownerId: number;
 	faction: Faction;
 	mountX: number;
 	mountZ: number;

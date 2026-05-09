@@ -68,10 +68,9 @@ import {
 } from './mounts';
 import type { BuiltShip } from './ship';
 
-export function turretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
+export function turretFromMount(faction: Faction, mountSpec: TurretMount, mount: Group) {
 	return {
 		turret: {
-			ownerId,
 			faction,
 			mountX: mountSpec.x,
 			mountZ: mountSpec.z,
@@ -92,7 +91,6 @@ export function turretFromMount(ownerId: number, faction: Faction, mountSpec: Tu
 }
 
 export function beamTurretFromMount(
-	ownerId: number,
 	faction: Faction,
 	mountSpec: BeamTurretMount,
 	mount: Group,
@@ -100,7 +98,6 @@ export function beamTurretFromMount(
 ) {
 	return {
 		beamTurret: {
-			ownerId,
 			faction,
 			mountX: mountSpec.x,
 			mountZ: mountSpec.z,
@@ -121,10 +118,9 @@ export function beamTurretFromMount(
 	};
 }
 
-export function missileTurretFromMount(ownerShipId: number, mountSpec: MissileTurretMount, mount: Group) {
+export function missileTurretFromMount(mountSpec: MissileTurretMount, mount: Group) {
 	return {
 		missileTurret: {
-			ownerShipId,
 			mountX: mountSpec.x,
 			mountZ: mountSpec.z,
 			baseAngle: mountSpec.baseAngle,
@@ -142,10 +138,9 @@ export function missileTurretFromMount(ownerShipId: number, mountSpec: MissileTu
 	};
 }
 
-export function cannonTurretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
+export function cannonTurretFromMount(faction: Faction, mountSpec: TurretMount, mount: Group) {
 	return {
 		turret: {
-			ownerId,
 			faction,
 			mountX: mountSpec.x,
 			mountZ: mountSpec.z,
@@ -170,10 +165,9 @@ export function cannonTurretFromMount(ownerId: number, faction: Faction, mountSp
 	};
 }
 
-export function railgunTurretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
+export function railgunTurretFromMount(faction: Faction, mountSpec: TurretMount, mount: Group) {
 	return {
 		turret: {
-			ownerId,
 			faction,
 			mountX: mountSpec.x,
 			mountZ: mountSpec.z,
@@ -197,10 +191,9 @@ export function railgunTurretFromMount(ownerId: number, faction: Faction, mountS
 	};
 }
 
-export function pdTurretFromMount(ownerId: number, faction: Faction, mountSpec: TurretMount, mount: Group) {
+export function pdTurretFromMount(faction: Faction, mountSpec: TurretMount, mount: Group) {
 	return {
 		turret: {
-			ownerId,
 			faction,
 			mountX: mountSpec.x,
 			mountZ: mountSpec.z,
@@ -230,22 +223,22 @@ export function spawnShipTurrets(ecs: World, ownerId: number, spec: ShipSpec, bu
 	spec.turrets.forEach((mountSpec, idx) => {
 		const mount = built.turretMounts[idx];
 		if (!mount) return;
-		ids.push(ecs.spawn({ ...turretFromMount(ownerId, 'ally', mountSpec, mount) }, opts).id);
+		ids.push(ecs.spawnChild(ownerId, { ...turretFromMount('ally', mountSpec, mount) }, opts).id);
 	});
 	(spec.cannonTurrets ?? []).forEach((mountSpec, idx) => {
 		const mount = built.cannonTurretMounts[idx];
 		if (!mount) return;
-		ids.push(ecs.spawn({ ...cannonTurretFromMount(ownerId, 'ally', mountSpec, mount) }, opts).id);
+		ids.push(ecs.spawnChild(ownerId, { ...cannonTurretFromMount('ally', mountSpec, mount) }, opts).id);
 	});
 	(spec.beamTurrets ?? []).forEach((mountSpec, idx) => {
 		const beamMount = built.beamTurretMounts[idx];
 		if (!beamMount) return;
-		ids.push(ecs.spawn({ ...beamTurretFromMount(ownerId, 'ally', mountSpec, beamMount.mount, beamMount.beamMesh) }, opts).id);
+		ids.push(ecs.spawnChild(ownerId, { ...beamTurretFromMount('ally', mountSpec, beamMount.mount, beamMount.beamMesh) }, opts).id);
 	});
 	(spec.missileTurrets ?? []).forEach((mountSpec, idx) => {
 		const mount = built.missileTurretMounts[idx];
 		if (!mount) return;
-		ids.push(ecs.spawn({ ...missileTurretFromMount(ownerId, mountSpec, mount) }, opts).id);
+		ids.push(ecs.spawnChild(ownerId, { ...missileTurretFromMount(mountSpec, mount) }, opts).id);
 	});
 	return ids;
 }
@@ -331,13 +324,13 @@ export function buildCarrierLoadoutVisual(
 	});
 }
 
-const loadoutComponentsFor = (ownerId: number, result: MaterializedMount) => {
-	if (result.kind === 'beam') return beamTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount, result.beamMesh);
-	if (result.kind === 'cannon') return cannonTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
-	if (result.kind === 'missile') return missileTurretFromMount(ownerId, result.mountSpec, result.mount);
-	if (result.kind === 'railgun') return railgunTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
-	if (result.kind === 'pd') return pdTurretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
-	return turretFromMount(ownerId, 'ally', result.mountSpec, result.mount);
+const loadoutComponentsFor = (result: MaterializedMount) => {
+	if (result.kind === 'beam') return beamTurretFromMount('ally', result.mountSpec, result.mount, result.beamMesh);
+	if (result.kind === 'cannon') return cannonTurretFromMount('ally', result.mountSpec, result.mount);
+	if (result.kind === 'missile') return missileTurretFromMount(result.mountSpec, result.mount);
+	if (result.kind === 'railgun') return railgunTurretFromMount('ally', result.mountSpec, result.mount);
+	if (result.kind === 'pd') return pdTurretFromMount('ally', result.mountSpec, result.mount);
+	return turretFromMount('ally', result.mountSpec, result.mount);
 };
 
 export function applyCarrierLoadout(
@@ -354,7 +347,7 @@ export function applyCarrierLoadout(
 		if (pair.weaponKind !== 'mainGun') return;
 		const build = materializeMainGunPair(spec, built, emptyMounts, pair);
 		if (!build) return;
-		ecs.spawn({ ...mainGunBeamFromMount(ownerId, 'ally', build) }, opts);
+		ecs.spawnChild(ownerId, { ...mainGunBeamFromMount('ally', build) }, opts);
 	});
 	emptyMounts.forEach((emptyMount, idx) => {
 		if (consumed.has(idx)) return;
@@ -362,6 +355,6 @@ export function applyCarrierLoadout(
 		if (!pylon) return;
 		const result = materializeLoadoutMount(spec, built, emptyMount, idx, pylon);
 		if (!result) return;
-		ecs.spawn({ ...loadoutComponentsFor(ownerId, result) }, opts);
+		ecs.spawnChild(ownerId, { ...loadoutComponentsFor(result) }, opts);
 	});
 }

@@ -303,9 +303,8 @@ export const buildMainGunBeamGroup = (
 	};
 };
 
-export const mainGunBeamFromMount = (ownerId: number, faction: Faction, build: MainGunMountBuild) => ({
+export const mainGunBeamFromMount = (faction: Faction, build: MainGunMountBuild) => ({
 	mainGunBeam: {
-		ownerId,
 		faction,
 		mountX: build.midX,
 		mountZ: build.midZ,

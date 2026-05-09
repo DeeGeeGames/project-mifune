@@ -1,6 +1,7 @@
 import { definePlugin } from '../types';
 import { angleDiff, bearingXZ, distanceXZ, mountToWorld, normalizeAngle } from '../math';
 import { CONE_APPROACH_ANGLE_MULTIPLIER, CONE_APPROACH_RANGE_MULTIPLIER } from '../constants';
+import { getOwnerState } from './turret';
 
 interface TurretSnapshot {
 	readonly id: number;
@@ -83,17 +84,16 @@ export const createThreatPlugin = () => definePlugin({
 
 				const allyTurrets: TurretSnapshot[] = queries.turrets.flatMap(({ id, components: { turret, burstFire } }) => {
 					if (turret.faction !== 'ally') return [];
-					const ownerTransform = ecs.getComponent(turret.ownerId, 'localTransform3D');
-					const ownerKinematic = ecs.getComponent(turret.ownerId, 'kinematic');
-					if (!ownerTransform || !ownerKinematic) return [];
+					const owner = getOwnerState(ecs, id);
+					if (!owner) return [];
 					const { x, z } = mountToWorld(
-						ownerTransform.x, ownerTransform.z, ownerKinematic.heading, turret.mountX, turret.mountZ,
+						owner.x, owner.z, owner.heading, turret.mountX, turret.mountZ,
 					);
 					return [{
 						id,
 						x,
 						z,
-						baseWorld: normalizeAngle(ownerKinematic.heading + turret.baseAngle),
+						baseWorld: normalizeAngle(owner.heading + turret.baseAngle),
 						coneHalf: turret.coneHalf,
 						range: turret.range,
 						dps: turret.damage * (1000 / burstFire.fireIntervalMs),

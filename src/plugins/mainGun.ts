@@ -18,8 +18,8 @@ export const createMainGunPlugin = () => definePlugin({
 			.addQuery('guns', { with: ['mainGunBeam'] })
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.setProcess(({ queries, dt, ecs }) => {
-				for (const { components: { mainGunBeam: gun } } of queries.guns) {
-					const owner = getOwnerState(ecs, gun.ownerId);
+				for (const { id, components: { mainGunBeam: gun } } of queries.guns) {
+					const owner = getOwnerState(ecs, id);
 					if (!owner) continue;
 
 					const { x: originX, z: originZ } = mountToWorld(owner.x, owner.z, owner.heading, gun.mountX, gun.mountZ);

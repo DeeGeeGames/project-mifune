@@ -99,8 +99,8 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 	spawnShipTrails(ecs, enemyEntity.id, built.engineMounts, TRAIL_COLOR_ENEMY);
 
 	if (isShooter && spec.turretMount && turretMount) {
-		ecs.spawn({
-			...turretFromMount(enemyEntity.id, 'enemy', spec.turretMount, turretMount),
+		ecs.spawnChild(enemyEntity.id, {
+			...turretFromMount('enemy', spec.turretMount, turretMount),
 		}, { scope: 'playing' });
 	}
 };

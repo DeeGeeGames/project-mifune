@@ -31,10 +31,10 @@ export const createMissilePlugin = () => definePlugin({
 			.addQuery('enemies', { with: ['enemy', 'localTransform3D'] })
 			.setProcess(({ queries, ecs }) => {
 				const now = performance.now();
-				for (const { components: { missileTurret: turret, burstFire } } of queries.turrets) {
+				for (const { id, components: { missileTurret: turret, burstFire } } of queries.turrets) {
 					if (!canFire(burstFire, now)) continue;
 
-					const owner = getOwnerState(ecs, turret.ownerShipId);
+					const owner = getOwnerState(ecs, id);
 					if (!owner) continue;
 
 					const { x: mountWorldX, z: mountWorldZ } = mountToWorld(
