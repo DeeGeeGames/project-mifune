@@ -17,7 +17,7 @@ bun run dev
 
 ## Architecture
 
-Plugin-factory pattern. All game-wide component / event / resource types are declared on the builder chain in `src/types.ts`. Feature plugins are created via `builder.pluginFactory()` (re-exported as `definePlugin`) and consume the plain object form: `definePlugin({ id, install })`.
+Plugin-factory pattern. Component / event / resource types live in feature bundle files (`src/{combat,enemy,fleet,vfx,screen,ui}-types.ts`); `src/types.ts` aggregates them into the builder chain via intersection. Feature plugins are created via `builder.pluginFactory()` (re-exported as `definePlugin`) and consume the plain object form: `definePlugin({ id, install })`. New components/events/resources should land in (or extend) the matching bundle, not in `types.ts`.
 
 Ships / enemies / projectiles are kinematic — movement is integrated manually inside feature plugins. We do **not** use `createPhysics3DPlugin`; collisions for bullets-vs-enemies are simple O(n·m) XZ circle checks in `combat.ts`.
 
@@ -28,7 +28,13 @@ Coordinate conventions:
 
 ## File Map
 
-- `src/types.ts` — builder chain, `GameAction` union, action map, all component/event/resource types, screens (`title` / `loadoutSelect` / `playing` / `waveSummary`), `definePlugin`, `World`
+- `src/types.ts` — builder chain, `GameAction` union, action map, screens registration, `definePlugin`, `World`. Component / event / resource types live in feature bundles aggregated here:
+  - `src/combat-types.ts` — `Faction`, `ProjectileKind`, ship / turret / projectile / missile / beam / mainGun components + ship-destroyed / carrier-destroyed events
+  - `src/enemy-types.ts` — enemy / healthBar / pickup components, `ThreatMap` resource, enemy-killed / pickup-collected events
+  - `src/fleet-types.ts` — formation slot, summon-anim, shield, hangar / fighter components, ship-summoned / summon-request events
+  - `src/vfx-types.ts` — material-fade, engine-glow, trail components
+  - `src/screen-types.ts` — `AppScreenName`, all per-screen state/config types
+  - `src/ui-types.ts` — `PlayerState`, `CursorState`, `HudRefs`, `LegendState` / `LegendEntry` / `InputScheme`
 - `src/constants.ts` — all tunable numbers (ship specs, camera, turret, wave duration/spawn-interval curve, summon costs, gamepad button indices)
 - `src/waveMath.ts` — pure wave-number → duration / spawn-interval helpers, consumed by `types.ts` screen init and `plugins/waves.ts`
 - `src/math.ts` — pure helpers (`normalizeAngle`, `stepAngle`, `rotateY`, `bearingXZ`, `forwardXZ`, `leadTarget`)

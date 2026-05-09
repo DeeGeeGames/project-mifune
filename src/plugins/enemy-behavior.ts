@@ -11,7 +11,8 @@ import {
 import { angleDiff, bearingXZ, distanceXZ, normalizeAngle } from '../math';
 import { getPlayerSnapshot, type PerceptionTier, type PlayerSnapshot } from '../perception';
 import type { KinematicState } from '../kinematic';
-import type { World, EnemyComponent, EnemyThreatSummary } from '../types';
+import type { World } from '../types';
+import type { EnemyComponent, EnemyThreatSummary } from '../enemy-types';
 import {
 	GUNSHIP_RANGED_CONFIG,
 	type RangedBehaviorConfig,

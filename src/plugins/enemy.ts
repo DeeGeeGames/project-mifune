@@ -1,5 +1,5 @@
 import { definePlugin } from '../types';
-import type { EnemyComponent } from '../types';
+import type { EnemyComponent } from '../enemy-types';
 import type { EnemyKind } from '../enemies';
 import { bearingXZ, leadTarget, distanceXZ, normalizeAngle } from '../math';
 import { integrateKinematicXZ, type KinematicState } from '../kinematic';

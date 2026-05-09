@@ -46,7 +46,8 @@ import {
 	TURRET_FIRE_INTERVAL_MS,
 	TURRET_RANGE,
 } from '../constants';
-import type { Faction, World } from '../types';
+import type { World } from '../types';
+import type { Faction } from '../combat-types';
 import { createBurstFireState } from '../weapons';
 import type {
 	CarrierLoadout,

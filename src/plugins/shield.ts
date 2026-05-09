@@ -1,6 +1,7 @@
 import { DoubleSide, Mesh, MeshBasicMaterial, SphereGeometry } from 'three';
 import { createTimer } from 'ecspresso/plugins/scripting/timers';
-import { definePlugin, type World, type ShieldComponent } from '../types';
+import { definePlugin, type World } from '../types';
+import type { ShieldComponent } from '../fleet-types';
 import type { ShipSpec } from '../ships';
 import {
 	SHIELD_COLOR,

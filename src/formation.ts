@@ -1,5 +1,5 @@
 import { FORMATION_SPACING, FORMATION_ROW_SPACING } from './constants';
-import type { PlayerState } from './types';
+import type { PlayerState } from './ui-types';
 
 // row 1 has 3 positions but only 2 summoned slots — the command vessel occupies col 1.
 const rowSlotCount = (row: number): number =>

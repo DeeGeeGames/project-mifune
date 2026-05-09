@@ -1,4 +1,5 @@
-import { definePlugin, type World, type ProjectileKind } from '../types';
+import { definePlugin, type World } from '../types';
+import type { ProjectileKind } from '../combat-types';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { createTweenSequence } from 'ecspresso/plugins/scripting/tween';
 import { createExplosionMesh, createImpactSparkMesh, createMuzzleFlashMesh } from '../ships';

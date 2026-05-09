@@ -1,13 +1,12 @@
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
 import { createTimer } from 'ecspresso/plugins/scripting/timers';
-import {
-	definePlugin,
-	type FighterComponent,
-	type HangarBay,
-	type HangarComponent,
-	type HangarInstance,
-	type World,
-} from '../types';
+import { definePlugin, type World } from '../types';
+import type {
+	FighterComponent,
+	HangarBay,
+	HangarComponent,
+	HangarInstance,
+} from '../fleet-types';
 import {
 	SHIP_SPECS,
 	createShipGroup,

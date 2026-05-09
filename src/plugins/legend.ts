@@ -1,4 +1,6 @@
-import { definePlugin, type GameAction, type LegendEntry, type InputScheme, type AppScreenName, type World } from '../types';
+import { definePlugin, type GameAction, type World } from '../types';
+import type { LegendEntry, InputScheme } from '../ui-types';
+import type { AppScreenName } from '../screen-types';
 import { TRIGGER_DEADZONE, STICK_ACTIVE_THRESHOLD, GP_AXIS_LS_X, GP_AXIS_LS_Y, GP_AXIS_RS_X, GP_AXIS_RS_Y } from '../constants';
 import type { ActionMap } from 'ecspresso/plugins/input/input';
 

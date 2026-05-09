@@ -1,6 +1,7 @@
 import { BufferAttribute, BufferGeometry, Group, Line, LineBasicMaterial, Mesh } from 'three';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
-import { definePlugin, type LoadoutCategory, type LoadoutScreenState, type World } from '../types';
+import { definePlugin, type World } from '../types';
+import type { LoadoutCategory, LoadoutScreenState } from '../screen-types';
 import { menuAxisDelta, wrapIndex } from '../menu';
 import {
 	SHIP_SPECS,

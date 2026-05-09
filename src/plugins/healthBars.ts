@@ -1,5 +1,6 @@
 import { Group, Sprite, SpriteMaterial, Vector2 } from 'three';
-import { definePlugin, type HealthBarComponent } from '../types';
+import { definePlugin } from '../types';
+import type { HealthBarComponent } from '../enemy-types';
 import { clamp } from '../math';
 import {
 	HEALTH_BAR_BG_COLOR,

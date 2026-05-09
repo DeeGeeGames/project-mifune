@@ -24,14 +24,27 @@ import {
 	ISO_AZIMUTH,
 	ISO_ELEVATION,
 } from './constants';
-import type { ShipClass, CarrierLoadout, EngineMount } from './ships';
-import type { BufferAttribute, BufferGeometry, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D, Sprite } from 'three';
+import type { CarrierLoadout } from './ships';
 import type { KinematicState } from './kinematic';
 import type { ColliderComponent } from './collider';
-import type { EnemyBehavior } from './enemies';
 import type { BurstFireState } from './weapons';
-import type { ShopOffer } from './shop';
 import { waveDuration, waveSpawnInterval } from './waveMath';
+import type { CombatComponents, CombatEvents } from './combat-types';
+import type { EnemyComponents, EnemyResources, EnemyEvents } from './enemy-types';
+import type { FleetComponents, FleetEvents } from './fleet-types';
+import type { VfxComponents } from './vfx-types';
+import type {
+	AppScreenName,
+	PlayingScreenConfig,
+	PlayingScreenState,
+	WaveSummaryConfig,
+	WaveSummaryScreenState,
+	TitleScreenState,
+	LoadoutScreenState,
+	MarketScreenConfig,
+	MarketScreenState,
+} from './screen-types';
+import type { PlayerState, CursorState, HudRefs, LegendState } from './ui-types';
 
 export type GameAction =
 	| 'fwd'
@@ -80,358 +93,18 @@ const actions: ActionMap<GameAction> = {
 	toggleHangar:     { keys: ['h'],          gamepadButtons: gamepadButtonsOn(0, GP_BUTTON_Y) },
 };
 
-export interface ShipComponent {
-	class: ShipClass;
-	hp: number;
+interface CoreComponents {
+	kinematic: KinematicState;
+	collider: ColliderComponent;
+	burstFire: BurstFireState;
 }
 
-export type Faction = 'ally' | 'enemy';
-
-export type ProjectileKind = 'bullet' | 'cannon' | 'railgun' | 'pd';
-
-export interface TurretComponent {
-	faction: Faction;
-	mountX: number;
-	mountZ: number;
-	baseAngle: number;
-	aimAngle: number;
-	coneHalf: number;
-	range: number;
-	damage: number;
-	hasTarget: boolean;
-	mount: Group;
-	projectileKind?: ProjectileKind;
-	projectileSpeed?: number;
-	projectileLife?: number;
-	splashDamage?: number;
-	splashRadius?: number;
-	pierce?: number;
-	spreadHalf?: number;
-}
-
-export interface ProjectileComponent {
-	faction: Faction;
-	vx: number;
-	vz: number;
-	life: number;
-	damage: number;
-	splashDamage?: number;
-	splashRadius?: number;
-	pierce?: number;
-	hitTargets?: Set<number>;
-	kind?: ProjectileKind;
-}
-
-export interface MissileTurretComponent {
-	mountX: number;
-	mountZ: number;
-	baseAngle: number;
-	fireAngle: number;
-	coneHalf: number;
-	range: number;
-	damage: number;
-	mount: Group;
-}
-
-export interface MissileComponent {
-	heading: number;
-	speed: number;
-	life: number;
-	unguidedTime: number;
-	damage: number;
-	targetId: number | null;
-	engineMount: EngineMount;
-}
-
-export type BeamTurretState = 'idle' | 'firing' | 'cooldown';
-
-export interface BeamTurretComponent {
-	faction: Faction;
-	mountX: number;
-	mountZ: number;
-	baseAngle: number;
-	aimAngle: number;
-	coneHalf: number;
-	range: number;
-	damagePerSecond: number;
-	beamDurationMs: number;
-	beamCooldownMs: number;
-	state: BeamTurretState;
-	stateTimerMs: number;
-	targetId: number | null;
-	hasTarget: boolean;
-	mount: Group;
-	beamMesh: Mesh;
-}
-
-export interface MainGunBeamComponent {
-	faction: Faction;
-	mountX: number;
-	mountZ: number;
-	facing: number;
-	detectionRange: number;
-	visualLength: number;
-	beamRadius: number;
-	damagePerSecond: number;
-	beamDurationMs: number;
-	beamCooldownMs: number;
-	state: BeamTurretState;
-	stateTimerMs: number;
-	beamMesh: Mesh;
-}
-
-export interface EnemyComponent {
-	hp: number;
-	maxHp: number;
-	radius: number;
-	threatTolerance: number;
-	hitEscalation: number;
-	behavior: EnemyBehavior;
-}
-
-export interface HealthBarComponent {
-	bg: Sprite;
-	fill: Sprite;
-	lastRatio: number;
-}
-
-export interface EnemyThreatSummary {
-	staticDps: number;
-	coneThreat: number;
-	dominantTurretId: number | null;
-	dominantTurretX: number;
-	dominantTurretZ: number;
-}
-
-export interface ThreatMap {
-	readonly byEnemyId: Map<number, EnemyThreatSummary>;
-}
-
-export interface PickupComponent {
-	value: number;
-	magnetized: boolean;
-}
-
-export interface FormationSlotComponent {
-	flagshipId: number;
-	slotIndex: number;
-}
-
-export interface SummonAnimComponent {
-	progress: number;
-	originX: number;
-	originZ: number;
-}
-
-export interface MaterialFadeComponent {
-	material: MeshBasicMaterial;
-}
-
-export interface EngineMountRef {
-	readonly plume: Mesh;
-	readonly plumeMat: MeshBasicMaterial;
-	readonly size: number;
-}
-
-export interface EngineGlowComponent {
-	material: MeshStandardMaterial;
-	mounts: readonly EngineMountRef[];
-}
-
-export interface TrailComponent {
-	ownerId: number;
-	anchor: Object3D;
-	geometry: BufferGeometry;
-	material: MeshBasicMaterial;
-	positionAttr: BufferAttribute;
-	halfWidth: number;
-	centers: Float32Array;
-	initialized: boolean;
-}
-
-export type HangarCommand = 'docked' | 'deployed';
-
-export type HangarBayStatus = 'docked' | 'deployed' | 'manufacturing';
-
-export interface HangarBay {
-	slotIndex: number;
-	status: HangarBayStatus;
-	fighterId: number | null;
-	storedHp: number;
-	manufactureTimer: number;
-	orbitPhase: number;
-}
-
-export interface HangarInstance {
-	dockPointX: number;
-	dockPointZ: number;
-	craftKind: 'fighter';
-	launchTimer: number;
-	command: HangarCommand;
-	bays: HangarBay[];
-}
-
-export interface HangarComponent {
-	motherShipId: number;
-	instances: HangarInstance[];
-}
-
-export type FighterMode = 'launching' | 'orbit' | 'engage' | 'returning';
-
-export interface FighterComponent {
-	motherShipId: number;
-	hangarInstanceIdx: number;
-	slotIndex: number;
-	mode: FighterMode;
-	engageTargetId: number | null;
-	orbitPhase: number;
-	launchHeading: number;
-	turretIds: readonly number[];
-}
-
-export interface ShieldComponent {
-	current: number;
-	max: number;
-	regenPerSec: number;
-	mesh: Mesh;
-	material: MeshBasicMaterial;
-}
-
-export interface PlayerState {
-	resources: number;
-	ownedShipIds: number[];
-	commandVesselId: number;
-	selectedSummon: ShipClass;
-	pendingHeading: number;
-	headingPreviewActive: boolean;
-	confirm: { timer: number; oldGoal: number; facing: number } | null;
-}
-
-export type PlayingScreenConfig = {
-	waveNumber: number;
-};
-
-export type PlayingScreenState = {
-	waveNumber: number;
-	phaseTimer: number;
-	spawnTimer: number;
-	spawnIntervalMs: number;
-	kills: number;
-	resourcesCollected: number;
-};
-
-export type WaveSummaryConfig = {
-	waveNumber: number;
-	kills: number;
-	resourcesCollected: number;
-};
-
-export type WaveSummaryScreenState = WaveSummaryConfig & {
-	selectedIndex: number;
-};
-
-export type TitleScreenState = {
-	selectedIndex: number;
-};
-
-export type LoadoutCategory = 'weapon' | 'auxiliary';
-
-export type LoadoutScreenState = {
-	category: LoadoutCategory;
-	selectedPylonIdx: number;
-	selectedAuxIdx: number;
-	facingMode: boolean;
-};
-
-export type MarketScreenConfig = {
-	waveNumber: number;
-};
-
-export type MarketMode =
-	| { kind: 'browse' }
-	| { kind: 'assignPylon'; offerIdx: number };
-
-export type MarketScreenState = {
-	waveNumber: number;
-	offers: ShopOffer[];
-	rerollCount: number;
-	mode: MarketMode;
-	selectedIndex: number;
-};
-
-export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'waveSummary' | 'market';
-
-export interface CursorState {
-	x: number;
-	z: number;
-	valid: boolean;
-}
-
-export type InputScheme = 'keyboard' | 'gamepad';
-
-export interface LegendEntry {
-	keyboard: string | null;
-	gamepad: string | null;
-	label: string;
-}
-
-export interface LegendState {
-	scheme: InputScheme;
-	entriesByScreen: Partial<Record<AppScreenName, readonly LegendEntry[]>>;
-	extraEntries: readonly LegendEntry[];
-}
-
-export interface HudRefs {
-	resourcesEl: HTMLElement;
-	rosterEl: HTMLElement;
-	menuEl: HTMLElement;
-	thrustBarFillEl: HTMLElement;
-	waveEl: HTMLElement;
-	gameHudEls: readonly HTMLElement[];
-	summaryEl: HTMLElement;
-	summaryTitleEl: HTMLElement;
-	summaryStatsEl: HTMLElement;
-	summaryMenuEl: HTMLElement;
-	titleEl: HTMLElement;
-	titleMenuEl: HTMLElement;
-	loadoutEl: HTMLElement;
-	loadoutStatCardEl: HTMLElement;
-	marketEl: HTMLElement;
-	marketTitleEl: HTMLElement;
-	marketResourcesEl: HTMLElement;
-	marketGridEl: HTMLElement;
-	marketFooterEl: HTMLElement;
-	marketAssignEl: HTMLElement;
-	marketStatCardEl: HTMLElement;
-	legendEl: HTMLElement;
-}
-
-export interface ShipSummonedEvent {
-	entityId: number;
-	shipClass: ShipClass;
-}
-
-export interface EnemyKilledEvent {
-	entityId: number;
-	x: number;
-	z: number;
-}
-
-export interface PickupCollectedEvent {
-	value: number;
-}
-
-export interface SummonRequestEvent {
-	shipClass: ShipClass;
-}
-
-export interface ShipDestroyedEvent {
-	entityId: number;
-	shipClass: ShipClass;
-}
-
-export interface CarrierDestroyedEvent {
-	entityId: number;
+interface CoreResources {
+	playerState: PlayerState;
+	cursorState: CursorState;
+	hudRefs: HudRefs;
+	carrierLoadout: CarrierLoadout;
+	legend: LegendState;
 }
 
 export const builder = ECSpresso.create()
@@ -465,49 +138,20 @@ export const builder = ECSpresso.create()
 	.withPlugin(createBehaviorTreePlugin({ priority: 240 }))
 	.withPlugin(createTweenPlugin({ priority: 390 }))
 	.withPlugin(createTimerPlugin({ priority: 100 }))
-	.withComponentTypes<{
-		ship: ShipComponent;
-		kinematic: KinematicState;
-		collider: ColliderComponent;
-		burstFire: BurstFireState;
-		commandVessel: true;
-		formationSlot: FormationSlotComponent;
-		turret: TurretComponent;
-		missileTurret: MissileTurretComponent;
-		beamTurret: BeamTurretComponent;
-		mainGunBeam: MainGunBeamComponent;
-		projectile: ProjectileComponent;
-		missile: MissileComponent;
-		enemy: EnemyComponent;
-		healthBar: HealthBarComponent;
-		pickup: PickupComponent;
-		summonAnim: SummonAnimComponent;
-		shield: ShieldComponent;
-		hangar: HangarComponent;
-		fighter: FighterComponent;
-		materialFade: MaterialFadeComponent;
-		engineGlow: EngineGlowComponent;
-		trail: TrailComponent;
-	}>()
+	.withComponentTypes<
+		CoreComponents &
+		CombatComponents &
+		EnemyComponents &
+		FleetComponents &
+		VfxComponents
+	>()
 	.withEventTypes<
 		ScreenEvents<AppScreenName> &
-		{
-			'ship:summoned': ShipSummonedEvent;
-			'ship:destroyed': ShipDestroyedEvent;
-			'carrier:destroyed': CarrierDestroyedEvent;
-			'enemy:killed': EnemyKilledEvent;
-			'pickup:collected': PickupCollectedEvent;
-			'summon:request': SummonRequestEvent;
-		}
+		CombatEvents &
+		EnemyEvents &
+		FleetEvents
 	>()
-	.withResourceTypes<{
-		playerState: PlayerState;
-		cursorState: CursorState;
-		hudRefs: HudRefs;
-		threatMap: ThreatMap;
-		carrierLoadout: CarrierLoadout;
-		legend: LegendState;
-	}>()
+	.withResourceTypes<CoreResources & EnemyResources>()
 	.withScreens(screens => screens
 		.add('title', {
 			initialState: (): TitleScreenState => ({

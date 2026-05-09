@@ -25,7 +25,7 @@ import {
 	MAIN_GUN_VISUAL_LENGTH,
 	MUZZLE_OFFSET,
 } from '../constants';
-import type { Faction } from '../types';
+import type { Faction } from '../combat-types';
 import type { AuxiliaryKind, AuxiliaryMount, EmptyTurretMount, PairSlotDef, PairSlotId } from './loadout';
 import type { BeamTurretMount, MissileTurretMount, ShipSpec, TurretMount } from './specs';
 
