@@ -1,7 +1,5 @@
 import type { Group, Mesh } from 'three';
-import type { ShipClass, EngineMount } from './ships';
-
-export type Faction = 'ally' | 'enemy';
+import type { Faction, ShipClass, EngineMount } from './ships';
 
 export type ProjectileKind = 'bullet' | 'cannon' | 'railgun' | 'pd';
 

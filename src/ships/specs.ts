@@ -17,6 +17,8 @@ import { PAIR_SLOTS } from './loadout';
 
 export type ShipClass = 'carrier' | 'corvette' | 'frigate' | 'destroyer' | 'dreadnought' | 'fighter';
 
+export type Faction = 'ally' | 'enemy';
+
 export interface TurretMount {
 	readonly x: number;
 	readonly z: number;

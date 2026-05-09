@@ -15,6 +15,7 @@ export { PAIR_SLOTS, pylonArc, pylonsConsumedByPairs } from './loadout';
 
 export type {
 	BeamTurretMount,
+	Faction,
 	MissileTurretMount,
 	ShipClass,
 	ShipSpec,

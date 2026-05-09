@@ -7,21 +7,11 @@ import {
 	REROLL_PER_REROLL,
 } from './constants';
 import { WEAPON_KINDS, WEAPON_LABELS } from './loadoutLabels';
+import type { PurchaseFollowUp, ShopItemPayload, ShopOffer } from './shop-types';
+
+export type { PurchaseFollowUp, ShopItemPayload, ShopOffer } from './shop-types';
 
 export type Rng = () => number;
-
-export type ShopItemPayload =
-	| { readonly kind: 'weapon'; readonly weaponKind: WeaponKind };
-
-export interface ShopOffer {
-	readonly payload: ShopItemPayload;
-	readonly cost: number;
-	sold: boolean;
-}
-
-export type PurchaseFollowUp =
-	| { readonly status: 'complete' }
-	| { readonly status: 'needsAssignment'; readonly assignment: 'pylon' };
 
 interface ShopItemHandler<P extends ShopItemPayload> {
 	readonly label: (payload: P) => string;

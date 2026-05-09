@@ -1,18 +1,13 @@
-import type { BufferAttribute, BufferGeometry, Mesh, MeshBasicMaterial, MeshStandardMaterial, Object3D } from 'three';
+import type { BufferAttribute, BufferGeometry, MeshBasicMaterial, MeshStandardMaterial, Object3D } from 'three';
+import type { EngineMount } from './ships';
 
 export interface MaterialFadeComponent {
 	material: MeshBasicMaterial;
 }
 
-export interface EngineMountRef {
-	readonly plume: Mesh;
-	readonly plumeMat: MeshBasicMaterial;
-	readonly size: number;
-}
-
 export interface EngineGlowComponent {
 	material: MeshStandardMaterial;
-	mounts: readonly EngineMountRef[];
+	mounts: readonly EngineMount[];
 }
 
 export interface TrailComponent {

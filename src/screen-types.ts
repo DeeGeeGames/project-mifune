@@ -1,4 +1,4 @@
-import type { ShopOffer } from './shop';
+import type { ShopOffer } from './shop-types';
 
 export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'waveSummary' | 'market';
 
