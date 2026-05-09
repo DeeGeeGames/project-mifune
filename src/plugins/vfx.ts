@@ -1,5 +1,6 @@
 import { definePlugin, type World, type ProjectileKind } from '../types';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
+import { createTweenSequence } from 'ecspresso/plugins/scripting/tween';
 import { createExplosionMesh, createImpactSparkMesh, createMuzzleFlashMesh } from '../ships';
 import {
 	DEATH_EXPLOSION_COLOR_ENEMY,
@@ -22,8 +23,42 @@ import {
 	SHIP_DEATH_EXPLOSION_LIFE_SEC,
 	SHIP_DEATH_EXPLOSION_SCALE_MULT,
 } from '../constants';
+import type { MeshBasicMaterial } from 'three';
 
 export type FxKind = ProjectileKind | 'missile';
+
+const easeOutQuad = (t: number): number => 1 - (1 - t) * (1 - t);
+
+const spawnFade = (
+	ecs: World,
+	mesh: Parameters<typeof createMeshComponents>[0],
+	position: { x: number; y: number; z: number },
+	rotationY: number,
+	scaleStart: number,
+	scaleEnd: number,
+	material: MeshBasicMaterial,
+	life: number,
+): void => {
+	ecs.spawn({
+		...createMeshComponents(mesh, position, { rotation: { y: rotationY }, scale: scaleStart }),
+		materialFade: { material },
+		...createTweenSequence([{
+			targets: [
+				{ component: 'localTransform3D', field: 'sx', to: scaleEnd },
+				{ component: 'localTransform3D', field: 'sy', to: scaleEnd },
+				{ component: 'localTransform3D', field: 'sz', to: scaleEnd },
+				{ component: 'materialFade', field: 'material.opacity', to: 0 },
+			],
+			duration: life,
+			easing: easeOutQuad,
+		}], {
+			onComplete: ({ entityId }) => {
+				material.dispose();
+				ecs.removeEntity(entityId);
+			},
+		}),
+	}, { scope: 'playing' });
+};
 
 export const spawnMuzzleFlash = (
 	ecs: World,
@@ -33,21 +68,7 @@ export const spawnMuzzleFlash = (
 	kind: FxKind,
 ): void => {
 	const { mesh, material } = createMuzzleFlashMesh(MUZZLE_TINT[kind]);
-	ecs.spawn({
-		...createMeshComponents(
-			mesh,
-			{ x, y: 0.6, z },
-			{ rotation: { y: angle }, scale: 1 },
-		),
-		vfx: {
-			life: MUZZLE_FLASH_LIFE_SEC,
-			maxLife: MUZZLE_FLASH_LIFE_SEC,
-			material,
-			scaleStart: 1,
-			scaleEnd: 1.6,
-			opacityStart: 0.95,
-		},
-	}, { scope: 'playing' });
+	spawnFade(ecs, mesh, { x, y: 0.6, z }, angle, 1, 1.6, material, MUZZLE_FLASH_LIFE_SEC);
 };
 
 export const spawnImpactSpark = (
@@ -57,17 +78,7 @@ export const spawnImpactSpark = (
 	kind: FxKind,
 ): void => {
 	const { mesh, material } = createImpactSparkMesh(IMPACT_TINT[kind]);
-	ecs.spawn({
-		...createMeshComponents(mesh, { x, y: 0.6, z }, { scale: 0.6 }),
-		vfx: {
-			life: IMPACT_SPARK_LIFE_SEC,
-			maxLife: IMPACT_SPARK_LIFE_SEC,
-			material,
-			scaleStart: 0.6,
-			scaleEnd: 1.8,
-			opacityStart: 0.9,
-		},
-	}, { scope: 'playing' });
+	spawnFade(ecs, mesh, { x, y: 0.6, z }, 0, 0.6, 1.8, material, IMPACT_SPARK_LIFE_SEC);
 };
 
 export const spawnDeathExplosion = (
@@ -82,63 +93,16 @@ export const spawnDeathExplosion = (
 	const tint = target === 'ship' ? DEATH_EXPLOSION_COLOR_SHIP : DEATH_EXPLOSION_COLOR_ENEMY;
 
 	const outer = createExplosionMesh(tint, 0.8);
-	const outerStart = radius * 0.8;
-	const outerEnd = radius * scaleMult;
-	ecs.spawn({
-		...createMeshComponents(outer.mesh, { x, y: 0.5, z }, { scale: outerStart }),
-		vfx: {
-			life,
-			maxLife: life,
-			material: outer.material,
-			scaleStart: outerStart,
-			scaleEnd: outerEnd,
-			opacityStart: 0.8,
-		},
-	}, { scope: 'playing' });
+	spawnFade(ecs, outer.mesh, { x, y: 0.5, z }, 0, radius * 0.8, radius * scaleMult, outer.material, life);
 
 	const coreLife = life * DEATH_EXPLOSION_CORE_LIFE_RATIO;
 	const core = createExplosionMesh(DEATH_EXPLOSION_CORE_COLOR, 1.0);
-	const coreStart = radius * 0.45;
-	const coreEnd = radius * 1.4;
-	ecs.spawn({
-		...createMeshComponents(core.mesh, { x, y: 0.5, z }, { scale: coreStart }),
-		vfx: {
-			life: coreLife,
-			maxLife: coreLife,
-			material: core.material,
-			scaleStart: coreStart,
-			scaleEnd: coreEnd,
-			opacityStart: 1.0,
-		},
-	}, { scope: 'playing' });
+	spawnFade(ecs, core.mesh, { x, y: 0.5, z }, 0, radius * 0.45, radius * 1.4, core.material, coreLife);
 };
 
 export const createVfxPlugin = () => definePlugin({
 	id: 'vfx',
 	install: (world) => {
-		world.addSystem('vfx-update')
-			.setPriority(400)
-			.inPhase('update')
-			.inScreens(['playing'])
-			.setProcessEach({
-				with: ['vfx', 'localTransform3D'],
-				mutates: ['vfx', 'localTransform3D'],
-			}, ({ entity: { id, components: { vfx, localTransform3D } }, dt, ecs }) => {
-				vfx.life -= dt;
-				if (vfx.life <= 0) {
-					vfx.material.dispose();
-					ecs.removeEntity(id);
-					return;
-				}
-				const t = 1 - vfx.life / vfx.maxLife;
-				const eased = 1 - (1 - t) * (1 - t);
-				const scale = vfx.scaleStart + (vfx.scaleEnd - vfx.scaleStart) * eased;
-				localTransform3D.sx = scale;
-				localTransform3D.sy = scale;
-				localTransform3D.sz = scale;
-				vfx.material.opacity = vfx.opacityStart * (1 - t);
-			});
-
 		world.addSystem('engine-glow')
 			.setPriority(205)
 			.inPhase('update')

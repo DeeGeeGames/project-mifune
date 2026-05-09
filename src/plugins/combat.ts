@@ -3,6 +3,7 @@ import { distanceXZ, pointCapsuleDistanceSqXZ } from '../math';
 import { PROJECTILE_RADIUS, PICKUP_VALUE, BLAST_LIFE_SEC } from '../constants';
 import { pickupMesh, createBlast, SHIP_SPECS, type ShipClass } from '../ships';
 import { createMeshComponents } from 'ecspresso/plugins/rendering/renderer3D';
+import { createTween } from 'ecspresso/plugins/scripting/tween';
 import { applyDamageToShip } from './shield';
 import { onFighterDestroyed } from './hangar';
 import { spawnDeathExplosion, spawnImpactSpark, type FxKind } from './vfx';
@@ -39,9 +40,15 @@ export function destroyShip(ecs: World, shipId: number, shipClass: ShipClass): v
 
 function spawnBlast(ecs: World, x: number, z: number, radius: number): void {
 	const { mesh, material } = createBlast();
-	ecs.spawn({
+	const entity = ecs.spawn({
 		...createMeshComponents(mesh, { x, y: 0.1, z }, { scale: radius }),
-		blast: { life: BLAST_LIFE_SEC, maxLife: BLAST_LIFE_SEC, material },
+		materialFade: { material },
+		...createTween('materialFade', 'material.opacity', 0, BLAST_LIFE_SEC, {
+			onComplete: () => {
+				material.dispose();
+				ecs.removeEntity(entity.id);
+			},
+		}),
 	}, { scope: 'playing' });
 }
 

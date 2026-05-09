@@ -24,7 +24,6 @@ import { createBeamPlugin } from './plugins/beam';
 import { createMainGunPlugin } from './plugins/mainGun';
 import { createCombatPlugin } from './plugins/combat';
 import { createCollisionPlugin } from './plugins/collision';
-import { createBlastPlugin } from './plugins/blast';
 import { createEnemyPlugin } from './plugins/enemy';
 import { createThreatPlugin } from './plugins/threat';
 import { createWavesPlugin } from './plugins/waves';
@@ -57,7 +56,6 @@ const game = builder
 	.withPlugin(createBeamPlugin())
 	.withPlugin(createMainGunPlugin())
 	.withPlugin(createCombatPlugin())
-	.withPlugin(createBlastPlugin())
 	.withPlugin(createThreatPlugin())
 	.withPlugin(createEnemyPlugin())
 	.withPlugin(createWavesPlugin())

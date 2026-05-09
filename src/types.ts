@@ -4,6 +4,7 @@ import { createCamera3DPlugin } from 'ecspresso/plugins/spatial/camera3D';
 import { createInputPlugin, gamepadButtonsOn } from 'ecspresso/plugins/input/input';
 import type { ActionMap } from 'ecspresso/plugins/input/input';
 import { createBehaviorTreePlugin } from 'ecspresso/plugins/ai/behavior-tree';
+import { createTweenPlugin } from 'ecspresso/plugins/scripting/tween';
 import type { ScreenEvents } from 'ecspresso';
 import {
 	CAMERA_DISTANCE,
@@ -225,19 +226,8 @@ export interface SummonAnimComponent {
 	originZ: number;
 }
 
-export interface BlastComponent {
-	life: number;
-	maxLife: number;
+export interface MaterialFadeComponent {
 	material: MeshBasicMaterial;
-}
-
-export interface VfxComponent {
-	life: number;
-	maxLife: number;
-	material: MeshBasicMaterial;
-	scaleStart: number;
-	scaleEnd: number;
-	opacityStart: number;
 }
 
 export interface EngineMountRef {
@@ -479,6 +469,7 @@ export const builder = ECSpresso.create()
 		enableOrbit: false,
 	}))
 	.withPlugin(createBehaviorTreePlugin({ priority: 240 }))
+	.withPlugin(createTweenPlugin({ priority: 390 }))
 	.withComponentTypes<{
 		ship: ShipComponent;
 		kinematic: KinematicState;
@@ -496,11 +487,10 @@ export const builder = ECSpresso.create()
 		healthBar: HealthBarComponent;
 		pickup: PickupComponent;
 		summonAnim: SummonAnimComponent;
-		blast: BlastComponent;
 		shield: ShieldComponent;
 		hangar: HangarComponent;
 		fighter: FighterComponent;
-		vfx: VfxComponent;
+		materialFade: MaterialFadeComponent;
 		engineGlow: EngineGlowComponent;
 		trail: TrailComponent;
 	}>()
