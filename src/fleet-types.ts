@@ -60,6 +60,8 @@ export interface FighterComponent {
 	turretIds: readonly number[];
 }
 
+export type FleetTimerSlot = 'launch' | 'shieldDepletion';
+
 export interface FleetComponents {
 	commandVessel: true;
 	formationSlot: FormationSlotComponent;

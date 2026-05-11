@@ -31,7 +31,7 @@ import type { BurstFireState } from './weapons';
 import { waveDuration, waveSpawnInterval } from './waveMath';
 import type { CombatComponents, CombatEvents } from './combat-types';
 import type { EnemyComponents, EnemyResources, EnemyEvents } from './enemy-types';
-import type { FleetComponents, FleetEvents } from './fleet-types';
+import type { FleetComponents, FleetEvents, FleetTimerSlot } from './fleet-types';
 import type { VfxComponents } from './vfx-types';
 import type {
 	AppScreenName,
@@ -137,7 +137,7 @@ export const builder = ECSpresso.create()
 	}))
 	.withPlugin(createBehaviorTreePlugin({ priority: 240 }))
 	.withPlugin(createTweenPlugin({ priority: 390 }))
-	.withPlugin(createTimerPlugin({ priority: 100 }))
+	.withPlugin(createTimerPlugin<FleetTimerSlot>({ priority: 100 }))
 	.withComponentTypes<
 		CoreComponents &
 		CombatComponents &
