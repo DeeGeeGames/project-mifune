@@ -1,12 +1,13 @@
 import type { World } from './types';
-import { pylonsConsumedByPairs, type WeaponKind } from './ships';
+import { pylonsConsumedByPairs, type WeaponKind, type AuxiliaryKind } from './ships';
 import {
 	WEAPON_COSTS,
+	AUX_COSTS,
 	REROLL_BASE_COST,
 	REROLL_PER_WAVE,
 	REROLL_PER_REROLL,
 } from './constants';
-import { WEAPON_KINDS, WEAPON_LABELS } from './loadoutLabels';
+import { WEAPON_KINDS, WEAPON_LABELS, AUXILIARY_KINDS, AUXILIARY_LABELS } from './loadoutLabels';
 import type { PurchaseFollowUp, ShopItemPayload, ShopOffer } from './shop-types';
 
 export type { PurchaseFollowUp, ShopItemPayload, ShopOffer } from './shop-types';
@@ -28,11 +29,20 @@ type HandlerMap = {
 	readonly [K in ShopItemPayload['kind']]: ShopItemHandler<Extract<ShopItemPayload, { kind: K }>>;
 };
 
-const hasEmptyPylon = (world: World): boolean => {
+export const hasEmptyPylon = (world: World): boolean => {
 	const loadout = world.getResource('carrierLoadout');
 	const consumed = pylonsConsumedByPairs(loadout);
 	return loadout.pylons.some((p, idx) => p.weaponKind === null && !consumed.has(idx));
 };
+
+export const hasEmptyAuxSlot = (world: World): boolean =>
+	world.getResource('carrierLoadout').auxSlots.some((s) => s.systemKind === null);
+
+export const emptyAuxSlotIndices = (world: World): readonly number[] =>
+	world.getResource('carrierLoadout').auxSlots
+		.map((slot, idx) => ({ slot, idx }))
+		.filter(({ slot }) => slot.systemKind === null)
+		.map(({ idx }) => idx);
 
 const pickRandom = <T>(rng: Rng, items: readonly T[]): T | null => {
 	if (items.length === 0) return null;
@@ -55,8 +65,24 @@ const weaponHandler: ShopItemHandler<{ kind: 'weapon'; weaponKind: WeaponKind }>
 	weight: 1,
 };
 
+const auxHandler: ShopItemHandler<{ kind: 'aux'; auxKind: AuxiliaryKind }> = {
+	label: (payload) => AUXILIARY_LABELS[payload.auxKind],
+	baseCost: (payload) => AUX_COSTS[payload.auxKind],
+	canOffer: () => true,
+	canPurchase: (_payload, world) => hasEmptyAuxSlot(world),
+	rollOne: (rng, excluded) => {
+		const available = AUXILIARY_KINDS.filter((k) => !excluded.has(`aux:${k}`));
+		const chosen = pickRandom(rng, available);
+		return chosen === null ? null : { kind: 'aux', auxKind: chosen };
+	},
+	identity: (payload) => `aux:${payload.auxKind}`,
+	onPurchase: () => ({ status: 'needsAssignment', assignment: 'aux' }),
+	weight: 1,
+};
+
 export const SHOP_ITEM_HANDLERS: HandlerMap = {
 	weapon: weaponHandler,
+	aux: auxHandler,
 };
 
 // HandlerMap narrows by kind but TS can't always reduce Extract<...> through a

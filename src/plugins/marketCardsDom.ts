@@ -1,13 +1,15 @@
 import type { ShopOffer } from '../shop';
 import { offerLabel } from '../shop';
 import { weaponStats } from '../weaponStats';
+import { AUXILIARY_SUMMARIES } from '../loadoutLabels';
 import { buildLabeledRow } from './statCardDom';
 
-export type OfferStatus = 'available' | 'sold' | 'noPylon' | 'needRes';
+export type OfferStatus = 'available' | 'sold' | 'noPylon' | 'noAuxSlot' | 'needRes';
 
 export interface MarketGridContext {
 	readonly resources: number;
 	readonly hasEmptyPylon: boolean;
+	readonly hasEmptyAuxSlot: boolean;
 }
 
 export interface MarketFooterContext {
@@ -24,22 +26,26 @@ const STATUS_LABELS: Record<OfferStatus, string> = {
 	available: '',
 	sold: 'SOLD',
 	noPylon: 'NO PYLON',
+	noAuxSlot: 'NO AUX',
 	needRes: 'NEED RES',
 };
 
 const offerStatus = (offer: ShopOffer, ctx: MarketGridContext): OfferStatus => {
 	if (offer.sold) return 'sold';
 	if (offer.payload.kind === 'weapon' && !ctx.hasEmptyPylon) return 'noPylon';
+	if (offer.payload.kind === 'aux' && !ctx.hasEmptyAuxSlot) return 'noAuxSlot';
 	if (offer.cost > ctx.resources) return 'needRes';
 	return 'available';
 };
 
 const STAT_KEYS: ReadonlySet<string> = new Set(['Damage', 'Range']);
 
-const offerSummaryStats = (offer: ShopOffer): readonly { label: string; value: string }[] =>
-	offer.payload.kind !== 'weapon'
-		? []
-		: weaponStats(offer.payload.weaponKind).filter((row) => STAT_KEYS.has(row.label));
+const offerSummaryStats = (offer: ShopOffer): readonly { label: string; value: string }[] => {
+	if (offer.payload.kind === 'weapon') {
+		return weaponStats(offer.payload.weaponKind).filter((row) => STAT_KEYS.has(row.label));
+	}
+	return [{ label: 'Effect', value: AUXILIARY_SUMMARIES[offer.payload.auxKind] }];
+};
 
 const buildCardHeader = (name: string, suffix: string): HTMLElement => {
 	const header = document.createElement('div');

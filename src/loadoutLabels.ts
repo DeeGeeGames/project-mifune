@@ -41,6 +41,11 @@ export const AUXILIARY_LABELS: Record<AuxiliaryKind | 'none', string> = {
 	hangar: 'Fighter Hangar',
 };
 
+export const AUXILIARY_SUMMARIES: Record<AuxiliaryKind, string> = {
+	shield: 'Damage absorption',
+	hangar: 'Launches fighters',
+};
+
 export const AUX_LABEL_WIDTH = Math.max(...Object.values(AUXILIARY_LABELS).map((l) => l.length));
 
 export const AUX_SLOT_LABELS: readonly string[] = [

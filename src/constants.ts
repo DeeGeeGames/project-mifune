@@ -219,6 +219,11 @@ export const WEAPON_COSTS = {
 	mainGun: 400,
 } as const;
 
+export const AUX_COSTS = {
+	shield: 180,
+	hangar: 220,
+} as const;
+
 export const MARKET_OFFER_COUNT = 4;
 export const REROLL_BASE_COST = 10;
 export const REROLL_PER_WAVE = 2;

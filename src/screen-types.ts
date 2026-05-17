@@ -44,7 +44,8 @@ export type MarketScreenConfig = {
 
 export type MarketMode =
 	| { kind: 'browse' }
-	| { kind: 'assignPylon'; offerIdx: number };
+	| { kind: 'assignPylon'; offerIdx: number }
+	| { kind: 'assignAux'; offerIdx: number };
 
 export type MarketScreenState = {
 	waveNumber: number;
