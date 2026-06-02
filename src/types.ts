@@ -10,6 +10,8 @@ import type { ScreenEvents } from 'ecspresso';
 import {
 	CAMERA_DISTANCE,
 	CAMERA_VIEW_SIZE,
+	CAMERA_ZOOM_MIN,
+	CAMERA_ZOOM_MAX,
 	CAMERA_FOLLOW_SMOOTHING,
 	GP_BUTTON_A,
 	GP_BUTTON_B,
@@ -131,6 +133,8 @@ export const builder = ECSpresso.create()
 		distance: CAMERA_DISTANCE,
 		minDistance: CAMERA_DISTANCE,
 		maxDistance: CAMERA_DISTANCE,
+		minZoom: CAMERA_ZOOM_MIN,
+		maxZoom: CAMERA_ZOOM_MAX,
 		target: { x: 0, y: 0, z: 0 },
 		follow: { smoothing: CAMERA_FOLLOW_SMOOTHING },
 		enableOrbit: false,

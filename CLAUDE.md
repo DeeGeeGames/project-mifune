@@ -55,7 +55,7 @@ Coordinate conventions:
 - `src/formation.ts` — pure helpers: `slotLocalXZ(slotIndex)` maps flat slot indices to a V formation (row 0 = front tip, row 1 = command row, each next row +2 slots); `reassignFormationSlots` repacks slots from `ownedShipIds` order.
 - `src/main.ts` — install plugins, build hud refs, `onScreenEnter('playing')` to spawn the carrier, boot into `title` screen
 - `src/plugins/` — feature plugins:
-  - `cursor.ts` — mouse → ground-plane raycast; wheel → ortho zoom (TODO-noted shim until camera3D gains wheel-zoom for ortho)
+  - `cursor.ts` — mouse → ground-plane raycast; Q/E + RS stick zoom (wheel zoom via `createCamera3DPlugin` min/max)
   - `cameraLead.ts` — writes `camera3DState.followOffsetX/Z` each frame so the camera leads the carrier. Lead direction = `heading_unit + velocity/maxSpeed`; base magnitude scales with |sum|, then a `charge` value (0..1) creeps the magnitude toward `CAMERA_LEAD_MAX` while aligned, bleeding off proportional to misalignment. Runs at priority 410 in `postUpdate` (before `camera3d-follow`).
   - `control.ts` — gamepad + keyboard/mouse → command-vessel `headingTarget` / `throttle`, summon events
   - `movement.ts` — per-ship rotation + thrust + drag + position integration (delegates to `kinematic.ts`)

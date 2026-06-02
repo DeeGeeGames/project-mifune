@@ -1,12 +1,11 @@
 import {
-	action,
-	condition,
 	createBehaviorTree,
-	defineBehaviorTree,
 	NodeStatus,
 	selector,
 	sequence,
 	type BehaviorTreeContext,
+	type BehaviorTreeDefinition,
+	type BehaviorTreeHelpers,
 } from 'ecspresso/plugins/ai/behavior-tree';
 import { angleDiff, bearingXZ, distanceXZ, normalizeAngle } from '../math';
 import { getPlayerSnapshot, type PerceptionTier, type PlayerSnapshot } from '../perception';
@@ -36,8 +35,8 @@ interface RangedContext {
 	readonly sniperAim: SniperAimConfig | null;
 }
 
-const resolveContext = (btCtx: BehaviorTreeContext<RangedBlackboard>): RangedContext | null => {
-	const ecs = btCtx.ecs as unknown as World;
+const resolveContext = (btCtx: BehaviorTreeContext<RangedBlackboard, World>): RangedContext | null => {
+	const ecs = btCtx.ecs;
 	const enemy = ecs.getComponent(btCtx.entityId, 'enemy');
 	const kinematic = ecs.getComponent(btCtx.entityId, 'kinematic');
 	const transform = ecs.getComponent(btCtx.entityId, 'localTransform3D');
@@ -64,89 +63,21 @@ const perceivedThreat = (enemy: EnemyComponent, threat: EnemyThreatSummary | nul
 	+ (threat?.coneThreat ?? 0) * config.coneThreatWeight
 	+ enemy.hitEscalation;
 
-const isTooFar = condition<RangedBlackboard>('rangedTooFar', (ctx) => {
+const runWithContext = (
+	ctx: BehaviorTreeContext<RangedBlackboard, World>,
+	fn: (g: RangedContext) => NodeStatus,
+): NodeStatus => {
 	const g = resolveContext(ctx);
-	if (!g) return false;
-	return distanceXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z)
-		> g.config.preferredRange + g.config.rangeTolerance;
-});
+	return g ? fn(g) : NodeStatus.Failure;
+};
 
-const isTooClose = condition<RangedBlackboard>('rangedTooClose', (ctx) => {
+const checkWithContext = (
+	ctx: BehaviorTreeContext<RangedBlackboard, World>,
+	fn: (g: RangedContext) => boolean,
+): boolean => {
 	const g = resolveContext(ctx);
-	if (!g) return false;
-	return distanceXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z)
-		< g.config.preferredRange - g.config.rangeTolerance;
-});
-
-const closeDistance = action<RangedBlackboard>('rangedCloseDistance', (ctx) => {
-	const g = resolveContext(ctx);
-	if (!g) return NodeStatus.Failure;
-	g.kinematic.headingTarget = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
-	g.kinematic.throttle = 1;
-	return NodeStatus.Success;
-});
-
-const openDistance = action<RangedBlackboard>('rangedOpenDistance', (ctx) => {
-	const g = resolveContext(ctx);
-	if (!g) return NodeStatus.Failure;
-	const bearing = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
-	g.kinematic.headingTarget = normalizeAngle(bearing + Math.PI);
-	g.kinematic.throttle = 1;
-	return NodeStatus.Success;
-});
-
-const holdPosition = action<RangedBlackboard>('rangedHold', (ctx) => {
-	const g = resolveContext(ctx);
-	if (!g) return NodeStatus.Failure;
-	g.kinematic.headingTarget = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
-	g.kinematic.throttle = g.config.holdThrottle;
-	return NodeStatus.Success;
-});
-
-const threatOverTolerance = condition<RangedBlackboard>('rangedThreatOverTolerance', (ctx) => {
-	const g = resolveContext(ctx);
-	if (!g) return false;
-	return perceivedThreat(g.enemy, g.threat, g.config) > g.enemy.threatTolerance;
-});
-
-const evade = action<RangedBlackboard>('rangedEvade', (ctx) => {
-	const g = resolveContext(ctx);
-	if (!g) return NodeStatus.Failure;
-	const carrierBearing = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
-	const threat = g.threat;
-	if (!threat || threat.dominantTurretId === null) {
-		g.kinematic.headingTarget = carrierBearing;
-		g.kinematic.throttle = g.config.holdThrottle;
-		return NodeStatus.Success;
-	}
-	const turretBearing = bearingXZ(g.ex, g.ez, threat.dominantTurretX, threat.dominantTurretZ);
-	const rel = angleDiff(turretBearing, carrierBearing);
-	const sign = rel > 0 ? -1 : 1;
-	g.kinematic.headingTarget = normalizeAngle(carrierBearing + sign * g.config.evadeMaxOffset);
-	g.kinematic.throttle = g.config.evadeThrottle;
-	return NodeStatus.Success;
-});
-
-const carrierAimingAtSniper = condition<RangedBlackboard>('sniperCarrierAiming', (ctx) => {
-	const g = resolveContext(ctx);
-	if (!g || !g.sniperAim) return false;
-	if (g.snapshot.tier !== 'predictive') return false;
-	if (g.snapshot.throttle <= g.sniperAim.throttleThreshold) return false;
-	const bearingFromCarrier = bearingXZ(g.snapshot.x, g.snapshot.z, g.ex, g.ez);
-	return Math.abs(angleDiff(bearingFromCarrier, g.snapshot.heading)) < g.sniperAim.angleThreshold;
-});
-
-const preemptiveKite = action<RangedBlackboard>('sniperPreemptiveKite', (ctx) => {
-	const g = resolveContext(ctx);
-	if (!g) return NodeStatus.Failure;
-	if (g.snapshot.tier !== 'predictive') return NodeStatus.Failure;
-	const bearingFromCarrier = bearingXZ(g.snapshot.x, g.snapshot.z, g.ex, g.ez);
-	const alpha = angleDiff(bearingFromCarrier, g.snapshot.heading);
-	const sign = alpha >= 0 ? 1 : -1;
-	g.kinematic.headingTarget = normalizeAngle(bearingFromCarrier + sign * Math.PI / 2);
-	g.kinematic.throttle = 1;
-	return NodeStatus.Success;
-});
+	return g ? fn(g) : false;
+};
 
 const DEFAULT_BLACKBOARD: RangedBlackboard = {
 	tier: 'positional',
@@ -154,26 +85,100 @@ const DEFAULT_BLACKBOARD: RangedBlackboard = {
 	sniperAim: null,
 };
 
-export const RANGED_TREE = defineBehaviorTree<RangedBlackboard>('ranged', {
-	blackboard: DEFAULT_BLACKBOARD,
-	root: selector<RangedBlackboard>([
-		sequence<RangedBlackboard>([threatOverTolerance, evade]),
-		sequence<RangedBlackboard>([isTooFar, closeDistance]),
-		sequence<RangedBlackboard>([isTooClose, openDistance]),
-		holdPosition,
-	]),
-});
+export interface RangedBehaviorTrees {
+	readonly ranged: BehaviorTreeDefinition<RangedBlackboard>;
+	readonly sniper: BehaviorTreeDefinition<RangedBlackboard>;
+}
 
-export const SNIPER_TREE = defineBehaviorTree<RangedBlackboard>('sniper', {
-	blackboard: DEFAULT_BLACKBOARD,
-	root: selector<RangedBlackboard>([
-		sequence<RangedBlackboard>([threatOverTolerance, evade]),
-		sequence<RangedBlackboard>([carrierAimingAtSniper, preemptiveKite]),
-		sequence<RangedBlackboard>([isTooClose, openDistance]),
-		sequence<RangedBlackboard>([isTooFar, closeDistance]),
-		holdPosition,
-	]),
-});
+export const createRangedBehaviorTrees = (helpers: BehaviorTreeHelpers<World>): RangedBehaviorTrees => {
+	const { action, condition, defineBehaviorTree } = helpers;
+
+	const isTooFar = condition<RangedBlackboard>('rangedTooFar', (ctx) =>
+		checkWithContext(ctx, (g) =>
+			distanceXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z) > g.config.preferredRange + g.config.rangeTolerance));
+
+	const isTooClose = condition<RangedBlackboard>('rangedTooClose', (ctx) =>
+		checkWithContext(ctx, (g) =>
+			distanceXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z) < g.config.preferredRange - g.config.rangeTolerance));
+
+	const closeDistance = action<RangedBlackboard>('rangedCloseDistance', (ctx) =>
+		runWithContext(ctx, (g) => {
+			g.kinematic.headingTarget = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
+			g.kinematic.throttle = 1;
+			return NodeStatus.Success;
+		}));
+
+	const openDistance = action<RangedBlackboard>('rangedOpenDistance', (ctx) =>
+		runWithContext(ctx, (g) => {
+			const bearing = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
+			g.kinematic.headingTarget = normalizeAngle(bearing + Math.PI);
+			g.kinematic.throttle = 1;
+			return NodeStatus.Success;
+		}));
+
+	const holdPosition = action<RangedBlackboard>('rangedHold', (ctx) =>
+		runWithContext(ctx, (g) => {
+			g.kinematic.headingTarget = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
+			g.kinematic.throttle = g.config.holdThrottle;
+			return NodeStatus.Success;
+		}));
+
+	const threatOverTolerance = condition<RangedBlackboard>('rangedThreatOverTolerance', (ctx) =>
+		checkWithContext(ctx, (g) => perceivedThreat(g.enemy, g.threat, g.config) > g.enemy.threatTolerance));
+
+	const evade = action<RangedBlackboard>('rangedEvade', (ctx) =>
+		runWithContext(ctx, (g) => {
+			const carrierBearing = bearingXZ(g.ex, g.ez, g.snapshot.x, g.snapshot.z);
+			const threat = g.threat;
+			if (!threat || threat.dominantTurretId === null) {
+				g.kinematic.headingTarget = carrierBearing;
+				g.kinematic.throttle = g.config.holdThrottle;
+				return NodeStatus.Success;
+			}
+			const turretBearing = bearingXZ(g.ex, g.ez, threat.dominantTurretX, threat.dominantTurretZ);
+			const rel = angleDiff(turretBearing, carrierBearing);
+			const sign = rel > 0 ? -1 : 1;
+			g.kinematic.headingTarget = normalizeAngle(carrierBearing + sign * g.config.evadeMaxOffset);
+			g.kinematic.throttle = g.config.evadeThrottle;
+			return NodeStatus.Success;
+		}));
+
+	const carrierAimingAtSniper = condition<RangedBlackboard>('sniperCarrierAiming', (ctx) =>
+		checkWithContext(ctx, (g) => {
+			if (!g.sniperAim || g.snapshot.tier !== 'predictive' || g.snapshot.throttle <= g.sniperAim.throttleThreshold) {
+				return false;
+			}
+			const bearingFromCarrier = bearingXZ(g.snapshot.x, g.snapshot.z, g.ex, g.ez);
+			return Math.abs(angleDiff(bearingFromCarrier, g.snapshot.heading)) < g.sniperAim.angleThreshold;
+		}));
+
+	const preemptiveKite = action<RangedBlackboard>('sniperPreemptiveKite', (ctx) =>
+		runWithContext(ctx, (g) => {
+			if (g.snapshot.tier !== 'predictive') return NodeStatus.Failure;
+			const bearingFromCarrier = bearingXZ(g.snapshot.x, g.snapshot.z, g.ex, g.ez);
+			const alpha = angleDiff(bearingFromCarrier, g.snapshot.heading);
+			const sign = alpha >= 0 ? 1 : -1;
+			g.kinematic.headingTarget = normalizeAngle(bearingFromCarrier + sign * Math.PI / 2);
+			g.kinematic.throttle = 1;
+			return NodeStatus.Success;
+		}));
+
+	const evadeBranch = sequence<RangedBlackboard>([threatOverTolerance, evade]);
+	const closeBranch = sequence<RangedBlackboard>([isTooClose, openDistance]);
+	const farBranch = sequence<RangedBlackboard>([isTooFar, closeDistance]);
+	const kiteBranch = sequence<RangedBlackboard>([carrierAimingAtSniper, preemptiveKite]);
+
+	return {
+		ranged: defineBehaviorTree<RangedBlackboard>('ranged', {
+			blackboard: DEFAULT_BLACKBOARD,
+			root: selector<RangedBlackboard>([evadeBranch, farBranch, closeBranch, holdPosition]),
+		}),
+		sniper: defineBehaviorTree<RangedBlackboard>('sniper', {
+			blackboard: DEFAULT_BLACKBOARD,
+			root: selector<RangedBlackboard>([evadeBranch, kiteBranch, closeBranch, farBranch, holdPosition]),
+		}),
+	};
+};
 
 export { createBehaviorTree };
 export type { RangedBlackboard };

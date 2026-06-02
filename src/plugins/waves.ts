@@ -1,4 +1,4 @@
-import type { BehaviorTreeDefinition } from 'ecspresso/plugins/ai/behavior-tree';
+import { createBehaviorTreeHelpers, type BehaviorTreeDefinition } from 'ecspresso/plugins/ai/behavior-tree';
 import { definePlugin, type World } from '../types';
 import { enemyShipGroup, turretFromMount } from '../ships';
 import { createGroupComponents } from 'ecspresso/plugins/rendering/renderer3D';
@@ -6,7 +6,7 @@ import { bearingXZ } from '../math';
 import { ENEMY_KINDS, ENEMY_SPECS, makeBehavior, type EnemyBehavior, type EnemyKind } from '../enemies';
 import { createKinematicState } from '../kinematic';
 import { makeCollider } from '../collider';
-import { RANGED_TREE, SNIPER_TREE, createBehaviorTree, type RangedBlackboard } from './enemy-behavior';
+import { createBehaviorTree, createRangedBehaviorTrees, type RangedBehaviorTrees, type RangedBlackboard } from './enemy-behavior';
 import { buildHealthBar } from './healthBars';
 import {
 	BRAWLER_RANGED_CONFIG,
@@ -46,27 +46,37 @@ interface ShooterTreeSpec {
 	readonly sniperAim: SniperAimConfig | null;
 }
 
-const SHOOTER_TREES: Record<ShooterBehavior['kind'], ShooterTreeSpec> = {
-	gunship: { tree: RANGED_TREE, config: GUNSHIP_RANGED_CONFIG, sniperAim: null },
-	brawler: { tree: RANGED_TREE, config: BRAWLER_RANGED_CONFIG, sniperAim: null },
-	sniper: { tree: SNIPER_TREE, config: SNIPER_RANGED_CONFIG, sniperAim: SNIPER_AIM_CONFIG },
-};
+type ShooterTreeSpecs = Record<ShooterBehavior['kind'], ShooterTreeSpec>;
 
-const isShooterBehavior = (b: EnemyBehavior): b is ShooterBehavior => b.kind in SHOOTER_TREES;
+const createShooterTreeSpecs = (trees: RangedBehaviorTrees): ShooterTreeSpecs => ({
+	gunship: { tree: trees.ranged, config: GUNSHIP_RANGED_CONFIG, sniperAim: null },
+	brawler: { tree: trees.ranged, config: BRAWLER_RANGED_CONFIG, sniperAim: null },
+	sniper: { tree: trees.sniper, config: SNIPER_RANGED_CONFIG, sniperAim: SNIPER_AIM_CONFIG },
+});
 
-const behaviorTreeFor = (behavior: EnemyBehavior) => {
-	if (!isShooterBehavior(behavior)) return null;
-	const { tree, config, sniperAim } = SHOOTER_TREES[behavior.kind];
-	return createBehaviorTree(tree, { tier: behavior.perceptionTier, config, sniperAim });
-};
-
-const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number, targetX: number, targetZ: number): void => {
+const spawnEnemy = (
+	ecs: World,
+	shooterTrees: ShooterTreeSpecs,
+	kind: EnemyKind,
+	spawnX: number,
+	spawnZ: number,
+	targetX: number,
+	targetZ: number,
+): void => {
 	const spec = ENEMY_SPECS[kind];
 	const built = enemyShipGroup(kind);
 	const { group, turretMount } = built;
 	const behavior = makeBehavior(kind);
 	const isShooter = spec.turretMount !== undefined && turretMount !== null;
-	const behaviorTree = behaviorTreeFor(behavior);
+	let behaviorTree = null;
+	if (behavior.kind === 'gunship' || behavior.kind === 'brawler' || behavior.kind === 'sniper') {
+		const spec = shooterTrees[behavior.kind];
+		behaviorTree = createBehaviorTree(spec.tree, {
+			tier: behavior.perceptionTier,
+			config: spec.config,
+			sniperAim: spec.sniperAim,
+		});
+	}
 	const spawnHeading = bearingXZ(spawnX, spawnZ, targetX, targetZ);
 
 	const healthBar = buildHealthBar({
@@ -108,6 +118,8 @@ const spawnEnemy = (ecs: World, kind: EnemyKind, spawnX: number, spawnZ: number,
 export const createWavesPlugin = () => definePlugin({
 	id: 'waves',
 	install: (world) => {
+		const shooterTrees = createShooterTreeSpecs(createRangedBehaviorTrees(world.getHelpers(createBehaviorTreeHelpers)));
+
 		world.addSystem('waves-stats-init')
 			.setOnInitialize((ecs) => {
 				ecs.eventBus.subscribe('enemy:killed', () => {
@@ -151,7 +163,7 @@ export const createWavesPlugin = () => definePlugin({
 				const angle = ENEMY_SPAWN_ANGLE_CENTER + (Math.random() - 0.5) * ENEMY_SPAWN_ANGLE_SPREAD;
 				const spawnX = ft.x + Math.sin(angle) * radius;
 				const spawnZ = ft.z + Math.cos(angle) * radius;
-				spawnEnemy(ecs, pickKind(), spawnX, spawnZ, ft.x, ft.z);
+				spawnEnemy(ecs, shooterTrees, pickKind(), spawnX, spawnZ, ft.x, ft.z);
 			});
 	},
 });

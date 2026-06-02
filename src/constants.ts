@@ -4,7 +4,6 @@ export const ISO_ELEVATION = Math.atan(1 / Math.SQRT2);
 export const CAMERA_VIEW_SIZE = 20;
 export const CAMERA_ZOOM_MIN = 0.125;
 export const CAMERA_ZOOM_MAX = 2.5;
-export const CAMERA_ZOOM_STEP = 1.1;
 export const CAMERA_ZOOM_SPEED = 2.5;
 export const CAMERA_FOLLOW_SMOOTHING = 6;
 export const CAMERA_DISTANCE = 60;
