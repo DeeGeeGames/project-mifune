@@ -439,7 +439,8 @@ export const createLoadoutSelectPlugin = () => definePlugin({
 				const state = ecs.getScreenState('loadoutSelect');
 
 				if (inputState.actions.justActivated('loadoutStart')) {
-					void ecs.setScreen('playing', { waveNumber: 1 });
+					// TODO: Route through campaign state so returning from loadout preserves base progress.
+					void ecs.setScreen('homeBase', {});
 					return;
 				}
 				if (inputState.actions.justActivated('loadoutBack')) {

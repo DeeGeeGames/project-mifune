@@ -146,10 +146,14 @@ export const createWavesPlugin = () => definePlugin({
 
 				if (state.phaseTimer <= 0) {
 					state.phaseTimer = 0;
-					void ecs.setScreen('waveSummary', {
-						waveNumber: state.waveNumber,
-						kills: state.kills,
-						resourcesCollected: state.resourcesCollected,
+					// TODO: Mission completion should eventually update campaign state before returning to base.
+					void ecs.setScreen('homeBase', {
+						nextWaveNumber: state.waveNumber + 1,
+						lastMissionResult: {
+							waveNumber: state.waveNumber,
+							kills: state.kills,
+							resourcesCollected: state.resourcesCollected,
+						},
 					});
 					return;
 				}

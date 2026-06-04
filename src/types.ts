@@ -39,8 +39,8 @@ import type {
 	AppScreenName,
 	PlayingScreenConfig,
 	PlayingScreenState,
-	WaveSummaryConfig,
-	WaveSummaryScreenState,
+	HomeBaseConfig,
+	HomeBaseScreenState,
 	TitleScreenState,
 	LoadoutScreenState,
 	MarketScreenConfig,
@@ -180,15 +180,18 @@ export const builder = ECSpresso.create()
 				resourcesCollected: 0,
 			}),
 		})
-		.add('waveSummary', {
-			initialState: (config: WaveSummaryConfig): WaveSummaryScreenState => ({
-				...config,
+		.add('homeBase', {
+			initialState: (config: HomeBaseConfig): HomeBaseScreenState => ({
+				nextWaveNumber: config.nextWaveNumber ?? 1,
+				...(config.lastMissionResult ? { lastMissionResult: config.lastMissionResult } : {}),
 				selectedIndex: 0,
 			}),
 		})
 		.add('market', {
 			initialState: (config: MarketScreenConfig): MarketScreenState => ({
 				waveNumber: config.waveNumber,
+				nextWaveNumber: config.nextWaveNumber,
+				...(config.lastMissionResult ? { lastMissionResult: config.lastMissionResult } : {}),
 				offers: [],
 				rerollCount: 0,
 				mode: { kind: 'browse' },

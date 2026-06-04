@@ -15,7 +15,6 @@ export interface MarketGridContext {
 export interface MarketFooterContext {
 	readonly rerollCost: number;
 	readonly resources: number;
-	readonly nextWaveNumber: number;
 }
 
 export type FooterAction = 'reroll' | 'continue';
@@ -136,7 +135,7 @@ export const renderMarketFooter = (
 		() => onAction('reroll'),
 	);
 	const cont = buildFooterRow(
-		`Continue to Wave ${ctx.nextWaveNumber}`,
+		'Return to Home Base',
 		'',
 		selectedIdx === continueIdx,
 		false,

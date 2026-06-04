@@ -1,8 +1,9 @@
 import type { ShopOffer } from './shop-types';
 
-export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'waveSummary' | 'market';
+export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'homeBase' | 'market';
 
 export type PlayingScreenConfig = {
+	// TODO: Replace waveNumber with missionId/missionType once home base launches more than Wave Survival.
 	waveNumber: number;
 };
 
@@ -15,13 +16,20 @@ export type PlayingScreenState = {
 	resourcesCollected: number;
 };
 
-export type WaveSummaryConfig = {
+export type LastMissionResult = {
 	waveNumber: number;
 	kills: number;
 	resourcesCollected: number;
 };
 
-export type WaveSummaryScreenState = WaveSummaryConfig & {
+export type HomeBaseConfig = {
+	nextWaveNumber?: number;
+	lastMissionResult?: LastMissionResult;
+};
+
+export type HomeBaseScreenState = {
+	nextWaveNumber: number;
+	lastMissionResult?: LastMissionResult;
 	selectedIndex: number;
 };
 
@@ -40,6 +48,8 @@ export type LoadoutScreenState = {
 
 export type MarketScreenConfig = {
 	waveNumber: number;
+	nextWaveNumber: number;
+	lastMissionResult?: LastMissionResult;
 };
 
 export type MarketMode =
@@ -49,6 +59,8 @@ export type MarketMode =
 
 export type MarketScreenState = {
 	waveNumber: number;
+	nextWaveNumber: number;
+	lastMissionResult?: LastMissionResult;
 	offers: ShopOffer[];
 	rerollCount: number;
 	mode: MarketMode;

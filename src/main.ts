@@ -33,7 +33,7 @@ import { createHudPlugin } from './plugins/hud';
 import { createAimPreviewPlugin } from './plugins/aimPreview';
 import { createHeadingIndicatorsPlugin } from './plugins/headingIndicators';
 import { createHealthBarsPlugin } from './plugins/healthBars';
-import { createWaveSummaryPlugin } from './plugins/waveSummary';
+import { createHomeBasePlugin } from './plugins/homeBase';
 import { createTitleScreenPlugin } from './plugins/titleScreen';
 import { createLoadoutSelectPlugin } from './plugins/loadoutSelect';
 import { createMarketPlugin } from './plugins/market';
@@ -65,7 +65,7 @@ const game = builder
 	.withPlugin(createAimPreviewPlugin())
 	.withPlugin(createHeadingIndicatorsPlugin())
 	.withPlugin(createHealthBarsPlugin())
-	.withPlugin(createWaveSummaryPlugin())
+	.withPlugin(createHomeBasePlugin())
 	.withPlugin(createTitleScreenPlugin())
 	.withPlugin(createLoadoutSelectPlugin())
 	.withPlugin(createMarketPlugin())

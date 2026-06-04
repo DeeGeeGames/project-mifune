@@ -128,7 +128,10 @@ const confirmReroll = (world: World): void => {
 
 const confirmContinue = (world: World): void => {
 	const state = world.getScreenState('market');
-	void world.setScreen('playing', { waveNumber: state.waveNumber + 1 });
+	void world.setScreen('homeBase', {
+		nextWaveNumber: state.nextWaveNumber,
+		...(state.lastMissionResult ? { lastMissionResult: state.lastMissionResult } : {}),
+	});
 };
 
 const resetToBrowse = (world: World, offerIdx: number): void => {
@@ -205,8 +208,8 @@ const gridKey = (
 ): string =>
 	`${selectedIdx}|${resources}|${hasEmptyPylon ? 1 : 0}|${hasEmptyAux ? 1 : 0}|${offers.map(offerFingerprint).join(',')}`;
 
-const footerKey = (selectedIdx: number, cost: number, resources: number, nextWave: number): string =>
-	`${selectedIdx}|${cost}|${resources}|${nextWave}`;
+const footerKey = (selectedIdx: number, cost: number, resources: number): string =>
+	`${selectedIdx}|${cost}|${resources}`;
 
 const legendForMode = (mode: 'browse' | 'assignPylon' | 'assignAux'): readonly LegendSpec[] => {
 	if (mode === 'browse') return LEGEND_BROWSE;
@@ -263,7 +266,9 @@ export const createMarketPlugin = () => definePlugin({
 			state.rerollCount = 0;
 			state.mode = { kind: 'browse' };
 			state.selectedIndex = 0;
-			hudRefs.marketTitleEl.textContent = `MARKET — WAVE ${state.waveNumber} COMPLETE`;
+			hudRefs.marketTitleEl.textContent = state.lastMissionResult
+				? `MARKET — WAVE ${state.waveNumber} COMPLETE`
+				: 'MARKET — HOME BASE';
 			resetCaches();
 			setBrowseVisibility(true);
 			setScreenLegend(world, 'market', LEGEND_BROWSE);
@@ -351,14 +356,14 @@ export const createMarketPlugin = () => definePlugin({
 						lastGridKey = gk;
 					}
 					const rCost = rerollCost(state.waveNumber, state.rerollCount);
-					const fk = footerKey(selectedIdx, rCost, playerState.resources, state.waveNumber + 1);
+					const fk = footerKey(selectedIdx, rCost, playerState.resources);
 					if (fk !== lastFooterKey) {
 						renderMarketFooter(
 							hudRefs.marketFooterEl,
 							rerollIndex(offerCount),
 							continueIndex(offerCount),
 							selectedIdx,
-							{ rerollCost: rCost, resources: playerState.resources, nextWaveNumber: state.waveNumber + 1 },
+							{ rerollCost: rCost, resources: playerState.resources },
 							(action) => handleFooterAction(action, offerCount),
 						);
 						lastFooterKey = fk;
