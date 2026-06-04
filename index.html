@@ -28,7 +28,7 @@
 		#hud-legend { bottom: 12px; left: 50%; transform: translateX(-50%); color: #98a7be; font-size: 12px; white-space: normal; max-width: 90vw; text-align: center; }
 		#hud-thrust { top: 48px; right: 12px; min-width: 160px; }
 		#hud-wave { top: 12px; left: 50%; transform: translateX(-50%); font-size: 16px; font-weight: 600; letter-spacing: 0.08em; color: #e8f0ff; }
-		#hud-summary, #hud-title, #hud-market {
+		#hud-summary, #hud-title, #hud-market, #hud-sector-map {
 			position: fixed;
 			inset: 0;
 			display: none;
@@ -191,14 +191,43 @@
 			color: #e8f0ff;
 			white-space: pre;
 		}
+		#hud-sector-map {
+			align-items: center;
+			justify-content: center;
+			padding: 32px;
+		}
+		.sector-map-panel {
+			width: min(1040px, 94vw);
+			max-height: min(720px, 90vh);
+			display: grid;
+			grid-template-rows: auto 1fr;
+			gap: 18px;
+			padding: 28px;
+			border: 1px solid rgba(150, 180, 220, 0.25);
+			border-radius: 10px;
+			background: rgba(8, 12, 22, 0.92);
+			box-shadow: 0 18px 60px rgba(0, 0, 0, 0.38);
+		}
+		.sector-map-title {
+			font-size: 22px;
+			font-weight: 700;
+			letter-spacing: 0.12em;
+			color: #ffd55a;
+			text-align: center;
+		}
+		.sector-map-shell {
+			display: grid;
+			grid-template-columns: minmax(0, 1fr) minmax(220px, 280px);
+			gap: 18px;
+			min-height: 0;
+		}
 		.sector-map {
 			display: grid;
-			grid-template-columns: minmax(420px, 620px) minmax(180px, 240px);
+			grid-template-columns: minmax(0, 1fr) minmax(210px, 260px);
 			gap: 18px;
 			align-items: stretch;
 			white-space: normal;
 			text-align: left;
-			margin-bottom: 8px;
 		}
 		.sector-map-svg {
 			width: 100%;
@@ -210,6 +239,10 @@
 				linear-gradient(90deg, rgba(150, 180, 220, 0.04) 1px, transparent 1px),
 				rgba(5, 8, 15, 0.52);
 			background-size: 24px 24px;
+		}
+		.sector-map-node--reachable {
+			pointer-events: auto;
+			cursor: pointer;
 		}
 		.sector-map-edge {
 			stroke: rgba(150, 180, 220, 0.34);
@@ -251,7 +284,6 @@
 		.sector-map-details {
 			display: flex;
 			flex-direction: column;
-			justify-content: space-between;
 			gap: 12px;
 			min-height: 100%;
 			padding: 14px 16px;
@@ -266,15 +298,70 @@
 			letter-spacing: 0.06em;
 			text-transform: uppercase;
 		}
-		.sector-map-selected {
-			font-size: 14px;
-			line-height: 1.7;
+		.sector-map-detail-title {
+			font-size: 17px;
+			font-weight: 700;
 			color: #e8f0ff;
-			white-space: pre;
+		}
+		.sector-map-briefing {
+			font-size: 14px;
+			line-height: 1.55;
+			color: #e8f0ff;
+		}
+		.sector-map-detail-row {
+			display: flex;
+			justify-content: space-between;
+			gap: 14px;
+			font-size: 12px;
+			line-height: 1.6;
+			color: #d8e2f0;
+			border-top: 1px solid rgba(150, 180, 220, 0.1);
+			padding-top: 8px;
+		}
+		.sector-map-detail-row .label {
+			color: #98a7be;
+		}
+		.sector-map-detail-row .value {
+			color: #e8f0ff;
+			text-align: right;
+		}
+		.sector-map-route-list {
+			display: flex;
+			flex-direction: column;
+			gap: 10px;
+		}
+		.sector-map-route-card {
+			padding: 12px 14px;
+			border: 1px solid rgba(150, 180, 220, 0.2);
+			border-radius: 8px;
+			background: rgba(5, 8, 15, 0.54);
+			pointer-events: auto;
+			cursor: pointer;
+			transition: border-color 0.1s;
+		}
+		.sector-map-route-card--selected {
+			border-color: #ffd55a;
+			box-shadow: 0 0 0 1px rgba(255, 213, 90, 0.35) inset;
+		}
+		.sector-map-route-title {
+			font-size: 13px;
+			font-weight: 700;
+			line-height: 1.4;
+			color: #e8f0ff;
 		}
 		@media (max-width: 760px) {
 			.summary-card {
 				padding: 24px 20px;
+			}
+			#hud-sector-map {
+				padding: 16px;
+			}
+			.sector-map-panel {
+				padding: 20px;
+				overflow: auto;
+			}
+			.sector-map-shell {
+				grid-template-columns: 1fr;
 			}
 			.sector-map {
 				grid-template-columns: 1fr;
@@ -335,6 +422,15 @@
 	</div>
 	<div id="hud-loadout">
 		<div id="hud-loadout-stat-card" class="stat-card"></div>
+	</div>
+	<div id="hud-sector-map">
+		<div class="sector-map-panel">
+			<div id="hud-sector-map-title" class="sector-map-title">SECTOR MAP</div>
+			<div class="sector-map-shell">
+				<div id="hud-sector-map-body"></div>
+				<div id="hud-sector-map-route" class="sector-map-route-list"></div>
+			</div>
+		</div>
 	</div>
 	<div id="hud-market">
 		<div class="summary-card">

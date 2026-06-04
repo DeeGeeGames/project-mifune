@@ -12,6 +12,13 @@ export type CampaignMission = {
 	readonly type: MissionType;
 	readonly label: string;
 	readonly waveNumberOffset: number;
+	readonly briefing: string;
+	readonly rewards: readonly CampaignReward[];
+};
+
+export type CampaignReward = {
+	readonly label: string;
+	readonly value: string;
 };
 
 export type CampaignMapNode = {
@@ -59,6 +66,11 @@ const INITIAL_NODES: readonly CampaignMapNode[] = [
 			type: 'waveSurvival',
 			label: 'Wave Survival',
 			waveNumberOffset: 0,
+			briefing: 'Hold the patrol lane long enough for supply ships to cross.',
+			rewards: [
+				{ label: 'Resource cache', value: 'Standard' },
+				{ label: 'Market access', value: 'Next wave offers' },
+			],
 		},
 	},
 	{
@@ -72,6 +84,11 @@ const INITIAL_NODES: readonly CampaignMapNode[] = [
 			type: 'waveSurvival',
 			label: 'Wave Survival',
 			waveNumberOffset: 1,
+			briefing: 'Draw the horde away from a salvage team working near the debris field.',
+			rewards: [
+				{ label: 'Resource cache', value: 'Improved' },
+				{ label: 'Wave advance', value: '+2 pressure' },
+			],
 		},
 	},
 	{

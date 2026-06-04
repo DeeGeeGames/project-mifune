@@ -9,7 +9,8 @@ import {
 	type CampaignMapNode,
 	type MapNodeStatus,
 } from '../campaign';
-import { wrapIndex, renderMenuText, menuAxisDelta } from '../menu';
+import { wrapIndex, menuAxisDelta } from '../menu';
+import { buildLabeledRow } from './statCardDom';
 import { setScreenLegend, dpadVertical, dpadHorizontal, type LegendSpec } from './legend';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -45,13 +46,12 @@ const statusLabel = (status: MapNodeStatus): string => {
 };
 
 const nodeClasses = (
-	state: CampaignState,
-	node: CampaignMapNode,
-	selectedNode: CampaignMapNode,
+	status: MapNodeStatus,
+	isSelected: boolean,
 ): string => [
 	'sector-map-node',
-	`sector-map-node--${campaignNodeStatus(state, node.id)}`,
-	node.id === selectedNode.id ? 'sector-map-node--selected' : '',
+	`sector-map-node--${status}`,
+	isSelected ? 'sector-map-node--selected' : '',
 ].filter(Boolean).join(' ');
 
 const mapEdges = (state: CampaignState): readonly (readonly [CampaignMapNode, CampaignMapNode])[] => {
@@ -78,10 +78,17 @@ const appendSvgNode = (
 	state: CampaignState,
 	node: CampaignMapNode,
 	selectedNode: CampaignMapNode,
+	onSelectNode: (node: CampaignMapNode) => void,
 ): void => {
+	const status = campaignNodeStatus(state, node.id);
 	const group = document.createElementNS(SVG_NS, 'g');
-	group.setAttribute('class', nodeClasses(state, node, selectedNode));
+	group.setAttribute('class', nodeClasses(status, node.id === selectedNode.id));
 	group.setAttribute('transform', `translate(${node.x} ${node.y})`);
+	if (status === 'reachable') {
+		group.setAttribute('tabindex', '0');
+		group.setAttribute('role', 'button');
+		group.addEventListener('click', () => onSelectNode(node));
+	}
 
 	const circle = document.createElementNS(SVG_NS, 'circle');
 	circle.setAttribute('r', node.kind === 'homeBase' ? '6.5' : '5.2');
@@ -104,19 +111,54 @@ const selectedNodeForItem = (
 		? selectedItem.node
 		: campaignNodeById(state, state.selectedNodeId);
 
-const selectedNodeDetailText = (state: CampaignState, selectedNode: CampaignMapNode): string => {
-	const status = campaignNodeStatus(state, selectedNode.id);
-	const missionLabel = selectedNode.mission?.label ?? 'No mission';
-	const waveLabel = selectedNode.mission
-		? `Wave ${state.nextWaveNumber + selectedNode.mission.waveNumberOffset}`
-		: 'No deployment';
-	return `${selectedNode.label}\n` +
-		`${statusLabel(status)}\n` +
-		`${missionLabel}\n` +
-		waveLabel;
+const buildHeader = (className: string, text: string): HTMLElement => {
+	const el = document.createElement('div');
+	el.className = className;
+	el.textContent = text;
+	return el;
 };
 
-const buildMapVisual = (state: CampaignState, selectedNode: CampaignMapNode): HTMLElement => {
+const selectedNodeRows = (
+	state: CampaignState,
+	selectedNode: CampaignMapNode,
+): readonly { readonly label: string; readonly value: string }[] => {
+	const status = campaignNodeStatus(state, selectedNode.id);
+	const baseRows = [
+		{ label: 'Status', value: statusLabel(status) },
+		{ label: 'Mission', value: selectedNode.mission?.label ?? 'No deployment' },
+	];
+	if (!selectedNode.mission) return baseRows;
+	return [
+		...baseRows,
+		{ label: 'Wave', value: `${state.nextWaveNumber + selectedNode.mission.waveNumberOffset}` },
+		...selectedNode.mission.rewards,
+	];
+};
+
+const buildNodeDetails = (state: CampaignState, selectedNode: CampaignMapNode): HTMLElement => {
+	const details = document.createElement('div');
+	details.className = 'sector-map-details';
+	const mission = selectedNode.mission;
+	const currentNode = campaignNodeById(state, state.currentNodeId);
+	const briefing = document.createElement('div');
+	briefing.className = 'sector-map-briefing';
+	briefing.textContent = mission?.briefing ?? 'No deployment selected from this location.';
+	const rows = selectedNodeRows(state, selectedNode)
+		.map(({ label, value }) => buildLabeledRow('sector-map-detail-row', label, value));
+	details.replaceChildren(
+		buildHeader('sector-map-current', `Current: ${currentNode.label}`),
+		buildHeader('sector-map-detail-title', selectedNode.label),
+		briefing,
+		...rows,
+	);
+	return details;
+};
+
+const buildMapVisual = (
+	state: CampaignState,
+	selectedNode: CampaignMapNode,
+	onSelectNode: (node: CampaignMapNode) => void,
+): HTMLElement => {
 	const root = document.createElement('div');
 	root.className = 'sector-map';
 
@@ -124,29 +166,42 @@ const buildMapVisual = (state: CampaignState, selectedNode: CampaignMapNode): HT
 	svg.setAttribute('class', 'sector-map-svg');
 	svg.setAttribute('viewBox', '0 0 100 100');
 	mapEdges(state).forEach(([a, b]) => appendSvgLine(svg, a, b));
-	state.nodes.forEach((node) => appendSvgNode(svg, state, node, selectedNode));
+	state.nodes.forEach((node) => appendSvgNode(svg, state, node, selectedNode, onSelectNode));
 
-	const details = document.createElement('div');
-	details.className = 'sector-map-details';
-
-	const currentNode = campaignNodeById(state, state.currentNodeId);
-	const current = document.createElement('div');
-	current.className = 'sector-map-current';
-	current.textContent = `Current: ${currentNode.label}`;
-
-	const selected = document.createElement('div');
-	selected.className = 'sector-map-selected';
-	selected.textContent = selectedNodeDetailText(state, selectedNode);
-
-	details.append(current, selected);
-	root.append(svg, details);
+	root.append(svg, buildNodeDetails(state, selectedNode));
 	return root;
 };
 
-const renderMapBody = (world: World, selectedItem: MapMenuItem | undefined): void => {
+const buildRouteCard = (
+	item: MapMenuItem,
+	idx: number,
+	selectedIndex: number,
+	onConfirm: (item: MapMenuItem) => void,
+): HTMLElement => {
+	const card = document.createElement('div');
+	card.className = ['sector-map-route-card', idx === selectedIndex ? 'sector-map-route-card--selected' : '']
+		.filter(Boolean)
+		.join(' ');
+	card.append(buildHeader('sector-map-route-title', mapMenuLabel(item)));
+	card.addEventListener('click', () => onConfirm(item));
+	return card;
+};
+
+const renderMapBody = (
+	world: World,
+	items: readonly MapMenuItem[],
+	selectedIndex: number,
+	selectedItem: MapMenuItem | undefined,
+	onSelectNode: (node: CampaignMapNode) => void,
+	onConfirm: (item: MapMenuItem) => void,
+): void => {
 	const state = world.getResource('campaignState');
 	const selectedNode = selectedNodeForItem(state, selectedItem);
-	world.getResource('hudRefs').summaryStatsEl.replaceChildren(buildMapVisual(state, selectedNode));
+	const hudRefs = world.getResource('hudRefs');
+	hudRefs.sectorMapBodyEl.replaceChildren(buildMapVisual(state, selectedNode, onSelectNode));
+	hudRefs.sectorMapRouteEl.replaceChildren(
+		...items.map((item, idx) => buildRouteCard(item, idx, selectedIndex, onConfirm)),
+	);
 };
 
 const updateSelectedNode = (world: World, selectedItem: MapMenuItem | undefined): void => {
@@ -183,10 +238,26 @@ const confirmItem = (world: World, item: MapMenuItem | undefined): void => {
 const clampSelection = (selectedIndex: number, itemCount: number): number =>
 	itemCount <= 0 ? 0 : Math.min(selectedIndex, itemCount - 1);
 
+const selectedIndexForNode = (items: readonly MapMenuItem[], node: CampaignMapNode): number | null => {
+	const idx = items.findIndex((item) => item.kind === 'node' && item.node.id === node.id);
+	return idx >= 0 ? idx : null;
+};
+
 export const createSectorMapPlugin = () => definePlugin({
 	id: 'sectorMap',
 	install: (world) => {
 		let lastRenderKey = '';
+
+		const selectNode = (ecs: World, node: CampaignMapNode): void => {
+			const state = ecs.getScreenState('sectorMap');
+			const items = mapMenuItems(ecs);
+			const selectedIndex = selectedIndexForNode(items, node);
+			if (selectedIndex === null) return;
+			state.selectedIndex = selectedIndex;
+			ecs.getResource('campaignState').selectedNodeId = node.id;
+			lastRenderKey = '';
+			renderMap(ecs);
+		};
 
 		const renderMap = (ecs: World): void => {
 			const state = ecs.getScreenState('sectorMap');
@@ -197,23 +268,28 @@ export const createSectorMapPlugin = () => definePlugin({
 			updateSelectedNode(ecs, selectedItem);
 			const renderKey = renderKeyFor(campaignState, state.selectedIndex, selectedItem);
 			if (renderKey === lastRenderKey) return;
-			const hudRefs = ecs.getResource('hudRefs');
-			renderMapBody(ecs, selectedItem);
-			hudRefs.summaryMenuEl.textContent = renderMenuText(items, state.selectedIndex, mapMenuLabel);
+			renderMapBody(
+				ecs,
+				items,
+				state.selectedIndex,
+				selectedItem,
+				(node) => selectNode(ecs, node),
+				(item) => confirmItem(ecs, item),
+			);
 			lastRenderKey = renderKey;
 		};
 
 		world.onScreenEnter('sectorMap', () => {
 			const hudRefs = world.getResource('hudRefs');
-			hudRefs.summaryTitleEl.textContent = 'SECTOR MAP';
-			hudRefs.summaryEl.style.display = 'flex';
+			hudRefs.sectorMapTitleEl.textContent = 'SECTOR MAP';
+			hudRefs.sectorMapEl.style.display = 'flex';
 			lastRenderKey = '';
 			setScreenLegend(world, 'sectorMap', LEGEND_SPECS);
 			renderMap(world);
 		});
 
 		world.onScreenExit('sectorMap', () => {
-			world.getResource('hudRefs').summaryEl.style.display = 'none';
+			world.getResource('hudRefs').sectorMapEl.style.display = 'none';
 		});
 
 		world.addSystem('sector-map')

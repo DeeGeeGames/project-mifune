@@ -42,6 +42,10 @@ export interface HudRefs {
 	summaryTitleEl: HTMLElement;
 	summaryStatsEl: HTMLElement;
 	summaryMenuEl: HTMLElement;
+	sectorMapEl: HTMLElement;
+	sectorMapTitleEl: HTMLElement;
+	sectorMapBodyEl: HTMLElement;
+	sectorMapRouteEl: HTMLElement;
 	titleEl: HTMLElement;
 	titleMenuEl: HTMLElement;
 	loadoutEl: HTMLElement;
