@@ -173,12 +173,12 @@ export const builder = ECSpresso.create()
 			}),
 		})
 		.add('playing', {
-			initialState: (config: PlayingScreenConfig): PlayingScreenState => ({
-				missionNodeId: config.missionNodeId,
-				waveNumber: config.waveNumber,
-				phaseTimer: waveDuration(config.waveNumber),
+			initialState: ({ mission }: PlayingScreenConfig): PlayingScreenState => ({
+				mission,
+				waveNumber: mission.waveNumber,
+				phaseTimer: waveDuration(mission.waveNumber),
 				spawnTimer: 0,
-				spawnIntervalMs: waveSpawnInterval(config.waveNumber),
+				spawnIntervalMs: waveSpawnInterval(mission.waveNumber),
 				kills: 0,
 				resourcesCollected: 0,
 			}),

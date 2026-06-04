@@ -176,8 +176,7 @@ const confirmItem = (world: World, item: MapMenuItem | undefined): void => {
 	}
 	const launch = missionLaunchForNode(campaignState, item.node.id);
 	void world.setScreen('playing', {
-		missionNodeId: launch.nodeId,
-		waveNumber: launch.waveNumber,
+		mission: launch,
 	});
 };
 

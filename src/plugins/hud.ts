@@ -1,6 +1,10 @@
 import { definePlugin } from '../types';
 import { setScreenLegend, type LegendSpec } from './legend';
 
+const MISSION_LABELS = {
+	waveSurvival: 'WAVE SURVIVAL',
+} as const;
+
 const LEGEND_SPECS: readonly LegendSpec[] = [
 	{ action: 'fwd',     label: 'Thrust', keyboardOverride: 'W/S', gamepadOverride: 'RT/LT' },
 	{ action: 'aimGate', label: 'Set Heading', keyboardOverride: null },
@@ -34,9 +38,9 @@ export const createHudPlugin = () => definePlugin({
 			.setProcess(({ queries, ecs, resources: { playerState, hudRefs } }) => {
 				hudRefs.resourcesEl.textContent = `Resources: ${Math.floor(playerState.resources)}`;
 
-				const wave = ecs.getScreenState('playing');
-				const secs = Math.max(0, Math.ceil(wave.phaseTimer));
-				hudRefs.waveEl.textContent = `WAVE ${wave.waveNumber} — ${secs}s`;
+				const state = ecs.getScreenState('playing');
+				const secs = Math.max(0, Math.ceil(state.phaseTimer));
+				hudRefs.waveEl.textContent = `${MISSION_LABELS[state.mission.missionType]} - ${state.waveNumber} - ${secs}s`;
 
 				const rosterLines = queries.ships.map((e) => {
 					const isFlag = e.id === playerState.commandVesselId ? '◆' : '·';

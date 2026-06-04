@@ -34,7 +34,8 @@ export type CampaignState = {
 };
 
 export type MissionLaunch = {
-	readonly nodeId: MapNodeId;
+	readonly missionId: MapNodeId;
+	readonly missionType: MissionType;
 	readonly waveNumber: number;
 };
 
@@ -124,7 +125,8 @@ export function missionLaunchForNode(state: CampaignState, nodeId: MapNodeId): M
 	const node = campaignNodeById(state, nodeId);
 	if (!node.mission) throw new Error(`Campaign node ${nodeId} does not have a mission`);
 	return {
-		nodeId,
+		missionId: nodeId,
+		missionType: node.mission.type,
 		waveNumber: state.nextWaveNumber + node.mission.waveNumberOffset,
 	};
 }
