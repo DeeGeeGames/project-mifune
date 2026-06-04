@@ -3,7 +3,8 @@ import {
 	campaignNodeById,
 	campaignNodeStatus,
 	missionLaunchForNode,
-	reachableMissionNodes,
+	reachableMapNodes,
+	travelToNode,
 	type CampaignState,
 	type CampaignMapNode,
 	type MapNodeStatus,
@@ -16,23 +17,23 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 const LEGEND_SPECS: readonly LegendSpec[] = [
 	dpadVertical('Navigate'),
 	dpadHorizontal('Navigate'),
-	{ action: 'menuConfirm', label: 'Deploy' },
+	{ action: 'menuConfirm', label: 'Select' },
 	{ action: 'menuCancel', label: 'Back' },
 ];
 
 type MapMenuItem =
-	| { readonly kind: 'mission'; readonly node: CampaignMapNode }
+	| { readonly kind: 'node'; readonly node: CampaignMapNode }
 	| { readonly kind: 'back' };
 
 const mapMenuItems = (world: World): readonly MapMenuItem[] => [
-	...reachableMissionNodes(world.getResource('campaignState')).map((node): MapMenuItem => ({ kind: 'mission', node })),
+	...reachableMapNodes(world.getResource('campaignState')).map((node): MapMenuItem => ({ kind: 'node', node })),
 	{ kind: 'back' },
 ];
 
 const mapMenuLabel = (item: MapMenuItem): string => {
 	if (item.kind === 'back') return 'Back to Home Base';
 	const mission = item.node.mission;
-	if (!mission) return item.node.label;
+	if (!mission) return `${item.node.label}: Travel`;
 	return `${item.node.label}: ${mission.label}`;
 };
 
@@ -99,7 +100,7 @@ const selectedNodeForItem = (
 	state: CampaignState,
 	selectedItem: MapMenuItem | undefined,
 ): CampaignMapNode =>
-	selectedItem?.kind === 'mission'
+	selectedItem?.kind === 'node'
 		? selectedItem.node
 		: campaignNodeById(state, state.selectedNodeId);
 
@@ -149,7 +150,7 @@ const renderMapBody = (world: World, selectedItem: MapMenuItem | undefined): voi
 };
 
 const updateSelectedNode = (world: World, selectedItem: MapMenuItem | undefined): void => {
-	if (selectedItem?.kind !== 'mission') return;
+	if (selectedItem?.kind !== 'node') return;
 	world.getResource('campaignState').selectedNodeId = selectedItem.node.id;
 };
 
@@ -158,7 +159,7 @@ const renderKeyFor = (
 	selectedIndex: number,
 	selectedItem: MapMenuItem | undefined,
 ): string => {
-	const selectedNodeId = selectedItem?.kind === 'mission' ? selectedItem.node.id : state.selectedNodeId;
+	const selectedNodeId = selectedItem?.kind === 'node' ? selectedItem.node.id : state.selectedNodeId;
 	return `${selectedIndex}|${state.currentNodeId}|${selectedNodeId}|${state.completedNodeIds.join(',')}|${state.nextWaveNumber}`;
 };
 
@@ -169,8 +170,15 @@ const confirmItem = (world: World, item: MapMenuItem | undefined): void => {
 	}
 	const campaignState = world.getResource('campaignState');
 	campaignState.selectedNodeId = item.node.id;
+	if (!item.node.mission) {
+		travelToNode(campaignState, item.node.id);
+		return;
+	}
 	const launch = missionLaunchForNode(campaignState, item.node.id);
-	void world.setScreen('playing', { waveNumber: launch.waveNumber });
+	void world.setScreen('playing', {
+		missionNodeId: launch.nodeId,
+		waveNumber: launch.waveNumber,
+	});
 };
 
 const clampSelection = (selectedIndex: number, itemCount: number): number =>

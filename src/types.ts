@@ -174,6 +174,7 @@ export const builder = ECSpresso.create()
 		})
 		.add('playing', {
 			initialState: (config: PlayingScreenConfig): PlayingScreenState => ({
+				missionNodeId: config.missionNodeId,
 				waveNumber: config.waveNumber,
 				phaseTimer: waveDuration(config.waveNumber),
 				spawnTimer: 0,

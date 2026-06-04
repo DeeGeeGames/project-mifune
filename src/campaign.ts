@@ -66,7 +66,7 @@ const INITIAL_NODES: readonly CampaignMapNode[] = [
 		kind: 'mission',
 		x: 46,
 		y: 72,
-		connectedNodeIds: ['home-base'],
+		connectedNodeIds: ['home-base', 'relay-gamma'],
 		mission: {
 			type: 'waveSurvival',
 			label: 'Wave Survival',
@@ -79,7 +79,7 @@ const INITIAL_NODES: readonly CampaignMapNode[] = [
 		kind: 'pointOfInterest',
 		x: 78,
 		y: 24,
-		connectedNodeIds: ['patrol-alpha'],
+		connectedNodeIds: ['patrol-alpha', 'salvage-beta'],
 	},
 ] as const;
 
@@ -107,10 +107,17 @@ export function campaignNodeStatus(state: CampaignState, nodeId: MapNodeId): Map
 	return 'locked';
 }
 
-export function reachableMissionNodes(state: CampaignState): readonly CampaignMapNode[] {
-	return state.nodes.filter((node) =>
-		node.kind === 'mission' && campaignNodeStatus(state, node.id) === 'reachable'
-	);
+const completedWith = (completedNodeIds: readonly MapNodeId[], nodeId: MapNodeId): readonly MapNodeId[] =>
+	completedNodeIds.includes(nodeId) ? completedNodeIds : [...completedNodeIds, nodeId];
+
+const isReachableTravelNode = (state: CampaignState, node: CampaignMapNode): boolean =>
+	node.kind !== 'homeBase' && campaignNodeStatus(state, node.id) === 'reachable';
+
+const firstReachableNodeId = (state: CampaignState): MapNodeId | null =>
+	state.nodes.find((node) => isReachableTravelNode(state, node))?.id ?? null;
+
+export function reachableMapNodes(state: CampaignState): readonly CampaignMapNode[] {
+	return state.nodes.filter((node) => isReachableTravelNode(state, node));
 }
 
 export function missionLaunchForNode(state: CampaignState, nodeId: MapNodeId): MissionLaunch {
@@ -129,7 +136,14 @@ export function campaignSummaryText(state: CampaignState): string {
 		`Resources gained: ${state.lastMissionResult.resourcesCollected}`;
 }
 
-export function recordWaveSurvivalResult(state: CampaignState, result: LastMissionResult): void {
+export function travelToNode(state: CampaignState, nodeId: MapNodeId): void {
+	state.currentNodeId = nodeId;
+	state.completedNodeIds = completedWith(state.completedNodeIds, nodeId);
+	state.selectedNodeId = firstReachableNodeId(state) ?? nodeId;
+}
+
+export function recordWaveSurvivalResult(state: CampaignState, nodeId: MapNodeId, result: LastMissionResult): void {
+	travelToNode(state, nodeId);
 	state.nextWaveNumber = result.waveNumber + 1;
 	state.lastMissionResult = result;
 }

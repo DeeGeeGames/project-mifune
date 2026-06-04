@@ -152,7 +152,7 @@ export const createWavesPlugin = () => definePlugin({
 						kills: state.kills,
 						resourcesCollected: state.resourcesCollected,
 					};
-					recordWaveSurvivalResult(ecs.getResource('campaignState'), result);
+					recordWaveSurvivalResult(ecs.getResource('campaignState'), state.missionNodeId, result);
 					void ecs.setScreen('homeBase', {});
 					return;
 				}

@@ -1,13 +1,16 @@
 import type { ShopOffer } from './shop-types';
+import type { MapNodeId } from './campaign';
 
 export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'homeBase' | 'sectorMap' | 'market';
 
 export type PlayingScreenConfig = {
 	// TODO: Replace waveNumber with missionId/missionType once home base launches more than Wave Survival.
+	missionNodeId: MapNodeId;
 	waveNumber: number;
 };
 
 export type PlayingScreenState = {
+	missionNodeId: MapNodeId;
 	waveNumber: number;
 	phaseTimer: number;
 	spawnTimer: number;
