@@ -18,6 +18,8 @@ export type CampaignMapNode = {
 	readonly id: MapNodeId;
 	readonly label: string;
 	readonly kind: MapNodeKind;
+	readonly x: number;
+	readonly y: number;
 	readonly connectedNodeIds: readonly MapNodeId[];
 	readonly mission?: CampaignMission;
 };
@@ -41,12 +43,16 @@ const INITIAL_NODES: readonly CampaignMapNode[] = [
 		id: 'home-base',
 		label: 'Home Base',
 		kind: 'homeBase',
+		x: 16,
+		y: 52,
 		connectedNodeIds: ['patrol-alpha', 'salvage-beta'],
 	},
 	{
 		id: 'patrol-alpha',
 		label: 'Patrol Alpha',
 		kind: 'mission',
+		x: 44,
+		y: 32,
 		connectedNodeIds: ['home-base', 'relay-gamma'],
 		mission: {
 			type: 'waveSurvival',
@@ -58,6 +64,8 @@ const INITIAL_NODES: readonly CampaignMapNode[] = [
 		id: 'salvage-beta',
 		label: 'Salvage Beta',
 		kind: 'mission',
+		x: 46,
+		y: 72,
 		connectedNodeIds: ['home-base'],
 		mission: {
 			type: 'waveSurvival',
@@ -69,6 +77,8 @@ const INITIAL_NODES: readonly CampaignMapNode[] = [
 		id: 'relay-gamma',
 		label: 'Relay Gamma',
 		kind: 'pointOfInterest',
+		x: 78,
+		y: 24,
 		connectedNodeIds: ['patrol-alpha'],
 	},
 ] as const;

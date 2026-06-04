@@ -169,6 +169,7 @@
 			border-radius: 10px;
 			background: rgba(8, 12, 22, 0.9);
 			text-align: center;
+			max-width: min(900px, 92vw);
 		}
 		.summary-title {
 			font-size: 22px;
@@ -189,6 +190,91 @@
 			line-height: 2;
 			color: #e8f0ff;
 			white-space: pre;
+		}
+		.sector-map {
+			display: grid;
+			grid-template-columns: minmax(420px, 620px) minmax(180px, 240px);
+			gap: 18px;
+			align-items: stretch;
+			white-space: normal;
+			text-align: left;
+			margin-bottom: 8px;
+		}
+		.sector-map-svg {
+			width: 100%;
+			aspect-ratio: 16 / 9;
+			border: 1px solid rgba(150, 180, 220, 0.18);
+			border-radius: 8px;
+			background:
+				linear-gradient(rgba(150, 180, 220, 0.04) 1px, transparent 1px),
+				linear-gradient(90deg, rgba(150, 180, 220, 0.04) 1px, transparent 1px),
+				rgba(5, 8, 15, 0.52);
+			background-size: 24px 24px;
+		}
+		.sector-map-edge {
+			stroke: rgba(150, 180, 220, 0.34);
+			stroke-width: 1.2;
+		}
+		.sector-map-node circle {
+			fill: #1d2b3d;
+			stroke: #7f8da3;
+			stroke-width: 1.4;
+		}
+		.sector-map-node text {
+			fill: #d8e2f0;
+			font-size: 4px;
+			text-anchor: middle;
+			paint-order: stroke;
+			stroke: rgba(5, 8, 15, 0.92);
+			stroke-width: 1.8px;
+			stroke-linejoin: round;
+		}
+		.sector-map-node--current circle {
+			fill: #314664;
+			stroke: #7fb2ff;
+		}
+		.sector-map-node--reachable circle {
+			fill: #463d1f;
+			stroke: #ffd55a;
+		}
+		.sector-map-node--locked {
+			opacity: 0.42;
+		}
+		.sector-map-node--selected circle {
+			stroke: #ffffff;
+			stroke-width: 2.4;
+		}
+		.sector-map-details {
+			display: flex;
+			flex-direction: column;
+			justify-content: space-between;
+			gap: 12px;
+			min-height: 100%;
+			padding: 14px 16px;
+			border: 1px solid rgba(150, 180, 220, 0.18);
+			border-radius: 8px;
+			background: rgba(5, 8, 15, 0.48);
+		}
+		.sector-map-current {
+			font-size: 12px;
+			line-height: 1.5;
+			color: #98a7be;
+			letter-spacing: 0.06em;
+			text-transform: uppercase;
+		}
+		.sector-map-selected {
+			font-size: 14px;
+			line-height: 1.7;
+			color: #e8f0ff;
+			white-space: pre;
+		}
+		@media (max-width: 760px) {
+			.summary-card {
+				padding: 24px 20px;
+			}
+			.sector-map {
+				grid-template-columns: 1fr;
+			}
 		}
 		.thrust-label { font-size: 10px; letter-spacing: 0.1em; color: #98a7be; margin-bottom: 5px; text-align: center; }
 		.thrust-track {
