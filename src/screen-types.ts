@@ -1,6 +1,6 @@
 import type { ShopOffer } from './shop-types';
 
-export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'homeBase' | 'market';
+export type AppScreenName = 'title' | 'loadoutSelect' | 'playing' | 'homeBase' | 'sectorMap' | 'market';
 
 export type PlayingScreenConfig = {
 	// TODO: Replace waveNumber with missionId/missionType once home base launches more than Wave Survival.
@@ -22,14 +22,11 @@ export type LastMissionResult = {
 	resourcesCollected: number;
 };
 
-export type HomeBaseConfig = {
-	nextWaveNumber?: number;
-	lastMissionResult?: LastMissionResult;
+export type HomeBaseScreenState = {
+	selectedIndex: number;
 };
 
-export type HomeBaseScreenState = {
-	nextWaveNumber: number;
-	lastMissionResult?: LastMissionResult;
+export type SectorMapScreenState = {
 	selectedIndex: number;
 };
 

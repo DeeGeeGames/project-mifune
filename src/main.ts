@@ -34,6 +34,7 @@ import { createAimPreviewPlugin } from './plugins/aimPreview';
 import { createHeadingIndicatorsPlugin } from './plugins/headingIndicators';
 import { createHealthBarsPlugin } from './plugins/healthBars';
 import { createHomeBasePlugin } from './plugins/homeBase';
+import { createSectorMapPlugin } from './plugins/sectorMap';
 import { createTitleScreenPlugin } from './plugins/titleScreen';
 import { createLoadoutSelectPlugin } from './plugins/loadoutSelect';
 import { createMarketPlugin } from './plugins/market';
@@ -44,6 +45,7 @@ import { createLegendPlugin } from './plugins/legend';
 import { createBackdropPlugin } from './plugins/backdrop';
 import { createVfxPlugin } from './plugins/vfx';
 import { createTrailPlugin, spawnShipTrails } from './plugins/trail';
+import { createInitialCampaignState } from './campaign';
 
 const game = builder
 	.withPlugin(createCursorPlugin())
@@ -66,6 +68,7 @@ const game = builder
 	.withPlugin(createHeadingIndicatorsPlugin())
 	.withPlugin(createHealthBarsPlugin())
 	.withPlugin(createHomeBasePlugin())
+	.withPlugin(createSectorMapPlugin())
 	.withPlugin(createTitleScreenPlugin())
 	.withPlugin(createLoadoutSelectPlugin())
 	.withPlugin(createMarketPlugin())
@@ -95,6 +98,8 @@ game.addResource('carrierLoadout', {
 	pairs: emptyLoadoutPairs(),
 	auxSlots: emptyLoadoutAuxSlots(SHIP_SPECS.carrier),
 });
+
+game.addResource('campaignState', createInitialCampaignState());
 
 game.addResource('hudRefs', {
 	resourcesEl: requireEl('hud-resources'),

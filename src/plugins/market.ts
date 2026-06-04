@@ -127,11 +127,7 @@ const confirmReroll = (world: World): void => {
 };
 
 const confirmContinue = (world: World): void => {
-	const state = world.getScreenState('market');
-	void world.setScreen('homeBase', {
-		nextWaveNumber: state.nextWaveNumber,
-		...(state.lastMissionResult ? { lastMissionResult: state.lastMissionResult } : {}),
-	});
+	void world.setScreen('homeBase', {});
 };
 
 const resetToBrowse = (world: World, offerIdx: number): void => {

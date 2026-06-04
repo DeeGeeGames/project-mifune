@@ -39,14 +39,15 @@ import type {
 	AppScreenName,
 	PlayingScreenConfig,
 	PlayingScreenState,
-	HomeBaseConfig,
 	HomeBaseScreenState,
+	SectorMapScreenState,
 	TitleScreenState,
 	LoadoutScreenState,
 	MarketScreenConfig,
 	MarketScreenState,
 } from './screen-types';
 import type { PlayerState, CursorState, HudRefs, LegendState } from './ui-types';
+import type { CampaignState } from './campaign';
 
 export type GameAction =
 	| 'fwd'
@@ -107,6 +108,7 @@ interface CoreResources {
 	hudRefs: HudRefs;
 	carrierLoadout: CarrierLoadout;
 	legend: LegendState;
+	campaignState: CampaignState;
 }
 
 export const builder = ECSpresso.create()
@@ -181,9 +183,12 @@ export const builder = ECSpresso.create()
 			}),
 		})
 		.add('homeBase', {
-			initialState: (config: HomeBaseConfig): HomeBaseScreenState => ({
-				nextWaveNumber: config.nextWaveNumber ?? 1,
-				...(config.lastMissionResult ? { lastMissionResult: config.lastMissionResult } : {}),
+			initialState: (): HomeBaseScreenState => ({
+				selectedIndex: 0,
+			}),
+		})
+		.add('sectorMap', {
+			initialState: (): SectorMapScreenState => ({
 				selectedIndex: 0,
 			}),
 		})

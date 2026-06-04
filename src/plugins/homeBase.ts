@@ -1,5 +1,5 @@
 import { definePlugin, type World } from '../types';
-import type { HomeBaseScreenState } from '../screen-types';
+import { campaignSummaryText } from '../campaign';
 import { wrapIndex, renderMenuText, menuAxisDelta } from '../menu';
 import { setScreenLegend, dpadVertical, type LegendSpec } from './legend';
 
@@ -9,7 +9,7 @@ const LEGEND_SPECS: readonly LegendSpec[] = [
 ];
 
 const MENU_ITEMS = [
-	{ id: 'deploy', label: 'Deploy: Wave Survival' },
+	{ id: 'map', label: 'Sector Map' },
 	{ id: 'market', label: 'Market' },
 	{ id: 'loadout', label: 'Loadout' },
 ] as const;
@@ -17,30 +17,21 @@ const MENU_ITEMS = [
 type MenuId = typeof MENU_ITEMS[number]['id'];
 
 const MENU_ACTIONS: Record<MenuId, (ecs: World) => void> = {
-	deploy: (ecs) => {
-		const state = ecs.getScreenState('homeBase');
-		void ecs.setScreen('playing', { waveNumber: state.nextWaveNumber });
+	map: (ecs) => {
+		void ecs.setScreen('sectorMap', {});
 	},
 	market: (ecs) => {
-		const state = ecs.getScreenState('homeBase');
-		// TODO: Wire market/loadout/map actions through explicit base facilities and campaign state.
+		const campaignState = ecs.getResource('campaignState');
 		void ecs.setScreen('market', {
-			waveNumber: state.lastMissionResult?.waveNumber ?? state.nextWaveNumber,
-			nextWaveNumber: state.nextWaveNumber,
-			...(state.lastMissionResult ? { lastMissionResult: state.lastMissionResult } : {}),
+			waveNumber: campaignState.lastMissionResult?.waveNumber ?? campaignState.nextWaveNumber,
+			nextWaveNumber: campaignState.nextWaveNumber,
+			...(campaignState.lastMissionResult ? { lastMissionResult: campaignState.lastMissionResult } : {}),
 		});
 	},
 	loadout: (ecs) => {
 		// TODO: Wire loadout edits into base-owned campaign state instead of leaving this screen boundary lossy.
 		void ecs.setScreen('loadoutSelect', {});
 	},
-};
-
-const statsText = (state: HomeBaseScreenState): string => {
-	if (!state.lastMissionResult) return 'No missions completed';
-	return `Last mission: Wave Survival\n` +
-		`Enemies killed: ${state.lastMissionResult.kills}\n` +
-		`Resources gained: ${state.lastMissionResult.resourcesCollected}`;
 };
 
 export const createHomeBasePlugin = () => definePlugin({
@@ -51,9 +42,10 @@ export const createHomeBasePlugin = () => definePlugin({
 		world.onScreenEnter('homeBase', () => {
 			// TODO: Replace the old summary DOM with a real home-base surface.
 			const state = world.getScreenState('homeBase');
+			const campaignState = world.getResource('campaignState');
 			const hudRefs = world.getResource('hudRefs');
 			hudRefs.summaryTitleEl.textContent = 'HOME BASE';
-			hudRefs.summaryStatsEl.textContent = statsText(state);
+			hudRefs.summaryStatsEl.textContent = campaignSummaryText(campaignState);
 			hudRefs.summaryMenuEl.textContent = renderMenuText(MENU_ITEMS, state.selectedIndex, (item) => item.label);
 			hudRefs.summaryEl.style.display = 'flex';
 			lastRenderedIndex = state.selectedIndex;

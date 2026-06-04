@@ -8,6 +8,7 @@ import { createKinematicState } from '../kinematic';
 import { makeCollider } from '../collider';
 import { createBehaviorTree, createRangedBehaviorTrees, type RangedBehaviorTrees, type RangedBlackboard } from './enemy-behavior';
 import { buildHealthBar } from './healthBars';
+import { recordWaveSurvivalResult } from '../campaign';
 import {
 	BRAWLER_RANGED_CONFIG,
 	CAMERA_VIEW_SIZE,
@@ -146,15 +147,13 @@ export const createWavesPlugin = () => definePlugin({
 
 				if (state.phaseTimer <= 0) {
 					state.phaseTimer = 0;
-					// TODO: Mission completion should eventually update campaign state before returning to base.
-					void ecs.setScreen('homeBase', {
-						nextWaveNumber: state.waveNumber + 1,
-						lastMissionResult: {
-							waveNumber: state.waveNumber,
-							kills: state.kills,
-							resourcesCollected: state.resourcesCollected,
-						},
-					});
+					const result = {
+						waveNumber: state.waveNumber,
+						kills: state.kills,
+						resourcesCollected: state.resourcesCollected,
+					};
+					recordWaveSurvivalResult(ecs.getResource('campaignState'), result);
+					void ecs.setScreen('homeBase', {});
 					return;
 				}
 
